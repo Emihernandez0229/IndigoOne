@@ -122,6 +122,17 @@ body {
     letter-spacing: 10px;
 }
 
+/* Button */
+.email-button {
+    display: inline-block;
+    background: #29347A;
+    color: #FFFFFF;
+    text-decoration: none;
+    padding: 14px 35px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
 /* FOOTER */
 .email-footer {
     background: #17204F;
@@ -251,24 +262,26 @@ body {
 <!-- CONTENIDO-->
 <tr>
 <td class="email-content">
-<p class="eyebrow">Notificación administrativa</p>
+<p class="eyebrow">Solicitud pendiente</p>
  
-<h1>Se creó un nuevo usuario</h1>
+<h1>Un nuevo usuario espera tu autorización</h1>
  
 <p>Hola <strong>{{nombre_admin}}</strong>,</p>
  
-<p>Se ha registrado un nuevo usuario en el sistema, dentro de la sucursal que administras:</p>
+<p>Se ha solicitado la creación de un nuevo usuario en la sucursal que administras. El usuario no se creará hasta que apruebes esta solicitud:</p>
  
 <table class="meta-table" width="100%" cellspacing="0" cellpadding="0" role="presentation">
-<tr><td class="meta-label">Usuario nuevo</td><td class="meta-value">{{nombre_usuario_nuevo}}</td></tr>
+<tr><td class="meta-label">Usuario solicitado</td><td class="meta-value">{{nombre_usuario_nuevo}}</td></tr>
 <tr><td class="meta-label">Sucursal</td><td class="meta-value">{{sucursal}}</td></tr>
-<tr><td class="meta-label">Rol asignado</td><td class="meta-value">{{rol}}</td></tr>
-<tr><td class="meta-label">Fecha de creación</td><td class="meta-value">{{fecha_creacion}}</td></tr>
+<tr><td class="meta-label">Rol solicitado</td><td class="meta-value">{{rol}}</td></tr>
+<tr><td class="meta-label">Fecha de solicitud</td><td class="meta-value">{{fecha_solicitud}}</td></tr>
 </table>
+ 
+<a href="{{link_aprobacion}}" class="email-button">Aprobar y crear usuario</a>
  
 <hr class="email-divider" />
  
-<p>Si esta acción no fue autorizada por ti, eliminalo de inmediato por la aplicación de escritorio Indigo One.</p>
+<p>Si no reconoces esta solicitud, puedes ignorarla. El usuario no será creado sin tu autorización.</p>
 </td>
 </tr>
 
