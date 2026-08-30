@@ -5,7 +5,6 @@ const { generarToken } = require('../../../core/utils/jwt');
 const SALT_ROUNDS = 10;
 
 
-// login - indigo
 async function loginIndigo(usuario, password) {
   const { rows } = await pool.query(
     'SELECT * FROM indigo_usuarios WHERE usuario = $1 AND activo = TRUE',
@@ -30,17 +29,16 @@ async function loginIndigo(usuario, password) {
     id: user.id,
     tipo: 'indigo',
     rol: user.rol,
+    sucursal_id: user.sucursal_id,
   });
 
   return {
     token,
-    usuario: { id: user.id, nombre: user.nombre, rol: user.rol },
+    usuario: { id: user.id, nombre: user.nombre, rol: user.rol, sucursal_id: user.sucursal_id },
   };
 }
 
 
-// login - optica
-// El usuario del dueño en su primer inicio de sesion es el mismo codigo de la óptica (ej. "EVPU") ya logueado puede cambiarlo
 async function loginOptica(codigo, usuario, password) {
   const { rows: opticaRows } = await pool.query(
     'SELECT * FROM opticas WHERE codigo = $1 AND activo = TRUE',
@@ -63,16 +61,6 @@ async function loginOptica(codigo, usuario, password) {
   if (!user) {
     const err = new Error('Usuario o contraseña incorrectos');
     err.status = 401;
-    throw err;
-  }
-
-  if (user.estado !== 'autorizado') {
-    const err = new Error(
-      user.estado === 'pendiente'
-        ? 'Tu registro aún no ha sido autorizado por el dueño/encargado de tu óptica'
-        : 'Tu registro fue rechazado'
-    );
-    err.status = 403;
     throw err;
   }
 
@@ -105,7 +93,6 @@ async function loginOptica(codigo, usuario, password) {
 }
 
 
-// cambiar contraseña
 async function cambiarPassword({ optica_usuario_id, optica_id, passwordNueva, esDueno }) {
   const passwordHash = await bcrypt.hash(passwordNueva, SALT_ROUNDS);
 

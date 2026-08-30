@@ -17,7 +17,7 @@ async function loginOptica(req, res, next) {
   try {
     const { codigo, usuario, password } = req.body;
     if (!codigo || !usuario || !password) {
-      return res.status(400).json({ error: 'Código, usuario y contraseña son requeridos' });
+      return res.status(400).json({ error: 'Codigo, usuario y contraseña son requeridos' });
     }
     const resultado = await loginService.loginOptica(codigo, usuario, password);
     res.json(resultado);
@@ -26,7 +26,7 @@ async function loginOptica(req, res, next) {
   }
 }
 
-// el usuario puede cambiar su contraseña
+
 async function cambiarPassword(req, res, next) {
   try {
     const { passwordNueva } = req.body;
@@ -39,7 +39,7 @@ async function cambiarPassword(req, res, next) {
       passwordNueva,
       esDueno: req.user.rol === 'dueño',
     });
-    res.json({ mensaje: 'Contraseña actualizada correctamente' });
+    res.json({ mensaje: 'Contraseña actualizada' });
   } catch (err) {
     next(err);
   }

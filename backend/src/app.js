@@ -2,28 +2,23 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
-const authRoutes = require('./auth/auth.routes');
+const authRoutes = require('./auth');
 const manejadorErrores = require('./core/middlewares/error.middleware');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Ruta de prueba
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', servicio: 'IndigoOne API' });
 });
 
-// Módulos por dominio
 app.use('/api/auth', authRoutes);
+app.use('/api/indigo', require('./indigo'));
+app.use('/api/optica', require('./optica'));
 
-
-
-// app.use('/api/indigo', require('./indigo'));
-// app.use('/api/optica', require('./optica'));
-
-// Manejador de errores (siempre al final)
 app.use(manejadorErrores);
 
 const PORT = process.env.PORT || 4000;

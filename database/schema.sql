@@ -1,21 +1,23 @@
--- IndigoOne - Base de Datos
--- PostgreSQL
-
--- Podemos editar este archivo pa la base de datos
--- database/reset-db.sh
-
-
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-
--- INDIGO
+CREATE TABLE indigo_sucursales (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre VARCHAR(150) NOT NULL,
+    direccion TEXT,
+    telefono VARCHAR(20),
+    activo BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
 
 CREATE TABLE indigo_usuarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sucursal_id UUID REFERENCES indigo_sucursales(id),
     nombre VARCHAR(150) NOT NULL,
     usuario VARCHAR(100) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    rol VARCHAR(30) NOT NULL CHECK (rol IN ('admin', 'laboratorio', 'super_admin')),
+    rol VARCHAR(30) NOT NULL
+        CHECK (rol IN ('super_usuario', 'dueño', 'gerente_sucursal', 'empleado_ventas', 'empleado_laboratorio')),
+    dado_de_alta_por UUID REFERENCES indigo_usuarios(id),
     activo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
@@ -50,17 +52,14 @@ CREATE TABLE inventario_existencias (
 );
 
 
-
--- OPTICAS
-
 CREATE TABLE opticas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    codigo VARCHAR(20) UNIQUE NOT NULL,          -- ej. "EVPU"
+    codigo VARCHAR(20) UNIQUE NOT NULL,
     razon_social VARCHAR(200) NOT NULL,
-    password_hash TEXT NOT NULL,                  -- login inicial del dueño = codigo/codigo
+    password_hash TEXT NOT NULL,              
     password_cambiada BOOLEAN DEFAULT FALSE,
     activo BOOLEAN DEFAULT TRUE,
-    creado_por UUID REFERENCES indigo_usuarios(id),
+    creado_por UUID REFERENCES indigo_usuarios(id),   
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -75,16 +74,15 @@ CREATE TABLE sucursales (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+
 CREATE TABLE optica_usuarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     optica_id UUID NOT NULL REFERENCES opticas(id),
-    sucursal_id UUID REFERENCES sucursales(id),   -- NULL si es dueño (ve todas las sucursales)
+    sucursal_id UUID REFERENCES sucursales(id),
     nombre VARCHAR(150) NOT NULL,
     usuario VARCHAR(100) NOT NULL,
     password_hash TEXT NOT NULL,
     rol VARCHAR(30) NOT NULL CHECK (rol IN ('dueño', 'encargado', 'empleado')),
-    estado VARCHAR(20) NOT NULL DEFAULT 'pendiente'
-        CHECK (estado IN ('pendiente', 'autorizado', 'rechazado')),
     dado_de_alta_por UUID REFERENCES optica_usuarios(id),
     activo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -92,15 +90,11 @@ CREATE TABLE optica_usuarios (
     UNIQUE(optica_id, usuario)
 );
 
-CREATE TABLE solicitudes_registro (
+CREATE TABLE sucursal_gerentes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sucursal_id UUID NOT NULL UNIQUE REFERENCES sucursales(id),
     optica_usuario_id UUID NOT NULL REFERENCES optica_usuarios(id),
-    codigo_confirmacion VARCHAR(10) NOT NULL,
-    autorizado_por UUID REFERENCES optica_usuarios(id),
-    estado VARCHAR(20) NOT NULL DEFAULT 'pendiente'
-        CHECK (estado IN ('pendiente', 'autorizado', 'rechazado', 'expirado')),
-    created_at TIMESTAMPTZ DEFAULT now(),
-    resuelto_at TIMESTAMPTZ
+    created_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE clientes_finales (
@@ -115,9 +109,6 @@ CREATE TABLE clientes_finales (
 );
 
 
-
--- 3. EXPEDIENTES Y ORDENES DE LABORATORIO
-
 CREATE TABLE expedientes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cliente_final_id UUID NOT NULL REFERENCES clientes_finales(id),
@@ -130,9 +121,6 @@ CREATE TABLE expedientes (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-
--- 4. PUNTO DE VENTA, CITAS, PRODUCTOS/SERVICIOS
--- (se crean antes de ordenes_laboratorio porque esta las referencia)
 
 CREATE TABLE productos_servicios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -178,7 +166,7 @@ CREATE TABLE citas (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Ordenes que ventas manda a Bicel (laboratorio de Indigo)
+
 CREATE TABLE ordenes_laboratorio (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     folio VARCHAR(30) UNIQUE NOT NULL,
@@ -195,7 +183,7 @@ CREATE TABLE ordenes_laboratorio (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Historial de cambios de estado (trazabilidad completa)
+
 CREATE TABLE ordenes_historial (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     orden_id UUID NOT NULL REFERENCES ordenes_laboratorio(id),
@@ -206,13 +194,12 @@ CREATE TABLE ordenes_historial (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ============================================================
--- INDICES (para las búsquedas más comunes)
--- ============================================================
 
+CREATE INDEX idx_indigo_usuarios_sucursal ON indigo_usuarios(sucursal_id);
 CREATE INDEX idx_sucursales_optica ON sucursales(optica_id);
 CREATE INDEX idx_optica_usuarios_optica ON optica_usuarios(optica_id);
 CREATE INDEX idx_optica_usuarios_sucursal ON optica_usuarios(sucursal_id);
+CREATE INDEX idx_sucursal_gerentes_usuario ON sucursal_gerentes(optica_usuario_id);
 CREATE INDEX idx_clientes_finales_sucursal ON clientes_finales(sucursal_id);
 CREATE INDEX idx_expedientes_cliente ON expedientes(cliente_final_id);
 CREATE INDEX idx_ventas_sucursal ON ventas(sucursal_id);
