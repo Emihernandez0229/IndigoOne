@@ -9,7 +9,7 @@ router.post(
   '/',
   autenticar,
   soloTipo('indigo'),
-  soloRol('dueño', 'gerente_sucursal'),
+  soloRol('dueno', 'gerente_sucursal'),
   clientesController.crearOptica
 );
 

@@ -16,7 +16,7 @@ CREATE TABLE indigo_usuarios (
     usuario VARCHAR(100) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     rol VARCHAR(30) NOT NULL
-        CHECK (rol IN ('super_usuario', 'dueño', 'gerente_sucursal', 'empleado_ventas', 'empleado_laboratorio')),
+        CHECK (rol IN ('super_usuario', 'dueno', 'gerente_sucursal', 'empleado_ventas', 'empleado_laboratorio')),
     dado_de_alta_por UUID REFERENCES indigo_usuarios(id),
     activo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -52,6 +52,8 @@ CREATE TABLE inventario_existencias (
 );
 
 
+
+
 CREATE TABLE opticas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     codigo VARCHAR(20) UNIQUE NOT NULL,
@@ -82,7 +84,7 @@ CREATE TABLE optica_usuarios (
     nombre VARCHAR(150) NOT NULL,
     usuario VARCHAR(100) NOT NULL,
     password_hash TEXT NOT NULL,
-    rol VARCHAR(30) NOT NULL CHECK (rol IN ('dueño', 'encargado', 'empleado')),
+    rol VARCHAR(30) NOT NULL CHECK (rol IN ('dueno', 'encargado', 'empleado')),
     dado_de_alta_por UUID REFERENCES optica_usuarios(id),
     activo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now(),

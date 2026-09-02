@@ -11,7 +11,7 @@ router.use(autenticar, soloTipo('indigo'));
 // De aqui para abajo ya todo pide login
 router.post('/super-usuarios', soloRol('super_usuario'), usuariosController.crearSuperUsuario);
 router.post('/duenos', soloRol('super_usuario'), usuariosController.crearDueno);
-router.post('/gerentes', soloRol('dueño'), usuariosController.crearGerenteSucursal);
+router.post('/gerentes', soloRol('dueno'), usuariosController.crearGerenteSucursal);
 router.post('/empleados', soloRol('gerente_sucursal'), usuariosController.crearEmpleado);
 
 module.exports = router;

@@ -17,7 +17,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/indigo', require('./indigo'));
-app.use('/api/optica', require('./optica'));
+app.use('/api/optica', require('./opticas'));
 
 app.use(manejadorErrores);
 

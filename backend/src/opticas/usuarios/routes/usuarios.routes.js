@@ -6,8 +6,8 @@ const { autenticar, soloTipo, soloRol } = require('../../../core/middlewares/aut
 
 router.use(autenticar, soloTipo('optica'));
 
-router.post('/gerentes', soloRol('dueño'), usuariosController.crearGerente);
+router.post('/gerentes', soloRol('dueno'), usuariosController.crearGerente);
 
-router.post('/empleados', soloRol('dueño', 'encargado'), usuariosController.crearEmpleado);
+router.post('/empleados', soloRol('dueno', 'encargado'), usuariosController.crearEmpleado);
 
 module.exports = router;

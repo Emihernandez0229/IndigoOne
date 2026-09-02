@@ -1,27 +1,38 @@
 const bcrypt = require('bcrypt');
 const pool = require('../../../config/db');
+const { generarCredencialUnica } = require('../../../core/utils/credenciales');
 
 const SALT_ROUNDS = 10;
 
-async function crearGerente({ opticaId, nombre, usuario, password, creadoPorId }) {
-  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+function existeUsuarioEnOptica(opticaId) {
+  return async (usuario) => {
+    const { rows } = await pool.query(
+      'SELECT id FROM optica_usuarios WHERE optica_id = $1 AND usuario = $2',
+      [opticaId, usuario]
+    );
+    return !!rows[0];
+  };
+}
+
+async function crearGerente({ opticaId, nombre, creadoPorId }) {
+  const credencial = await generarCredencialUnica('GTE', existeUsuarioEnOptica(opticaId));
+  const passwordHash = await bcrypt.hash(credencial, SALT_ROUNDS);
 
   const { rows } = await pool.query(
     `INSERT INTO optica_usuarios (optica_id, sucursal_id, nombre, usuario, password_hash, rol, dado_de_alta_por)
      VALUES ($1, NULL, $2, $3, $4, 'encargado', $5) RETURNING *`,
-    [opticaId, nombre, usuario, passwordHash, creadoPorId]
+    [opticaId, nombre, credencial, passwordHash, creadoPorId]
   );
-
-  return rows[0];
+  return { ...rows[0], credencial_provisional: credencial };
 }
 
-async function crearEmpleado({ opticaId, sucursalId, nombre, usuario, password, creador }) {
+async function crearEmpleado({ opticaId, sucursalId, nombre, creador }) {
   const { rows: sucursalRows } = await pool.query(
     'SELECT * FROM sucursales WHERE id = $1 AND optica_id = $2 AND activo = TRUE',
     [sucursalId, opticaId]
   );
   if (!sucursalRows[0]) {
-    const err = new Error('Sucursal no encontrada en tu óptica');
+    const err = new Error('Sucursal no encontrada en tu optica');
     err.status = 404;
     throw err;
   }
@@ -38,15 +49,15 @@ async function crearEmpleado({ opticaId, sucursalId, nombre, usuario, password, 
     }
   }
 
-  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+  const credencial = await generarCredencialUnica('EMP', existeUsuarioEnOptica(opticaId));
+  const passwordHash = await bcrypt.hash(credencial, SALT_ROUNDS);
 
   const { rows } = await pool.query(
     `INSERT INTO optica_usuarios (optica_id, sucursal_id, nombre, usuario, password_hash, rol, dado_de_alta_por)
      VALUES ($1, $2, $3, $4, $5, 'empleado', $6) RETURNING *`,
-    [opticaId, sucursalId, nombre, usuario, passwordHash, creador.id]
+    [opticaId, sucursalId, nombre, credencial, passwordHash, creador.id]
   );
-
-  return rows[0];
+  return { ...rows[0], credencial_provisional: credencial };
 }
 
 module.exports = { crearGerente, crearEmpleado };

@@ -4,11 +4,10 @@ const { generarToken } = require('../../../core/utils/jwt');
 
 const SALT_ROUNDS = 10;
 
-
 async function loginIndigo(usuario, password) {
   const { rows } = await pool.query(
     'SELECT * FROM indigo_usuarios WHERE usuario = $1 AND activo = TRUE',
-    [usuario]
+    [usuario.toUpperCase()]
   );
   const user = rows[0];
 
@@ -38,11 +37,10 @@ async function loginIndigo(usuario, password) {
   };
 }
 
-
 async function loginOptica(codigo, usuario, password) {
   const { rows: opticaRows } = await pool.query(
     'SELECT * FROM opticas WHERE codigo = $1 AND activo = TRUE',
-    [codigo]
+    [codigo.toUpperCase()]
   );
   const optica = opticaRows[0];
 
@@ -54,7 +52,7 @@ async function loginOptica(codigo, usuario, password) {
 
   const { rows: userRows } = await pool.query(
     'SELECT * FROM optica_usuarios WHERE optica_id = $1 AND usuario = $2 AND activo = TRUE',
-    [optica.id, usuario]
+    [optica.id, usuario.toUpperCase()]
   );
   const user = userRows[0];
 
@@ -91,7 +89,6 @@ async function loginOptica(codigo, usuario, password) {
     },
   };
 }
-
 
 async function cambiarPassword({ optica_usuario_id, optica_id, passwordNueva, esDueno }) {
   const passwordHash = await bcrypt.hash(passwordNueva, SALT_ROUNDS);

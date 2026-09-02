@@ -5,7 +5,7 @@ const sucursalesController = require('../controllers/sucursales.controller');
 const { autenticar, soloTipo, soloRol } = require('../../../core/middlewares/auth.middleware');
 
 // Todo esto es cosa del dueño
-router.use(autenticar, soloTipo('indigo'), soloRol('dueño'));
+router.use(autenticar, soloTipo('indigo'), soloRol('dueno'));
 
 router.get('/gerentes-disponibles', sucursalesController.listarGerentesDisponibles);
 router.post('/', sucursalesController.crearSucursal);
