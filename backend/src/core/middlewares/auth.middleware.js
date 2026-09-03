@@ -1,5 +1,6 @@
 const { verificarToken } = require('../utils/jwt');
 
+
 function autenticar(req, res, next) {
   const header = req.headers.authorization;
 
@@ -14,7 +15,7 @@ function autenticar(req, res, next) {
     req.user = payload;
     next();
   } catch (err) {
-    return res.status(401).json({ error: 'Token inválido o expirado' });
+    return res.status(401).json({ error: 'Token invalido o expirado' });
   }
 }
 
@@ -31,8 +32,11 @@ function soloTipo(...tipos) {
 
 function soloRol(...roles) {
   return (req, res, next) => {
+    if (req.user && req.user.tipo === 'indigo' && req.user.rol === 'super_usuario') {
+      return next();
+    }
     if (!req.user || !roles.includes(req.user.rol)) {
-      return res.status(403).json({ error: 'Tu rol no tiene permiso para esta acción' });
+      return res.status(403).json({ error: 'Tu rol no tiene permiso para esta accion' });
     }
     next();
   };

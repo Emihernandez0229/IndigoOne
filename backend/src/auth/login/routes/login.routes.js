@@ -9,7 +9,8 @@ router.post('/indigo', loginController.loginIndigo);
 router.post('/optica', loginController.loginOptica);
 
 
-router.post('/optica/cambiar-password',
+router.post(
+  '/optica/cambiar-password',
   autenticar,
   soloTipo('optica'),
   loginController.cambiarPassword
