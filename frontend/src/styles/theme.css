@@ -1,0 +1,23 @@
+@theme {
+  /* TIPOGRAFÍA */
+  --font-primary: "Inter", "Segoe UI", Arial, sans-serif;
+
+  /* INDIGO */
+  --color-indigo-primary: #29347A;
+  --color-indigo-dark: #17204F;
+  --color-indigo-secondary: #5565C8;
+  --color-indigo-light: #E9EDFF;
+
+  /* BASE */
+  --color-background: #F6F7FB;
+  --color-surface: #FFFFFF;
+
+  /* TEXTO */
+  --color-text-primary: #182033;
+  --color-text-secondary: #667085;
+
+  /* ESTADOS */
+  --color-success: #22A06B;
+  --color-warning: #F59E0B;
+  --color-error: #E5484D;
+}
