@@ -1,5 +1,13 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+
+CREATE TABLE credenciales (
+    usuario VARCHAR(100) PRIMARY KEY,
+    tipo VARCHAR(10) NOT NULL CHECK (tipo IN ('indigo', 'optica')),
+    referencia_id UUID NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE TABLE indigo_sucursales (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(150) NOT NULL,
@@ -43,10 +51,13 @@ CREATE TABLE inventario_items (
     deleted_at TIMESTAMPTZ
 );
 
+
+--Vamos a cambiar de almacen para saber a que sucursal le pertenece
 CREATE TABLE inventario_existencias (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     item_id UUID NOT NULL REFERENCES inventario_items(id),
-    almacen VARCHAR(100),
+    indigo_sucursal_id UUID REFERENCES indigo_sucursales(id),
+    --almacen VARCHAR(100),
     cantidad INTEGER NOT NULL DEFAULT 0,
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -74,6 +85,16 @@ CREATE TABLE sucursales (
     telefono VARCHAR(20),
     activo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now()
+);
+
+--Una sucursal optica puede tener una en tuxtla y no por eso se le va a mostrar el inventario de tapchula
+CREATE TABLE sucursal_proveedor (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sucursal_id UUID NOT NULL UNIQUE REFERENCES sucursales(id),
+    indigo_sucursal_id UUID NOT NULL REFERENCES indigo_sucursales(id),
+    asignado_por UUID REFERENCES indigo_usuarios(id),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 
@@ -197,8 +218,11 @@ CREATE TABLE ordenes_historial (
 );
 
 
+CREATE INDEX idx_credenciales_referencia ON credenciales(referencia_id);
 CREATE INDEX idx_indigo_usuarios_sucursal ON indigo_usuarios(sucursal_id);
 CREATE INDEX idx_sucursales_optica ON sucursales(optica_id);
+CREATE INDEX idx_sucursal_proveedor_indigo ON sucursal_proveedor(indigo_sucursal_id);
+CREATE INDEX idx_inventario_existencias_indigo_sucursal ON inventario_existencias(indigo_sucursal_id);
 CREATE INDEX idx_optica_usuarios_optica ON optica_usuarios(optica_id);
 CREATE INDEX idx_optica_usuarios_sucursal ON optica_usuarios(sucursal_id);
 CREATE INDEX idx_sucursal_gerentes_usuario ON sucursal_gerentes(optica_usuario_id);

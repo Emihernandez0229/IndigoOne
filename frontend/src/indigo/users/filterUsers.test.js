@@ -3,11 +3,11 @@ import { describe, it, expect } from "vitest";
 import { filterUsers } from "./filterUsers";
 
 
-const users = [
-  { id: 1, name: "Ana Ramírez", role: "INDIGO_BRANCH_MANAGER", branchId: 1, branchName: "Sucursal Centro" },
-  { id: 2, name: "Luis Gómez", role: "INDIGO_SALES", branchId: 1, branchName: "Sucursal Centro" },
-  { id: 3, name: "Óscar Lima", role: "INDIGO_SALES", branchId: 2, branchName: "Sucursal Norte" },
-];
+// const users = [
+//   { id: 1, name: "Ana Ramírez", role: "INDIGO_BRANCH_MANAGER", branchId: 1, branchName: "Sucursal Centro" },
+//   { id: 2, name: "Luis Gómez", role: "INDIGO_SALES", branchId: 1, branchName: "Sucursal Centro" },
+//   { id: 3, name: "Óscar Lima", role: "INDIGO_SALES", branchId: 2, branchName: "Sucursal Norte" },
+// ];
 
 
 describe("filterUsers", () => {

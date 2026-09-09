@@ -1,82 +1,133 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useState} from "react";
 
-import { useAuth } from "../../../shared/context/AuthContext";
-import { scopeByBranch } from "../../../shared/security/dataScope";
-
-import {
-  listBranches,
-  createBranch,
-  updateBranch,
-  deactivateBranch,
-} from "../services/branchService";
+import {listBranches, createBranch, updateBranch, deactivateBranch} from "../services/branchService";
 
 
-/**
- * Estado y acciones de la pantalla de Sucursales.
- * Aplica el alcance por rol: el dueño ve todas, el jefe solo las suyas.
- */
 export default function useBranches() {
-
-  const { user } = useAuth();
-
-  const [rows, setRows] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
 
 
   useEffect(() => {
-
     let active = true;
-
     (async () => {
       try {
         setLoading(true);
-        const data = await listBranches();
-        if (active) setRows(data);
+        setError(null);
+        const data =
+          await listBranches();
+        if (active) {
+          setBranches(data);
+        }
       } catch (err) {
-        if (active) setError(err);
+        if (active) {
+          setError(err);
+        }
       } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     })();
 
-    return () => { active = false; };
-
+    return () => {
+      active = false;
+    };
   }, [reloadKey]);
 
 
-  const reload = useCallback(() => setReloadKey((key) => key + 1), []);
-
-
-  // Solo las sucursales que este usuario puede ver.
-  const branches = useMemo(
-    () => scopeByBranch(rows, user, (row) => row.id),
-    [rows, user]
+  const reload = useCallback(
+    () =>
+      setReloadKey(
+        (key) => key + 1
+      ),
+    []
   );
 
 
-  const create = useCallback(async (payload) => {
-    const created = await createBranch(payload);
-    setRows((prev) => [...prev, created]);
-    return created;
-  }, []);
+  const create = useCallback(
+    async (payload) => {
+      const created =
+        await createBranch(
+          payload
+        );
+
+      setBranches(
+        (prev) => [
+          ...prev,
+          created
+        ]
+      );
+      return created;
+    },
+    []
+  );
 
 
-  const update = useCallback(async (id, payload) => {
-    const updated = await updateBranch(id, payload);
-    setRows((prev) => prev.map((row) => (row.id === id ? updated : row)));
-    return updated;
-  }, []);
+  const update = useCallback(
+    async (id, payload) => {
+      const updated =
+        await updateBranch(
+          id,
+          payload
+        );
+
+      setBranches(
+        (prev) =>
+          prev.map(
+            (row) =>
+              row.id === id
+                ? {
+                    ...row,
+                    ...updated
+                  }
+                : row
+          )
+      );
+      return updated;
+    },
+    []
+  );
 
 
-  const deactivate = useCallback(async (id) => {
-    const updated = await deactivateBranch(id);
-    setRows((prev) => prev.map((row) => (row.id === id ? updated : row)));
-    return updated;
-  }, []);
+  const deactivate = useCallback(
+    async (id) => {
+
+      const updated =
+        await deactivateBranch(id);
 
 
-  return { branches, loading, error, reload, create, update, deactivate };
+      setBranches(
+        (prev) =>
+          prev.map(
+            (row) =>
+              row.id === id
+                ? {
+                    ...row,
+                    ...updated
+                  }
+                : row
+          )
+      );
+
+
+      return updated;
+
+    },
+    []
+  );
+
+
+  return {
+    branches,
+    loading,
+    error,
+    reload,
+    create,
+    update,
+    deactivate
+  };
 
 }

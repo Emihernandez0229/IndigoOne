@@ -1,12 +1,7 @@
 import { describe, it, expect } from "vitest";
 
-import {
-  hasPermission,
-  hasAnyPermission,
-  hasAllPermissions,
-  getPermissionsForRole,
-} from "./accessControl";
-import { ROLES } from "./roles";
+import {hasPermission,hasAnyPermission,hasAllPermissions,getPermissionsForRole} from "./accessControl";
+import { ROLES} from "./roles";
 
 
 describe("hasPermission", () => {
@@ -67,22 +62,22 @@ describe("hasAllPermissions", () => {
 
 describe("getPermissionsForRole", () => {
 
-  it("devuelve los permisos del dueño Indigo", () => {
-    const permissions = getPermissionsForRole(ROLES.INDIGO_OWNER);
+  it("devuelve los permisos del dueno Indigo", () => {
+    const permissions = getPermissionsForRole(ROLES.INDIGO_DUENO);
     expect(permissions).toContain("branch.view");
     expect(permissions).toContain("user.view");
     expect(permissions).toContain("reports.global");
   });
 
   it("ventas y laboratorio no pueden ver usuarios ni sucursales", () => {
-    expect(getPermissionsForRole(ROLES.INDIGO_SALES)).not.toContain("user.view");
-    expect(getPermissionsForRole(ROLES.INDIGO_SALES)).not.toContain("branch.view");
-    expect(getPermissionsForRole(ROLES.INDIGO_LAB)).not.toContain("user.view");
-    expect(getPermissionsForRole(ROLES.INDIGO_LAB)).not.toContain("branch.view");
+    expect(getPermissionsForRole(ROLES.INDIGO_EMPLEADO_VENTAS)).not.toContain("user.view");
+    expect(getPermissionsForRole(ROLES.INDIGO_EMPLEADO_VENTAS)).not.toContain("branch.view");
+    expect(getPermissionsForRole(ROLES.INDIGO_EMPLEADO_LABORATORIO)).not.toContain("user.view");
+    expect(getPermissionsForRole(ROLES.INDIGO_EMPLEADO_LABORATORIO)).not.toContain("branch.view");
   });
 
-  it("el jefe de sucursal puede ver sucursales y usuarios", () => {
-    const permissions = getPermissionsForRole(ROLES.INDIGO_BRANCH_MANAGER);
+  it("el gerente de sucursal puede ver sucursales y usuarios", () => {
+    const permissions = getPermissionsForRole(ROLES.INDIGO_GERENTE_SUCURSAL);
     expect(permissions).toContain("branch.view");
     expect(permissions).toContain("user.view");
   });

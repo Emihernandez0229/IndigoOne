@@ -9,11 +9,19 @@ import SalesDashboard from "./views/SalesDashboard";
 import LaboratoryDashboard from "./views/LaboratoryDashboard";
 
 //Todas las rutas Indigo entran por aqui (/indigo/dashboard).
+// const DASHBOARD_BY_ROLE = {
+//   [ROLES.INDIGO_OWNER]: OwnerDashboard,
+//   [ROLES.INDIGO_BRANCH_MANAGER]: BranchManagerDashboard,
+//   [ROLES.INDIGO_SALES]: SalesDashboard,
+//   [ROLES.INDIGO_LAB]: LaboratoryDashboard,
+// };
+
 const DASHBOARD_BY_ROLE = {
-  [ROLES.INDIGO_OWNER]: OwnerDashboard,
-  [ROLES.INDIGO_BRANCH_MANAGER]: BranchManagerDashboard,
-  [ROLES.INDIGO_SALES]: SalesDashboard,
-  [ROLES.INDIGO_LAB]: LaboratoryDashboard,
+  [ROLES.INDIGO_SUPER_USUARIO]: OwnerDashboard,
+  [ROLES.INDIGO_DUENO]: OwnerDashboard,
+  [ROLES.INDIGO_GERENTE_SUCURSAL]: BranchManagerDashboard,
+  [ROLES.INDIGO_EMPLEADO_VENTAS]: SalesDashboard,
+  [ROLES.INDIGO_EMPLEADO_LABORATORIO]: LaboratoryDashboard,
 };
 
 

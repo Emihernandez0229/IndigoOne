@@ -1,72 +1,465 @@
-import { useState } from "react";
-
+import {useEffect,useState} from "react";
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
 
-import { INDIGO_USER_ROLES } from "../constants";
+
+import {getUserFormOptions} from "../services/userService";
+
+
+const NEW_BRANCH =
+  "__nueva_sucursal__";
 
 
 const EMPTY = {
   name: "",
-  username: "",
-  role: "INDIGO_SALES",
+  role: "",
   branchId: "",
+  newBranch: false,
+  newBranchName: "",
 };
 
 
-/**
- * Alta / edicion de un usuario.
- * mode: "create" | "edit"
- */
+function crearFormDesdeUsuario(
+  user
+) {
+
+  if (!user) {
+    return {
+      ...EMPTY,
+    };
+  }
+
+
+  return {
+    ...EMPTY,
+
+    name:
+      user.name ?? "",
+    role:
+      user.role ?? "",
+    branchId:
+      user.branchId ?? "",
+    newBranch:
+      false,
+    newBranchName:
+      "",
+  };
+
+}
+
+
 export default function UserFormModal({
   open,
   mode = "create",
   user = null,
-  branchOptions = [],
   onClose,
   onSubmit,
 }) {
 
-  // El padre remonta el modal (via prop key) al abrir / cambiar de usuario.
-  const [form, setForm] = useState(
-    () => (user ? { ...EMPTY, ...user } : EMPTY)
+  const [
+    form,
+    setForm,
+  ] = useState(
+    () =>
+      crearFormDesdeUsuario(
+        user
+      )
   );
-  const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
-
-  const title = mode === "edit" ? "Editar usuario" : "Nuevo usuario";
 
 
-  const set = (field) => (event) => {
-    const value = event?.target ? event.target.value : event;
-    setForm((prev) => ({ ...prev, [field]: value }));
+  const [
+    errors,
+    setErrors,
+  ] = useState({});
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const [
+    loadingOptions,
+    setLoadingOptions,
+  ] = useState(false);
+
+  const [
+    roles,
+    setRoles,
+  ] = useState([]);
+
+  const [
+    branches,
+    setBranches,
+  ] = useState([]);
+
+  const [
+    managerBranches,
+    setManagerBranches,
+  ] = useState([]);
+
+  const isEdit =
+    mode === "edit";
+
+  const title =
+    isEdit
+      ? "Editar usuario"
+      : "Nuevo usuario";
+
+  useEffect(() => {
+
+    if (!open) {
+      return;
+    }
+
+    setForm(
+      crearFormDesdeUsuario(
+        user
+      )
+    );
+
+    setErrors({});
+
+  }, [
+    open,
+    user,
+  ]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    let active = true;
+
+    async function cargarOpciones() {
+
+      try {
+        setLoadingOptions(true);
+
+        const data =
+          await getUserFormOptions(
+            isEdit
+              ? user?.id
+              : null
+          );
+
+        if (!active) {
+          return;
+        }
+
+        setRoles(
+          Array.isArray(
+            data?.roles
+          )
+            ? data.roles
+            : []
+        );
+
+        setBranches(
+          Array.isArray(
+            data?.sucursales
+          )
+            ? data.sucursales
+            : []
+        );
+
+        setManagerBranches(
+          Array.isArray(
+            data?.sucursalesGerente
+          )
+            ? data.sucursalesGerente
+            : []
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Error al cargar opciones de usuarios:",
+          error
+        );
+
+        if (active) {
+
+          setRoles([]);
+          setBranches([]);
+          setManagerBranches([]);
+
+        }
+
+      } finally {
+
+        if (active) {
+          setLoadingOptions(false);
+        }
+      }
+    }
+
+    cargarOpciones();
+
+    return () => {
+      active = false;
+    };
+
+  }, [
+    open,
+    isEdit,
+    user?.id,
+  ]);
+
+  const set = (field) => (
+    event
+  ) => {
+
+    const value =
+      event?.target
+        ? event.target.value
+        : event;
+
+    setForm((prev) => ({
+      ...prev,
+
+      [field]:
+        value ?? "",
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+
+      [field]:
+        undefined,
+    }));
+
   };
 
 
-  const handleSubmit = async (event) => {
+  const handleRoleChange = (
+    event
+  ) => {
+
+    const role =
+      event.target.value;
+
+
+    setForm((prev) => ({
+      ...prev,
+
+      role,
+
+      branchId: "",
+
+      newBranch: false,
+
+      newBranchName: "",
+    }));
+
+    setErrors({});
+  };
+
+
+  const handleBranchChange = (
+    event
+  ) => {
+
+    const value =
+      event.target.value;
+
+    if (
+      value ===
+      NEW_BRANCH
+    ) {
+
+      setForm((prev) => ({
+        ...prev,
+
+        branchId: "",
+        newBranch: true,
+        newBranchName: "",
+      }));
+
+
+      setErrors((prev) => ({
+        ...prev,
+        branchId:
+          undefined,
+        newBranchName:
+          undefined,
+      }));
+
+
+      return;
+    }
+
+
+    setForm((prev) => ({
+      ...prev,
+
+      branchId:
+        value,
+      newBranch:
+        false,
+      newBranchName:
+        "",
+    }));
+
+
+    setErrors((prev) => ({
+      ...prev,
+
+      branchId:
+        undefined,
+      newBranchName:
+        undefined,
+    }));
+
+  };
+
+
+  const handleNewBranchChange = (
+    event
+  ) => {
+
+    const value =
+      event.target.value;
+
+
+    setForm((prev) => ({
+      ...prev,
+      newBranchName:
+        value,
+      newBranch:
+        true,
+      branchId:
+        "",
+    }));
+
+
+    if (
+      value.trim()
+    ) {
+
+      setErrors((prev) => ({
+        ...prev,
+        newBranchName:
+          undefined,
+      }));
+
+    }
+
+  };
+
+
+  const cancelNewBranch = () => {
+
+    setForm((prev) => ({
+      ...prev,
+      branchId:
+        "",
+      newBranch:
+        false,
+      newBranchName:
+        "",
+    }));
+
+
+    setErrors((prev) => ({
+      ...prev,
+      branchId:
+        undefined,
+      newBranchName:
+        undefined,
+    }));
+
+  };
+
+
+  const handleSubmit = async (
+    event
+  ) => {
     event.preventDefault();
 
     const nextErrors = {};
-    if (!form.name.trim()) nextErrors.name = "El nombre es obligatorio.";
-    if (!form.username.trim()) nextErrors.username = "El usuario es obligatorio.";
-    if (!form.branchId) nextErrors.branchId = "Selecciona una sucursal.";
 
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    const name =
+      String(
+        form.name ?? ""
+      ).trim();
 
-    const branch = branchOptions.find(
-      (option) => String(option.value) === String(form.branchId)
+    const newBranchName =
+      String(
+        form.newBranchName ?? ""
+      ).trim();
+
+    if (!name) {
+      nextErrors.name =
+        "El nombre es obligatorio.";
+    }
+
+    if (!form.role) {
+      nextErrors.role =
+        "Selecciona un rol.";
+
+    }
+
+    const roleRequiresBranch =
+      form.role ===
+        "INDIGO_BRANCH_MANAGER" ||
+      form.role ===
+        "INDIGO_SALES" ||
+      form.role ===
+        "INDIGO_LAB";
+
+    if (
+      roleRequiresBranch &&
+      !form.newBranch &&
+      !form.branchId
+    ) {
+      nextErrors.branchId =
+        "Selecciona una sucursal.";
+    }
+
+    if (
+      form.newBranch &&
+      form.role !==
+        "INDIGO_BRANCH_MANAGER"
+    ) {
+      nextErrors.branchId =
+        "Solo los gerentes pueden crear una nueva sucursal.";
+    }
+
+    if (
+      form.newBranch &&
+      !newBranchName
+    ) {
+      nextErrors.newBranchName =
+        "El nombre de la sucursal es obligatorio.";
+    }
+
+    setErrors(
+      nextErrors
     );
+
+    if (
+      Object.keys(
+        nextErrors
+      ).length > 0
+    ) {
+      return;
+    }
 
     try {
       setSaving(true);
       await onSubmit({
-        name: form.name.trim(),
-        username: form.username.trim(),
-        role: form.role,
-        branchId: Number(form.branchId),
-        branchName: branch?.label ?? "",
+
+        name,
+        role:
+          form.role,
+        branchId:
+          form.branchId || null,
+        newBranch:
+          form.newBranch,
+        newBranchName:
+          newBranchName || null,
       });
       onClose();
     } finally {
@@ -74,93 +467,358 @@ export default function UserFormModal({
     }
   };
 
+  const currentBranchOptions =
+    form.role ===
+      "INDIGO_BRANCH_MANAGER"
+      ? managerBranches
+      : branches;
 
   return (
+    <Modal
+      isOpen={open}
+      onClose={onClose}
+      title={title}
+      size="lg"
+    >
 
-    <Modal isOpen={open} onClose={onClose} title={title} size="lg">
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-
+      <form
+        onSubmit={
+          handleSubmit
+        }
+        className="space-y-4"
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
             label="Nombre"
-            value={form.name}
-            onChange={set("name")}
-            error={errors.name}
+            value={
+              form.name
+            }
+            onChange={
+              set("name")
+            }
+            disabled={
+              isEdit
+            }
+            error={
+              errors.name
+            }
           />
-          <Input
-            label="Usuario"
-            value={form.username}
-            onChange={set("username")}
-            error={errors.username}
-          />
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
 
           <div className="w-full">
             <label
               htmlFor="user-role"
-              className="mb-2 block text-sm font-medium text-text-primary"
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+                text-text-primary
+              "
             >
               Rol
             </label>
             <select
               id="user-role"
-              value={form.role}
-              onChange={set("role")}
-              className={selectClass}
+              value={
+                form.role
+              }
+              onChange={
+                handleRoleChange
+              }
+              disabled={
+                loadingOptions
+              }
+              className={
+                selectClass
+              }
             >
-              {INDIGO_USER_ROLES.map((role) => (
-                <option key={role.value} value={role.value}>
-                  {role.label}
-                </option>
-              ))}
-            </select>
-          </div>
+              <option value="">
+                {
+                  loadingOptions
+                    ? "Cargando..."
+                    : "Selecciona..."
+                }
+              </option>
 
-          <div className="w-full">
-            <label
-              htmlFor="user-branch"
-              className="mb-2 block text-sm font-medium text-text-primary"
-            >
-              Sucursal
-            </label>
-            <select
-              id="user-branch"
-              value={form.branchId}
-              onChange={set("branchId")}
-              className={selectClass}
-            >
-              <option value="">Selecciona...</option>
-              {branchOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
+
+              {
+                roles.map(
+                  (role) => (
+
+                    <option
+                      key={
+                        role.value
+                      }
+                      value={
+                        role.value
+                      }
+                    >
+                      {
+                        role.label
+                      }
+                    </option>
+
+                  )
+                )
+              }
+
             </select>
-            {errors.branchId && (
-              <p className="mt-1.5 text-sm text-error">{errors.branchId}</p>
-            )}
+
+
+            {
+              errors.role && (
+
+                <p
+                  className="
+                    mt-1.5
+                    text-sm
+                    text-error
+                  "
+                >
+                  {
+                    errors.role
+                  }
+                </p>
+
+              )
+            }
+
           </div>
 
         </div>
 
-        <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+
+        <div className="w-full">
+
+          {
+            form.newBranch ? (
+
+              <div>
+
+                <label
+                  htmlFor="new-user-branch"
+                  className="
+                    mb-2
+                    block
+                    text-sm
+                    font-medium
+                    text-text-primary
+                  "
+                >
+                  Sucursal
+                </label>
+
+
+                <div className="flex gap-2">
+
+                  <div className="flex-1">
+
+                    <Input
+                      id="new-user-branch"
+                      value={
+                        form.newBranchName
+                      }
+                      onChange={
+                        handleNewBranchChange
+                      }
+                      error={
+                        errors.newBranchName
+                      }
+                      placeholder="Nombre de la sucursal"
+                      autoFocus
+                    />
+
+                  </div>
+
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={
+                      cancelNewBranch
+                    }
+                  >
+                    Cancelar
+                  </Button>
+
+                </div>
+
+
+                <p
+                  className="
+                    mt-1
+                    text-xs
+                    text-text-secondary
+                  "
+                >
+                  Se creará automáticamente
+                  la sucursal y se asignará
+                  este usuario como gerente.
+                </p>
+
+              </div>
+
+            ) : (
+
+              <div>
+
+                <label
+                  htmlFor="user-branch"
+                  className="
+                    mb-2
+                    block
+                    text-sm
+                    font-medium
+                    text-text-primary
+                  "
+                >
+                  Sucursal
+                </label>
+
+
+                <select
+                  id="user-branch"
+                  value={
+                    form.branchId
+                  }
+                  onChange={
+                    handleBranchChange
+                  }
+                  disabled={
+                    loadingOptions
+                  }
+                  className={
+                    selectClass
+                  }
+                >
+
+                  <option value="">
+                    {
+                      loadingOptions
+                        ? "Cargando..."
+                        : "Selecciona..."
+                    }
+                  </option>
+
+
+                  {
+                    currentBranchOptions.map(
+                      (option) => (
+
+                        <option
+                          key={
+                            option.value
+                          }
+                          value={
+                            option.value
+                          }
+                        >
+                          {
+                            option.label
+                          }
+                        </option>
+
+                      )
+                    )
+                  }
+
+
+                  {
+                    form.role ===
+                      "INDIGO_BRANCH_MANAGER" && (
+
+                      <option
+                        value={
+                          NEW_BRANCH
+                        }
+                      >
+                        Nueva sucursal
+                      </option>
+
+                    )
+                  }
+
+                </select>
+
+                {
+                  errors.branchId && (
+                    <p
+                      className="
+                        mt-1.5
+                        text-sm
+                        text-error
+                      "
+                    >
+                      {
+                        errors.branchId
+                      }
+                    </p>
+
+                  )
+                }
+
+                {
+                  form.role ===
+                    "INDIGO_BRANCH_MANAGER" &&
+                  currentBranchOptions.length === 0 &&
+                  !loadingOptions && (
+                    <p
+                      className="
+                        mt-1
+                        text-xs
+                        text-text-secondary
+                      "
+                    >
+                      No hay sucursales disponibles
+                      para asignar un gerente.
+                    </p>
+                  )
+                }
+
+              </div>
+
+            )
+          }
+
+        </div>
+
+
+        <div
+          className="
+            flex
+            justify-end
+            gap-3
+            pt-2
+          "
+        >
+          <Button
+            type="button"
+            variant="outline"
+            onClick={
+              onClose
+            }
+          >
             Cancelar
           </Button>
-          <Button type="submit" disabled={saving}>
-            {saving ? "Guardando..." : "Guardar"}
+
+          <Button
+            type="submit"
+            disabled={
+              saving ||
+              loadingOptions
+            }
+          >
+            {
+              saving
+                ? "Guardando..."
+                : "Guardar"
+            }
           </Button>
         </div>
-
       </form>
-
     </Modal>
-
   );
-
 }
 
 
@@ -178,4 +836,6 @@ const selectClass = `
   focus:border-indigo-primary
   focus:ring-2
   focus:ring-indigo-light
+  disabled:cursor-not-allowed
+  disabled:opacity-50
 `;

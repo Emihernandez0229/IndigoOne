@@ -1,29 +1,36 @@
 const bcrypt = require('bcrypt');
 const pool = require('../../../config/db');
 const { generarCredencialUnica } = require('../../../core/utils/credenciales');
+const { existeUsuarioGlobal, registrarCredencialGlobal } = require('../../../core/services/credenciales.service');
 
 const SALT_ROUNDS = 10;
 
-function existeUsuarioEnOptica(opticaId) {
-  return async (usuario) => {
-    const { rows } = await pool.query(
-      'SELECT id FROM optica_usuarios WHERE optica_id = $1 AND usuario = $2',
-      [opticaId, usuario]
-    );
-    return !!rows[0];
-  };
-}
 
 async function crearGerente({ opticaId, nombre, creadoPorId }) {
-  const credencial = await generarCredencialUnica('GTE', existeUsuarioEnOptica(opticaId));
+  const credencial = await generarCredencialUnica('GTE', existeUsuarioGlobal);
   const passwordHash = await bcrypt.hash(credencial, SALT_ROUNDS);
 
-  const { rows } = await pool.query(
-    `INSERT INTO optica_usuarios (optica_id, sucursal_id, nombre, usuario, password_hash, rol, dado_de_alta_por)
-     VALUES ($1, NULL, $2, $3, $4, 'encargado', $5) RETURNING *`,
-    [opticaId, nombre, credencial, passwordHash, creadoPorId]
-  );
-  return { ...rows[0], credencial_provisional: credencial };
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows } = await client.query(
+      `INSERT INTO optica_usuarios (optica_id, sucursal_id, nombre, usuario, password_hash, rol, dado_de_alta_por)
+       VALUES ($1, NULL, $2, $3, $4, 'encargado', $5) RETURNING *`,
+      [opticaId, nombre, credencial, passwordHash, creadoPorId]
+    );
+    const nuevo = rows[0];
+
+    await registrarCredencialGlobal(client, { usuario: credencial, tipo: 'optica', referenciaId: nuevo.id });
+
+    await client.query('COMMIT');
+    return { ...nuevo, credencial_provisional: credencial };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 async function crearEmpleado({ opticaId, sucursalId, nombre, creador }) {
@@ -32,7 +39,7 @@ async function crearEmpleado({ opticaId, sucursalId, nombre, creador }) {
     [sucursalId, opticaId]
   );
   if (!sucursalRows[0]) {
-    const err = new Error('Sucursal no encontrada en tu optica');
+    const err = new Error('Sucursal no encontrada en tu óptica');
     err.status = 404;
     throw err;
   }
@@ -49,15 +56,30 @@ async function crearEmpleado({ opticaId, sucursalId, nombre, creador }) {
     }
   }
 
-  const credencial = await generarCredencialUnica('EMP', existeUsuarioEnOptica(opticaId));
+  const credencial = await generarCredencialUnica('EMP', existeUsuarioGlobal);
   const passwordHash = await bcrypt.hash(credencial, SALT_ROUNDS);
 
-  const { rows } = await pool.query(
-    `INSERT INTO optica_usuarios (optica_id, sucursal_id, nombre, usuario, password_hash, rol, dado_de_alta_por)
-     VALUES ($1, $2, $3, $4, $5, 'empleado', $6) RETURNING *`,
-    [opticaId, sucursalId, nombre, credencial, passwordHash, creador.id]
-  );
-  return { ...rows[0], credencial_provisional: credencial };
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows } = await client.query(
+      `INSERT INTO optica_usuarios (optica_id, sucursal_id, nombre, usuario, password_hash, rol, dado_de_alta_por)
+       VALUES ($1, $2, $3, $4, $5, 'empleado', $6) RETURNING *`,
+      [opticaId, sucursalId, nombre, credencial, passwordHash, creador.id]
+    );
+    const nuevo = rows[0];
+
+    await registrarCredencialGlobal(client, { usuario: credencial, tipo: 'optica', referenciaId: nuevo.id });
+
+    await client.query('COMMIT');
+    return { ...nuevo, credencial_provisional: credencial };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 module.exports = { crearGerente, crearEmpleado };

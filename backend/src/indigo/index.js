@@ -4,6 +4,7 @@ const router = express.Router();
 const usuariosRoutes = require('./usuarios/routes/usuarios.routes');
 const clientesRoutes = require('./clientes/routes/clientes.routes');
 const sucursalesRoutes = require('./sucursales/routes/sucursales.routes');
+const dashboardRoutes = require('./dashboard/routes/dashboard.routes');
 
 // /api/indigo/usuarios/...
 router.use('/usuarios', usuariosRoutes);
@@ -13,5 +14,8 @@ router.use('/clientes', clientesRoutes);
 
 // /api/indigo/sucursales/...
 router.use('/sucursales', sucursalesRoutes);
+
+// /api/indigo/dashboard/...
+router.use('/dashboard', dashboardRoutes);
 
 module.exports = router;
