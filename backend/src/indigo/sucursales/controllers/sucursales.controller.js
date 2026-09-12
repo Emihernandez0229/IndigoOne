@@ -135,7 +135,9 @@ async function actualizarSucursal(req, res, next) {
             gerente_indigo_usuario_id || null,
           nuevoGerenteNombre:
             nuevo_gerente_nombre || null,
-          creadoPorId: req.user.id
+          creadoPorId: req.user.id,
+          creadorRol: req.user.rol,
+          creadorSucursalId: req.user.sucursal_id
         }
       );
 
@@ -159,11 +161,25 @@ async function darDeBaja(req, res, next) {
   }
 }
 
+async function darDeAlta(req, res, next) {
+  try {
+    const sucursal =
+      await sucursalesService.darDeAlta(
+        req.params.id
+      );
+
+    res.json(sucursal);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   crearSucursal,
   listarGerentesDisponibles,
   asignarGerente,
   listarSucursales,
   actualizarSucursal,
-  darDeBaja
+  darDeBaja,
+  darDeAlta
 };

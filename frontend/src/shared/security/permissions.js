@@ -128,6 +128,7 @@ export const PERMISSIONS = {
 
   [ROLES.INDIGO_GERENTE_SUCURSAL]: [
     "branch.view",
+    "branch.update",
 
     "user.view",
     "user.create",

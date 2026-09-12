@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from "react";
 
-import {listBranches, createBranch, updateBranch, deactivateBranch} from "../services/branchService";
+import {listBranches, createBranch, updateBranch, deactivateBranch, activateBranch} from "../services/branchService";
 
 
 export default function useBranches() {
@@ -120,6 +120,34 @@ export default function useBranches() {
   );
 
 
+  const activate = useCallback(
+    async (id) => {
+
+      const updated =
+        await activateBranch(id);
+
+
+      setBranches(
+        (prev) =>
+          prev.map(
+            (row) =>
+              row.id === id
+                ? {
+                    ...row,
+                    ...updated
+                  }
+                : row
+          )
+      );
+
+
+      return updated;
+
+    },
+    []
+  );
+
+
   return {
     branches,
     loading,
@@ -127,7 +155,8 @@ export default function useBranches() {
     reload,
     create,
     update,
-    deactivate
+    deactivate,
+    activate
   };
 
 }

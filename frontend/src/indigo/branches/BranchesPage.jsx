@@ -10,6 +10,7 @@ import FilterBar from "../../shared/filters/FilterBar";
 import SelectFilter from "../../shared/filters/SelectFilter";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
+import ConfirmDialog from "../../shared/components/ConfirmDialog";
 import Can from "../../shared/security/Can";
 import usePermissions from "../../shared/hooks/usePermissions";
 
@@ -23,11 +24,12 @@ import { BRANCH_STATUSES } from "./constants";
 export default function BranchesPage() {
 
   const { can } = usePermissions();
-  const { branches, loading, error, create, update, deactivate } = useBranches();
+  const { branches, loading, error, create, update, deactivate, activate } = useBranches();
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [modal, setModal] = useState({ open: false, mode: "create", branch: null });
+  const [branchToDeactivate, setBranchToDeactivate] = useState(null);
 
 
   const filtered = useMemo(
@@ -118,7 +120,8 @@ export default function BranchesPage() {
           canDeactivate={can("branch.deactivate")}
           onView={(branch) => setModal({ open: true, mode: "view", branch })}
           onEdit={(branch) => setModal({ open: true, mode: "edit", branch })}
-          onDeactivate={(branch) => deactivate(branch.id)}
+          onDeactivate={(branch) => setBranchToDeactivate(branch)}
+          onActivate={(branch) => activate(branch.id)}
         />
 
       </div>
@@ -130,6 +133,19 @@ export default function BranchesPage() {
         branch={modal.branch}
         onClose={closeModal}
         onSubmit={handleSubmit}
+      />
+
+      <ConfirmDialog
+        open={Boolean(branchToDeactivate)}
+        title="Dar de baja sucursal"
+        description={
+          branchToDeactivate &&
+          `¿Seguro que quieres dar de baja "${branchToDeactivate.name}"? Podrás volver a activarla después.`
+        }
+        confirmLabel="Dar de baja"
+        variant="danger"
+        onConfirm={() => deactivate(branchToDeactivate.id)}
+        onClose={() => setBranchToDeactivate(null)}
       />
 
     </PageContainer>

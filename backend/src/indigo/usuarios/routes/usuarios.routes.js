@@ -184,5 +184,20 @@ router.patch(
 );
 
 
+/* =========================================================
+   ALTA
+========================================================= */
+
+router.patch(
+  "/:id/activate",
+  soloRol(
+    "super_usuario",
+    "dueno",
+    "gerente_sucursal"
+  ),
+  usuariosController.darDeAltaUsuario
+);
+
+
 module.exports = router;
 

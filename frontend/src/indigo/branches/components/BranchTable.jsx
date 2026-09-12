@@ -1,4 +1,4 @@
-import {Eye, Pencil, Ban} from "lucide-react";
+import {Eye, Pencil, Ban, RotateCcw} from "lucide-react";
 import DataTable from "../../../shared/components/DataTable";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import IconButton from "../../../shared/components/IconButton";
@@ -11,6 +11,7 @@ export default function BranchTable({
   onView,
   onEdit,
   onDeactivate,
+  onActivate,
 }) {
 
   const columns = [
@@ -88,7 +89,7 @@ export default function BranchTable({
 
 
           {canDeactivate &&
-            row.status === "active" && (
+            (row.status === "active" ? (
 
               <IconButton
                 icon={Ban}
@@ -99,7 +100,17 @@ export default function BranchTable({
                 }
               />
 
-            )}
+            ) : (
+
+              <IconButton
+                icon={RotateCcw}
+                label="Dar de alta"
+                onClick={() =>
+                  onActivate(row)
+                }
+              />
+
+            ))}
         </div>
       ),
     },

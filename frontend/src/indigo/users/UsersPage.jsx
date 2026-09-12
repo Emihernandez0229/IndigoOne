@@ -8,6 +8,7 @@ import FilterBar from "../../shared/filters/FilterBar";
 import SelectFilter from "../../shared/filters/SelectFilter";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
+import ConfirmDialog from "../../shared/components/ConfirmDialog";
 import Can from "../../shared/security/Can";
 import usePermissions from "../../shared/hooks/usePermissions";
 import {ROLES} from "../../shared/security/roles";
@@ -32,8 +33,15 @@ export default function UsersPage() {
     create,
     update,
     deactivate,
+    activate,
   } =
     useUsers();
+
+
+  const [
+    confirmAction,
+    setConfirmAction,
+  ] = useState(null);
 
 
   const [
@@ -391,9 +399,18 @@ export default function UsersPage() {
 
           onDeactivate={
             (user) =>
-              deactivate(
-                user.id
-              )
+              setConfirmAction({
+                type: "deactivate",
+                user,
+              })
+          }
+
+          onActivate={
+            (user) =>
+              setConfirmAction({
+                type: "activate",
+                user,
+              })
           }
         />
 
@@ -421,6 +438,37 @@ export default function UsersPage() {
         onSubmit={
           handleSubmit
         }
+      />
+
+      <ConfirmDialog
+        open={Boolean(confirmAction)}
+        title={
+          confirmAction?.type === "activate"
+            ? "Dar de alta usuario"
+            : "Dar de baja usuario"
+        }
+        description={
+          confirmAction &&
+          (confirmAction.type === "activate"
+            ? `¿Seguro que quieres dar de alta a "${confirmAction.user.name}"?`
+            : `¿Seguro que quieres dar de baja a "${confirmAction.user.name}"?`)
+        }
+        confirmLabel={
+          confirmAction?.type === "activate"
+            ? "Dar de alta"
+            : "Dar de baja"
+        }
+        variant={
+          confirmAction?.type === "activate"
+            ? "primary"
+            : "danger"
+        }
+        onConfirm={() =>
+          confirmAction.type === "activate"
+            ? activate(confirmAction.user.id)
+            : deactivate(confirmAction.user.id)
+        }
+        onClose={() => setConfirmAction(null)}
       />
 
     </PageContainer>

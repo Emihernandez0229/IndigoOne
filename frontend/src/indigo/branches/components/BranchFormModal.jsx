@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
+import { useAuth } from "../../../shared/context/AuthContext";
+import { ROLES } from "../../../shared/security/roles";
 import {listAvailableManagers} from "../services/branchService";
 
 
@@ -68,10 +70,19 @@ export default function BranchFormModal({
     useState([]);
   const [loadingManagers, setLoadingManagers] =
     useState(false);
+  const { user: currentUser } = useAuth();
+
   const readOnly =
     mode === "view";
   const isEdit =
     mode === "edit";
+
+  const isGerenteEditor =
+    isEdit &&
+    currentUser?.role === ROLES.INDIGO_GERENTE_SUCURSAL;
+
+  const lockNameAndManager =
+    readOnly || isGerenteEditor;
 
 
   const titles = {
@@ -97,7 +108,7 @@ export default function BranchFormModal({
 
   useEffect(() => {
 
-    if (!open || readOnly) {
+    if (!open || readOnly || isGerenteEditor) {
       return;
     }
 
@@ -142,6 +153,7 @@ export default function BranchFormModal({
   }, [
     open,
     readOnly,
+    isGerenteEditor,
     isEdit,
     branch?.managerId
   ]);
@@ -349,7 +361,7 @@ export default function BranchFormModal({
           value={form.name ?? ""}
           onChange={set("name")}
           error={errors.name}
-          disabled={readOnly}
+          disabled={lockNameAndManager}
         />
 
 
@@ -370,7 +382,7 @@ export default function BranchFormModal({
 
           {/* Responsable */}
 
-          {readOnly ? (
+          {lockNameAndManager ? (
 
             <div className="w-full">
 
@@ -396,6 +408,7 @@ export default function BranchFormModal({
                   px-4
                   py-3
                   text-text-primary
+                  opacity-50
                 "
               >
                 {

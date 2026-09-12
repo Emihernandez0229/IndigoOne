@@ -53,6 +53,11 @@ export async function deactivateBranch(id) {
 }
 
 
+export async function activateBranch(id) {
+  return httpClient.patch(`/api/indigo/sucursales/${id}/activate`);
+}
+
+
 export async function listAvailableManagers(currentManagerId = null) {
   const query = currentManagerId ? `?gerente_actual_id=${currentManagerId}` : "";
   return httpClient.get(`/api/indigo/sucursales/gerentes-disponibles${query}`);

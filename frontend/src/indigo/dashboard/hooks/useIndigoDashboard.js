@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { useAuth } from "../../../shared/context/AuthContext";
 import { getIndigoDashboardData } from "../services/dashboardService";
+import { mapKpisToCards } from "../mapKpis";
 
 
 /**
@@ -30,7 +31,10 @@ export default function useIndigoDashboard() {
         const response = await getIndigoDashboardData(user?.role);
 
         if (active) {
-          setData(response);
+          setData({
+            ...response,
+            kpis: mapKpisToCards(user?.role, response?.kpis),
+          });
         }
 
       } catch (err) {

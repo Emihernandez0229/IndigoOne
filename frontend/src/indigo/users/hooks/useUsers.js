@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {listUsers,createUser,updateUser,deactivateUser} from "../services/userService";
+import {listUsers,createUser,updateUser,deactivateUser,activateUser} from "../services/userService";
 
 
 export default function useUsers() {
@@ -91,6 +91,27 @@ export default function useUsers() {
   }, []);
 
 
+  const activate = useCallback(async (id) => {
+
+    const updated =
+      await activateUser(id);
+
+    setUsers((prev) =>
+      prev.map((user) =>
+        String(user.id) === String(id)
+          ? {
+              ...user,
+              ...updated,
+            }
+          : user
+      )
+    );
+
+    return updated;
+
+  }, []);
+
+
   return {
     users,
     loading,
@@ -99,6 +120,7 @@ export default function useUsers() {
     create,
     update,
     deactivate,
+    activate,
     reload: loadUsers,
   };
 

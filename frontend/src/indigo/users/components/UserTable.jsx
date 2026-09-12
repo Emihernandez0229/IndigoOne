@@ -1,4 +1,4 @@
-import { Pencil, Ban } from "lucide-react";
+import { Pencil, Ban, RotateCcw } from "lucide-react";
 import DataTable from "../../../shared/components/DataTable";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import IconButton from "../../../shared/components/IconButton";
@@ -10,6 +10,7 @@ export default function UserTable({
   canDeactivate = false,
   onEdit,
   onDeactivate,
+  onActivate,
 }) {
   const columns = [
     {
@@ -62,14 +63,20 @@ export default function UserTable({
           )}
 
           {canDeactivate &&
-            row.status === "active" && (
+            (row.status === "active" ? (
               <IconButton
                 icon={Ban}
                 label="Dar de baja"
                 variant="danger"
                 onClick={() => onDeactivate(row)}
               />
-            )}
+            ) : (
+              <IconButton
+                icon={RotateCcw}
+                label="Dar de alta"
+                onClick={() => onActivate(row)}
+              />
+            ))}
         </div>
       ),
     },

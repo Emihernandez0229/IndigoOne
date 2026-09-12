@@ -1753,6 +1753,133 @@ async function darDeBajaUsuario({
 }
 
 
+async function darDeAltaUsuario({
+  usuarioId,
+  creadorRol,
+  creadorSucursalId,
+}) {
+
+  const client =
+    await pool.connect();
+
+
+  try {
+
+    await client.query("BEGIN");
+
+
+    const { rows } =
+      await client.query(
+        `
+          SELECT
+            id,
+            rol,
+            sucursal_id,
+            activo
+          FROM indigo_usuarios
+          WHERE id = $1
+          FOR UPDATE
+        `,
+        [usuarioId]
+      );
+
+
+    const usuario =
+      rows[0];
+
+
+    if (!usuario) {
+      lanzarError(
+        "El usuario no existe.",
+        404
+      );
+    }
+
+
+    if (usuario.activo) {
+      lanzarError(
+        "El usuario ya está activo."
+      );
+    }
+
+
+    if (
+      creadorRol === "dueno" &&
+      [
+        "super_usuario",
+        "dueno",
+      ].includes(usuario.rol)
+    ) {
+      lanzarError(
+        "No tienes permiso para dar de alta este usuario.",
+        403
+      );
+    }
+
+
+    if (
+      creadorRol ===
+      "gerente_sucursal"
+    ) {
+
+      if (
+        ![
+          "empleado_ventas",
+          "empleado_laboratorio",
+        ].includes(usuario.rol)
+      ) {
+        lanzarError(
+          "No tienes permiso para dar de alta este usuario.",
+          403
+        );
+      }
+
+
+      if (
+        usuario.sucursal_id !==
+        creadorSucursalId
+      ) {
+        lanzarError(
+          "Solo puedes dar de alta usuarios de tu sucursal.",
+          403
+        );
+      }
+    }
+
+
+    await client.query(
+      `
+        UPDATE indigo_usuarios
+        SET
+          activo = TRUE,
+          updated_at = NOW()
+        WHERE id = $1
+      `,
+      [usuarioId]
+    );
+
+
+    await client.query("COMMIT");
+
+
+    return await obtenerUsuarioParaFront(
+      usuarioId
+    );
+
+  } catch (err) {
+
+    await client.query("ROLLBACK");
+
+    throw err;
+
+  } finally {
+
+    client.release();
+
+  }
+}
+
+
 module.exports = {
   crearPrimerSuperUsuario,
   crearSuperUsuario,
@@ -1763,5 +1890,6 @@ module.exports = {
   obtenerOpcionesFormulario,
   actualizarUsuario,
   darDeBajaUsuario,
+  darDeAltaUsuario,
 };
 

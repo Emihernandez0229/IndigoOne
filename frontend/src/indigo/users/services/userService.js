@@ -124,3 +124,11 @@ export async function deactivateUser(
   return httpClient.patch(`/api/indigo/usuarios/${id}/deactivate`);
 }
 
+
+export async function activateUser(
+  id
+) {
+
+  return httpClient.patch(`/api/indigo/usuarios/${id}/activate`);
+}
+
