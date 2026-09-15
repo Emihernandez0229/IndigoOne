@@ -3,6 +3,8 @@ import {
   ShoppingCart,
   CalendarDays,
   Users,
+  UserCog,
+  Building2,
   FlaskConical,
 } from "lucide-react";
 
@@ -18,6 +20,20 @@ export const opticaNavigation = [
     path: "/opticas/dashboard",
     icon: LayoutDashboard,
     permission: null,
+  },
+
+  {
+    label: "Sucursales",
+    path: "/opticas/sucursales",
+    icon: Building2,
+    permission: "optica.branch.view",
+  },
+
+  {
+    label: "Usuarios",
+    path: "/opticas/usuarios",
+    icon: UserCog,
+    permission: "optica.user.view",
   },
 
   {

@@ -163,20 +163,34 @@ export const PERMISSIONS = {
 
   // OPTICAS
   [ROLES.OPTICA_DUENO]: [
+    "optica.branch.view",
+    "optica.branch.create",
+    "optica.branch.update",
+    "optica.branch.deactivate",
+
     "optica.user.view",
     "optica.user.create",
+    "optica.user.update",
+    "optica.user.deactivate",
 
     "optica.sales.view",
 
     "optica.patient.view",
+
+    "optica.lab.view",
 
     "optica.reports.view",
   ],
 
 
   [ROLES.OPTICA_ENCARGADO]: [
+    "optica.branch.view",
+    "optica.branch.update",
+
     "optica.user.view",
     "optica.user.create",
+    "optica.user.update",
+    "optica.user.deactivate",
 
     "optica.sales.view",
 
@@ -184,6 +198,10 @@ export const PERMISSIONS = {
     "optica.patient.create",
 
     "optica.appointment.manage",
+
+    "optica.lab.view",
+    "optica.lab.create",
+    "optica.lab.manage",
   ],
 
 
@@ -194,6 +212,9 @@ export const PERMISSIONS = {
     "optica.appointment.manage",
 
     "optica.sales.create",
+
+    "optica.lab.view",
+    "optica.lab.create",
   ],
 
 };

@@ -131,14 +131,14 @@ export const ROLE_CONFIG = {
     module: "opticas",
     home: "/opticas/dashboard",
     navigation: opticaNavigation,
-    label: "Gerente Óptica",
+    label: "Jefe de Sucursal",
   },
 
   [ROLES.OPTICA_EMPLEADO]: {
     module: "opticas",
     home: "/opticas/dashboard",
     navigation: opticaNavigation,
-    label: "Empleado Óptica",
+    label: "Ventas Óptica",
   },
 
 };

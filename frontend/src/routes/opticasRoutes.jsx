@@ -1,6 +1,8 @@
 import { Route, Navigate } from "react-router-dom";
 
-import OpticaDashboard from "../opticas/dashboard/OpticaDashboard";
+import OpticasDashboard from "../opticas/dashboard/OpticasDashboard";
+import BranchesPage from "../opticas/branches/BranchesPage";
+import UsersPage from "../opticas/users/UsersPage";
 import ComingSoon from "../shared/pages/ComingSoon";
 
 import ProtectedRoute from "./ProtectedRoute";
@@ -18,7 +20,15 @@ export default function OpticasRoutes() {
 
       <Route index element={<Navigate to="dashboard" replace />} />
 
-      <Route path="dashboard" element={<OpticaDashboard />} />
+      <Route path="dashboard" element={<OpticasDashboard />} />
+
+      <Route element={<ProtectedRoute permission="optica.branch.view" />}>
+        <Route path="sucursales" element={<BranchesPage />} />
+      </Route>
+
+      <Route element={<ProtectedRoute permission="optica.user.view" />}>
+        <Route path="usuarios" element={<UsersPage />} />
+      </Route>
 
       <Route element={<ProtectedRoute permission="optica.sales.view" />}>
         <Route path="ventas" element={<ComingSoon title="Punto de venta" />} />
