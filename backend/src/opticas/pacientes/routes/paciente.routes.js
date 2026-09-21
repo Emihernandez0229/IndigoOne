@@ -1,41 +1,46 @@
 const express = require('express');
-
 const router = express.Router();
 
-const pool = require('../../config/database');
+const validate = require('../../../core/middlewares/validation.middleware');
+const {
+    autenticar,
+    soloTipo,
+    soloRol
+} = require('../../../core/middlewares/auth.middleware');
 
-const PacienteRepository = require('../repository/paciente.repository');
-const PacienteService = require('../services/paciente.service');
-const PacienteController = require('../controllers/paciente.controller');
+const {
+    crearPacienteSchema,
+    actualizarPacienteSchema
+} = require('../schemas/pacientes.schema');
 
+const { pacienteController } = require('../container/paciente.container');
 
-const pacienteRepository = new PacienteRepository(pool);
-const pacienteService = new PacienteService(pacienteRepository);
-const pacienteController = new PacienteController(pacienteService);
+router.use(
+    autenticar,
+    soloTipo('optica'),
+    soloRol('dueno', 'encargado', 'empleado')
+);
 
 router.post(
     '/',
-    pacienteController.crearPaciente
+    validate(crearPacienteSchema),
+    pacienteController.crearPaciente.bind(pacienteController)
 );
 
-// Leer - pacientes de una sucursal
 router.get(
     '/sucursal/:sucursalId',
-    pacienteController.obtenerPacientes
+    pacienteController.obtenerPacientes.bind(pacienteController)
 );
 
-
-// Leer - paciente específico
 router.get(
     '/:id',
-    pacienteController.obtenerPacientePorId
+    pacienteController.obtenerPacientePorId.bind(pacienteController)
 );
 
-
-// Actualizar
-router.put(
+router.patch(
     '/:id',
-    pacienteController.actualizarPaciente
+    validate(actualizarPacienteSchema),
+    pacienteController.actualizarPaciente.bind(pacienteController)
 );
 
 module.exports = router;
