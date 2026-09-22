@@ -3,6 +3,8 @@ import { Route, Navigate } from "react-router-dom";
 import OpticasDashboard from "../opticas/dashboard/OpticasDashboard";
 import BranchesPage from "../opticas/branches/BranchesPage";
 import UsersPage from "../opticas/users/UsersPage";
+import InventoryPage from "../opticas/inventory/InventoryPage";
+import InventoryDetailPage from "../opticas/inventory/InventoryDetailPage";
 import ComingSoon from "../shared/pages/ComingSoon";
 
 import ProtectedRoute from "./ProtectedRoute";
@@ -41,6 +43,11 @@ export default function OpticasRoutes() {
 
       <Route element={<ProtectedRoute permission="optica.patient.view" />}>
         <Route path="pacientes" element={<ComingSoon title="Pacientes" />} />
+      </Route>
+
+      <Route element={<ProtectedRoute permission="optica.inventory.view" />}>
+        <Route path="inventario" element={<InventoryPage />} />
+        <Route path="inventario/:id" element={<InventoryDetailPage />} />
       </Route>
 
     </Route>

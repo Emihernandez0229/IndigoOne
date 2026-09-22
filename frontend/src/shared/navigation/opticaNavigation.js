@@ -6,6 +6,7 @@ import {
   UserCog,
   Building2,
   FlaskConical,
+  Glasses,
 } from "lucide-react";
 
 
@@ -62,6 +63,13 @@ export const opticaNavigation = [
     path: "/opticas/laboratorio",
     icon: FlaskConical,
     permission: "optica.sales.view",
+  },
+
+  {
+    label: "Inventario",
+    path: "/opticas/inventario",
+    icon: Glasses,
+    permission: "optica.inventory.view",
   },
 
 ];

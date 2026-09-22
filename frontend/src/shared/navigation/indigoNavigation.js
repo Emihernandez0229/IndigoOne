@@ -5,6 +5,7 @@ import {
   ShoppingCart,
   FlaskConical,
   FileText,
+  Glasses,
 } from "lucide-react";
 
 
@@ -53,6 +54,13 @@ export const indigoNavigation = [
     path: "/indigo/laboratorio",
     icon: FlaskConical,
     permission: "laboratory.job.view",
+  },
+
+  {
+    label: "Inventario",
+    path: "/indigo/inventario",
+    icon: Glasses,
+    permission: "inventory.view",
   },
 
   {

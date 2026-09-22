@@ -8,6 +8,10 @@ import {
     Package,
     Truck,
     ClipboardList,
+    Glasses,
+    CheckCircle2,
+    AlertTriangle,
+    XCircle,
 } from "lucide-react";
 
 
@@ -32,5 +36,13 @@ export const kpiIcons = {
     providers: Truck,
 
     orders: ClipboardList,
+
+    frames: Glasses,
+
+    available: CheckCircle2,
+
+    lowStock: AlertTriangle,
+
+    outOfStock: XCircle,
 
 };

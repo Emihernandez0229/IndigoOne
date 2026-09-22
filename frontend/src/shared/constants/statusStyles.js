@@ -50,4 +50,20 @@ export const statusStyles = {
     className: "bg-gray-200 text-text-secondary",
   },
 
+  // Estado de inventario (armazones)
+  available: {
+    label: "Disponible",
+    className: "bg-success/10 text-success",
+  },
+
+  low_stock: {
+    label: "Bajo stock",
+    className: "bg-warning/10 text-warning",
+  },
+
+  out_of_stock: {
+    label: "Agotado",
+    className: "bg-error/10 text-error",
+  },
+
 };

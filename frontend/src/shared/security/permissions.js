@@ -98,6 +98,9 @@ export const PERMISSIONS = {
     "laboratory.view",
     "laboratory.job.view",
 
+    "inventory.view",
+    "inventory.manage",
+
     "reports.global",
     "reports.branch",
     "reports.period",
@@ -120,6 +123,9 @@ export const PERMISSIONS = {
     "laboratory.view",
     "laboratory.job.view",
 
+    "inventory.view",
+    "inventory.manage",
+
     "reports.global",
     "reports.branch",
     "reports.period",
@@ -140,6 +146,9 @@ export const PERMISSIONS = {
     "laboratory.view",
     "laboratory.job.view",
 
+    "inventory.view",
+    "inventory.manage",
+
     "reports.branch",
   ],
 
@@ -151,6 +160,8 @@ export const PERMISSIONS = {
     "sales.view",
 
     "laboratory.job.create",
+
+    "inventory.view",
   ],
 
 
@@ -179,6 +190,9 @@ export const PERMISSIONS = {
 
     "optica.lab.view",
 
+    "optica.inventory.view",
+    "optica.inventory.manage",
+
     "optica.reports.view",
   ],
 
@@ -202,6 +216,9 @@ export const PERMISSIONS = {
     "optica.lab.view",
     "optica.lab.create",
     "optica.lab.manage",
+
+    "optica.inventory.view",
+    "optica.inventory.manage",
   ],
 
 
@@ -215,6 +232,8 @@ export const PERMISSIONS = {
 
     "optica.lab.view",
     "optica.lab.create",
+
+    "optica.inventory.view",
   ],
 
 };

@@ -1,12 +1,10 @@
 # React + Vite
 LO QUE YA ESTA HECHO
 
-1. Dashbaord,Sucursales y Usuarios front listo para los 3 diferentes roles (fase pendinete de back)
-2. 
+1. INVENTARIO TANTO PARA INDIgO COMO PARA OPTICAS 
+2. QUE BACK CHEQUE LOS FILTRO PARA ESO DE LOS PERMISOS QUE CADA ROL LES SALGA LA INFORMACION CORRECTA YA QUE TENGO UN BACK CON DATOS FALSOS QUE APUNTA AL 4001 PARA QUE PUEDAN VISUALIZAR. PERO A LOS JEFES DE SUCURSAL Y VENTAS LES SALE EL INVENTARIO DE OTRAS SUCURSALES
 
- PENDIENTES POR HACER 
- 1. opticas
- 2. (con ventas, no es literal ventas, al menos por ahora no, lo unico que haran ellos seran registrar trabajos a bicel, pero eso dejalo al final, indigo dejalo al final, ayuda a leo a hacer sus vistas ajjaja, namas arregla lo que te pedi de usuasrios y susucrsales de indigo)
+
 
 
  # Modelo de Roles y Permisos de las Ópticas V.1.0.0
@@ -41,15 +39,15 @@ El dueño puede:
 * Crear y administrar usuarios.
 * Asignar usuarios a sucursales.
 * Asignar roles a usuarios.
-                            * Consultar clientes de cualquier sucursal.
-                            * Administrar expedientes.
-                            * Administrar citas.
-                            * Consultar y administrar ventas.
-                            * Administrar productos y servicios.
-                            * Consultar y administrar inventario.
-                            * Crear y gestionar órdenes de laboratorio.
-                            * Consultar el historial de órdenes de laboratorio.
-                            * Consultar reportes de toda la óptica.
+* Consultar clientes de cualquier sucursal.
+* Administrar expedientes.
+* Administrar citas.
+* Consultar y administrar ventas.
+* Administrar productos y servicios.
+* Consultar y administrar inventario.
+* Crear y gestionar órdenes de laboratorio.
+* Consultar el historial de órdenes de laboratorio.
+* Consultar reportes de toda la óptica.
 
 ### Restricciones
 
@@ -189,3 +187,18 @@ El empleado no puede:
 * Consultar información de otras sucursales.
 * Consultar reportes administrativos generales.
 
+
+PENDIENTES POR HACER-------------------------------------------------------------------------------------------------------------------------
+OPTICAS
+ 1. PACIENTES
+ 2. CITAS
+ 3. CONSULTAS
+ 4. VENTAS
+ 
+
+
+
+
+INDIGO
+
+ 2. (con ventas, no es literal ventas, al menos por ahora no, lo unico que haran ellos seran registrar trabajos a bicel, pero eso dejalo al final, indigo dejalo al final, ayuda a leo a hacer sus vistas ajjaja, namas arregla lo que te pedi de usuasrios y susucrsales de indigo)
