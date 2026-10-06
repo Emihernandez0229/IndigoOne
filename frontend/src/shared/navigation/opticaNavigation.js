@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  Store,
   ShoppingCart,
   CalendarDays,
   Users,
@@ -7,6 +8,8 @@ import {
   Building2,
   FlaskConical,
   Glasses,
+  BarChart3,
+  PackageSearch,
 } from "lucide-react";
 
 
@@ -24,6 +27,13 @@ export const opticaNavigation = [
   },
 
   {
+    label: "Óptica",
+    path: "/opticas/optica",
+    icon: Store,
+    permission: "optica.settings.view",
+  },
+
+  {
     label: "Sucursales",
     path: "/opticas/sucursales",
     icon: Building2,
@@ -38,10 +48,10 @@ export const opticaNavigation = [
   },
 
   {
-    label: "Punto de venta",
-    path: "/opticas/ventas",
-    icon: ShoppingCart,
-    permission: "optica.sales.view",
+    label: "Clientes",
+    path: "/opticas/pacientes",
+    icon: Users,
+    permission: "optica.patient.view",
   },
 
   {
@@ -52,17 +62,24 @@ export const opticaNavigation = [
   },
 
   {
-    label: "Pacientes",
-    path: "/opticas/pacientes",
-    icon: Users,
-    permission: "optica.patient.view",
+    label: "Ventas",
+    path: "/opticas/ventas",
+    icon: ShoppingCart,
+    permission: "optica.sales.view",
   },
 
   {
     label: "Laboratorio",
     path: "/opticas/laboratorio",
     icon: FlaskConical,
-    permission: "optica.sales.view",
+    permission: "optica.lab.view",
+  },
+
+  {
+    label: "Productos y servicios",
+    path: "/opticas/productos-servicios",
+    icon: PackageSearch,
+    permission: "optica.catalog.view",
   },
 
   {
@@ -70,6 +87,13 @@ export const opticaNavigation = [
     path: "/opticas/inventario",
     icon: Glasses,
     permission: "optica.inventory.view",
+  },
+
+  {
+    label: "Reportes",
+    path: "/opticas/reportes",
+    icon: BarChart3,
+    permission: "optica.reports.view",
   },
 
 ];

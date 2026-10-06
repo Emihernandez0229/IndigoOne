@@ -2,6 +2,8 @@ import {useEffect,useState} from "react";
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
+import { useAuth } from "../../../shared/context/AuthContext";
+import { ROLES } from "../../../shared/security/roles";
 
 import {getUserFormOptions} from "../services/userService";
 
@@ -105,6 +107,20 @@ export default function UserFormModal({
       ? "Editar usuario"
       : "Nuevo usuario";
 
+  const { user: currentUser } = useAuth();
+
+  const isGerente =
+    currentUser?.role === ROLES.OPTICA_ENCARGADO;
+
+  const visibleRoles =
+    isGerente
+      ? roles.filter((role) => role.value !== "OPTICA_BRANCH_MANAGER")
+      : roles;
+
+  const myBranchLabel =
+    branches.find((b) => b.value === currentUser?.sucursalId)?.label ??
+    "Tu sucursal";
+
   useEffect(() => {
 
     if (!open) {
@@ -206,6 +222,18 @@ export default function UserFormModal({
     user?.id,
   ]);
 
+  useEffect(() => {
+    if (!open || !isGerente) {
+      return;
+    }
+    setForm((prev) => ({
+      ...prev,
+      branchId: currentUser?.sucursalId ?? "",
+      newBranch: false,
+      newBranchName: "",
+    }));
+  }, [open, isGerente, currentUser?.sucursalId]);
+
   const set = (field) => (
     event
   ) => {
@@ -245,7 +273,7 @@ export default function UserFormModal({
 
       role,
 
-      branchId: "",
+      branchId: isGerente ? currentUser?.sucursalId ?? "" : "",
 
       newBranch: false,
 
@@ -540,7 +568,7 @@ export default function UserFormModal({
 
 
               {
-                roles.map(
+                visibleRoles.map(
                   (role) => (
 
                     <option
@@ -589,7 +617,38 @@ export default function UserFormModal({
         <div className="w-full">
 
           {
-            form.newBranch ? (
+            isGerente ? (
+
+              <div>
+                <span
+                  className="
+                    mb-2
+                    block
+                    text-sm
+                    font-medium
+                    text-text-primary
+                  "
+                >
+                  Sucursal
+                </span>
+
+                <div
+                  className="
+                    rounded-xl
+                    border
+                    border-gray-200
+                    bg-surface
+                    px-4
+                    py-3
+                    text-text-primary
+                    opacity-50
+                  "
+                >
+                  {myBranchLabel}
+                </div>
+              </div>
+
+            ) : form.newBranch ? (
 
               <div>
 

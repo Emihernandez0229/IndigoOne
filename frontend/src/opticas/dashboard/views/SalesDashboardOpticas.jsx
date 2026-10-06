@@ -2,14 +2,11 @@ import DashboardLayout from "../../../shared/dashboard/DashboardLayout";
 import DashboardGrid from "../../../shared/dashboard/DashboardGrid";
 import DashboardPanel from "../../../shared/dashboard/DashboardPanel";
 
-import Button from "../../../shared/components/Button";
 import StatusBadge from "../../../shared/components/StatusBadge";
 
 import LoadingSpinner from "../../../shared/components/LoadingSpinner";
 import ErrorState from "../../../shared/components/ErrorState";
 import EmptyState from "../../../shared/components/EmptyState";
-
-import Can from "../../../shared/security/Can";
 
 import useOpticasDashboard from "../hooks/useOpticaDashboard";
 
@@ -24,32 +21,12 @@ export default function SalesDashboardOpticas() {
   if (!data || Object.keys(data).length === 0) return <EmptyState />;
 
 
-  const actions = (
-    <div className="flex gap-3">
-
-      <Can permission="optica.sales.create">
-        <Button className="py-2 text-sm">
-          Nueva venta
-        </Button>
-      </Can>
-
-      <Can permission="optica.lab.create">
-        <Button variant="outline" className="py-2 text-sm">
-          Enviar a laboratorio
-        </Button>
-      </Can>
-
-    </div>
-  );
-
-
   return (
 
     <DashboardLayout
       title="Dashboard Ventas"
       subtitle="Gestión de clientes y ventas."
       kpis={data.kpis}
-      actions={actions}
     >
 
       <DashboardGrid>

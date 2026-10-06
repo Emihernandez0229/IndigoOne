@@ -6,8 +6,10 @@ export async function createBranch(payload) {
   return httpClient.post("/api/indigo/sucursales",
     {
       nombre: payload.name,
-      direccion: payload.address,
-      telefono: payload.phone,
+      imagen: payload.image || null,
+      pais: payload.country,
+      estado: payload.state,
+      municipio: payload.municipality,
 
       gerente_indigo_usuario_id:
         payload.managerMode === "existing"
@@ -31,8 +33,9 @@ export async function updateBranch(
   return httpClient.put(`/api/indigo/sucursales/${id}`,
     {
       nombre: payload.name,
-      direccion: payload.address,
-      telefono: payload.phone,
+      pais: payload.country,
+      estado: payload.state,
+      municipio: payload.municipality,
 
       gerente_indigo_usuario_id:
         payload.managerMode === "existing"

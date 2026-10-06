@@ -3,6 +3,7 @@ import { Route, Navigate } from "react-router-dom";
 import IndigoDashboard from "../indigo/dashboard/IndigoDashboard";
 import BranchesPage from "../indigo/branches/BranchesPage";
 import UsersPage from "../indigo/users/UsersPage";
+import ClientsPage from "../indigo/clients/ClientsPage";
 import InventoryPage from "../indigo/inventory/InventoryPage";
 import InventoryDetailPage from "../indigo/inventory/InventoryDetailPage";
 import ComingSoon from "../shared/pages/ComingSoon";
@@ -31,6 +32,10 @@ export default function IndigoRoutes() {
 
       <Route element={<ProtectedRoute permission="user.view" />}>
         <Route path="usuarios" element={<UsersPage />} />
+      </Route>
+
+      <Route element={<ProtectedRoute permission="client.view" />}>
+        <Route path="clientes" element={<ClientsPage />} />
       </Route>
 
       <Route element={<ProtectedRoute permission="reports.branch" />}>

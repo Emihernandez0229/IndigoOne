@@ -12,6 +12,8 @@ import {
     CheckCircle2,
     AlertTriangle,
     XCircle,
+    DollarSign,
+    MapPin,
 } from "lucide-react";
 
 
@@ -39,10 +41,20 @@ export const kpiIcons = {
 
     frames: Glasses,
 
+    scheduled: ClipboardList,
+
+    confirmed: CheckCircle2,
+
     available: CheckCircle2,
 
     lowStock: AlertTriangle,
 
     outOfStock: XCircle,
+
+    revenue: DollarSign,
+
+    canceled: XCircle,
+
+    cities: MapPin,
 
 };

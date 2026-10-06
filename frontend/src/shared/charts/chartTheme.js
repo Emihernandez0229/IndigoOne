@@ -6,6 +6,13 @@ export const CHART_COLORS = {
   secondary: "#5565C8", // indigo-secondary
   grid: "#E5E7EB",      // gray-200
   axis: "#667085",      // text-secondary
+  success: "#22A06B",
+  warning: "#F59E0B",
+  error: "#E5484D",
+  blue: "#3B82F6",
+  purple: "#A855F7",
+  pink: "#EC4899",
+  orange: "#F97316",
 };
 
 

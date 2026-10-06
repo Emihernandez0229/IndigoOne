@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   Building2,
   Users,
+  UserRound,
   ShoppingCart,
   FlaskConical,
   FileText,
@@ -36,10 +37,17 @@ export const indigoNavigation = [
   },
 
   {
-    label: "Usuarios",
+    label: "Personal",
     path: "/indigo/usuarios",
     icon: Users,
     permission: "user.view",
+  },
+
+  {
+    label: "Clientes",
+    path: "/indigo/clientes",
+    icon: UserRound,
+    permission: "client.view",
   },
 
   {

@@ -2,6 +2,7 @@ import {
   ResponsiveContainer,
   BarChart as RechartsBarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
@@ -27,6 +28,9 @@ export default function BarChart({
     return <EmptyChart height={height} />;
   }
 
+  // Si cada punto trae su propio `color`, se pinta cada barra con el suyo
+  // (ej. "ventas por sucursal" con un color distinto por sucursal).
+  const hasPerBarColors = data.some((item) => item.color);
 
   return (
 
@@ -44,7 +48,12 @@ export default function BarChart({
 
           <Tooltip {...chartTooltipProps} cursor={{ fill: CHART_COLORS.grid }} />
 
-          <Bar dataKey={dataKey} fill={color} radius={[6, 6, 0, 0]} maxBarSize={56} />
+          <Bar dataKey={dataKey} fill={color} radius={[6, 6, 0, 0]} maxBarSize={56}>
+            {hasPerBarColors &&
+              data.map((item, index) => (
+                <Cell key={item.name ?? index} fill={item.color} />
+              ))}
+          </Bar>
 
         </RechartsBarChart>
 

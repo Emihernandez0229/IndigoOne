@@ -13,10 +13,6 @@ vi.mock("../../shared/context/AuthContext", () => ({
   useAuth: () => authState,
 }));
 
-// const mockBranches = [
-//   { id: 1, name: "Sucursal Centro", address: "Av. Juárez 120", manager: "Ana Ramírez", phone: "555-101-2020", staff: 12, products: 420, status: "active" },
-//   { id: 2, name: "Sucursal Norte", address: "Blvd. Norte 45", manager: null, phone: "555-102-3030", staff: 0, products: 0, status: "active" },
-// ];
 
 vi.mock("./services/branchService", () => ({
   listBranches: vi.fn(() => Promise.resolve(mockBranches)),

@@ -8,6 +8,8 @@ import {
   kpiIcons
 } from "../constants/kpiIcons";
 
+import { kpiColors } from "../constants/kpiColors";
+
 
 export default function DashboardKpi({
   title,
@@ -16,9 +18,11 @@ export default function DashboardKpi({
   trend,
   trendDirection = "up",
   type,
+  color,
 }) {
 
   const Icon = kpiIcons[type];
+  const palette = kpiColors[color];
 
 
   const isPositive =
@@ -91,7 +95,7 @@ export default function DashboardKpi({
           Icon && (
 
             <div
-              className="
+              className={`
                 flex
                 h-11
                 w-11
@@ -99,16 +103,16 @@ export default function DashboardKpi({
                 items-center
                 justify-center
                 rounded-xl
-                bg-indigo-light
-              "
+                ${palette ? palette.bg : "bg-indigo-light"}
+              `}
             >
 
               <Icon
-                className="
+                className={`
                   h-6
                   w-6
-                  text-indigo-primary
-                "
+                  ${palette ? palette.text : "text-indigo-primary"}
+                `}
               />
 
             </div>

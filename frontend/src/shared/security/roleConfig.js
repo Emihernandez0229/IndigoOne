@@ -106,6 +106,13 @@ export const ROLE_CONFIG = {
     label: "Gerente de sucursal",
   },
 
+  [ROLES.INDIGO_SUBGERENTE]: {
+    module: "indigo",
+    home: "/indigo/dashboard",
+    navigation: indigoNavigation,
+    label: "Subgerente",
+  },
+
   [ROLES.INDIGO_EMPLEADO_VENTAS]: {
     module: "indigo",
     home: "/indigo/dashboard",

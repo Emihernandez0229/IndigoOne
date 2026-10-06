@@ -14,14 +14,31 @@ import ConfirmDialog from "../../shared/components/ConfirmDialog";
 import Can from "../../shared/security/Can";
 import usePermissions from "../../shared/hooks/usePermissions";
 
+import { useAuth } from "../../shared/context/AuthContext";
+import { ROLES } from "../../shared/security/roles";
+
 import useBranches from "./hooks/useBranches";
 import { filterBranches } from "./filterBranches";
 import BranchTable from "./components/BranchTable";
 import BranchFormModal from "./components/BranchFormModal";
+import MyBranchPage from "./MyBranchPage";
 import { BRANCH_STATUSES } from "./constants";
 
 
 export default function BranchesPage() {
+
+  const { user: currentUser } = useAuth();
+
+  if (currentUser?.role === ROLES.OPTICA_ENCARGADO) {
+    return <MyBranchPage />;
+  }
+
+  return <BranchesList />;
+
+}
+
+
+function BranchesList() {
 
   const { can } = usePermissions();
   const { branches, loading, error, create, update, deactivate, activate } = useBranches();

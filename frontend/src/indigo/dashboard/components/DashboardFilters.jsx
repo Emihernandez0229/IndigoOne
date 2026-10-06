@@ -9,6 +9,10 @@ export default function DashboardFilters({
     selectedPeriod,
     onBranchChange,
     onPeriodChange,
+    dateFrom,
+    dateTo,
+    onDateFromChange,
+    onDateToChange,
 }) {
 
     const periods = [
@@ -52,6 +56,29 @@ export default function DashboardFilters({
                 onChange={onPeriodChange}
                 options={periods}
             />
+
+            {onDateFromChange && (
+                <div className="flex items-end gap-2">
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-text-primary">Desde</label>
+                        <input
+                            type="date"
+                            value={dateFrom ?? ""}
+                            onChange={(e) => onDateFromChange(e.target.value)}
+                            className="rounded-xl border border-gray-200 bg-surface px-4 py-3 text-text-primary outline-none transition focus:border-indigo-primary focus:ring-2 focus:ring-indigo-light"
+                        />
+                    </div>
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-text-primary">Hasta</label>
+                        <input
+                            type="date"
+                            value={dateTo ?? ""}
+                            onChange={(e) => onDateToChange(e.target.value)}
+                            className="rounded-xl border border-gray-200 bg-surface px-4 py-3 text-text-primary outline-none transition focus:border-indigo-primary focus:ring-2 focus:ring-indigo-light"
+                        />
+                    </div>
+                </div>
+            )}
 
         </FilterBar>
     );

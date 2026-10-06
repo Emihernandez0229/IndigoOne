@@ -66,4 +66,57 @@ export const statusStyles = {
     className: "bg-error/10 text-error",
   },
 
+  // Estado de citas
+  programada: {
+    label: "Programada",
+    className: "bg-warning/10 text-warning",
+  },
+
+  confirmada: {
+    label: "Confirmada",
+    className: "bg-indigo-light text-indigo-primary",
+  },
+
+  atendida: {
+    label: "Atendida",
+    className: "bg-success/10 text-success",
+  },
+
+  cancelada: {
+    label: "Cancelada",
+    className: "bg-error/10 text-error",
+  },
+
+  no_asistio: {
+    label: "No asistió",
+    className: "bg-gray-200 text-text-secondary",
+  },
+
+  // Estado de ventas
+  completada: {
+    label: "Completada",
+    className: "bg-success/10 text-success",
+  },
+
+  // Estado de ordenes de laboratorio
+  pendiente: {
+    label: "Pendiente",
+    className: "bg-warning/10 text-warning",
+  },
+
+  en_proceso: {
+    label: "En proceso",
+    className: "bg-indigo-light text-indigo-primary",
+  },
+
+  listo: {
+    label: "Listo",
+    className: "bg-success/10 text-success",
+  },
+
+  entregado: {
+    label: "Entregado",
+    className: "bg-success/10 text-success",
+  },
+
 };

@@ -6,6 +6,7 @@ import DashboardPanel from "../../../shared/dashboard/DashboardPanel";
 
 import ChartContainer from "../../../shared/charts/ChartContainer";
 import BarChart from "../../../shared/charts/BarChart";
+import DonutChart from "../../../shared/charts/DonutChart";
 
 import LoadingSpinner from "../../../shared/components/LoadingSpinner";
 import ErrorState from "../../../shared/components/ErrorState";
@@ -25,12 +26,17 @@ export default function OwnerDashboard() {
 
   const [branch, setBranch] = useState("");
   const [period, setPeriod] = useState("month");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState />;
   if (!data || Object.keys(data).length === 0) return <EmptyState />;
 
+  const laboratoryByStatus = (data.laboratoryByStatus ?? []).filter(
+    (status) => status.label !== "Cancelados"
+  );
 
   return (
 
@@ -48,11 +54,15 @@ export default function OwnerDashboard() {
           selectedPeriod={period}
           onBranchChange={setBranch}
           onPeriodChange={setPeriod}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
         />
 
         <DashboardGrid>
 
-          <div className="col-span-12 xl:col-span-8">
+          <div className="col-span-12 xl:col-span-7">
 
             <ChartContainer
               title="Ventas por sucursal"
@@ -67,7 +77,23 @@ export default function OwnerDashboard() {
 
           </div>
 
-          <div className="col-span-12 xl:col-span-4">
+          <div className="col-span-12 xl:col-span-5">
+
+            <ChartContainer
+              title="Órdenes de laboratorio"
+              subtitle="Por estado."
+            >
+              <DonutChart data={laboratoryByStatus} centerLabel="Órdenes" />
+
+              <div className="mt-4 flex items-center justify-between rounded-xl bg-background px-4 py-3 text-sm">
+                <span className="text-text-secondary">Mermas registradas</span>
+                <span className="font-semibold text-text-primary">{data.mermasRegistradas ?? 0}</span>
+              </div>
+            </ChartContainer>
+
+          </div>
+
+          <div className="col-span-12">
             <LaboratoryQueue data={data.laboratory ?? []} />
           </div>
 
