@@ -1,31 +1,26 @@
-const express = require('express');
+const express = require("express");
+
+const controller = require("../controllers/clientes.controller");
+const schemas = require("../schemas/clientes.schemas");
+const validate = require("../../../core/middlewares/validation.middleware");
+const {
+  autenticar,
+  soloTipo,
+  soloRol,
+} = require("../../../core/middlewares/auth.middleware");
+
 const router = express.Router();
 
-const clientesController = require('../controllers/clientes.controller');
-const { autenticar, soloTipo, soloRol } = require('../../../core/middlewares/auth.middleware');
+router.use(autenticar, soloTipo("indigo"), soloRol("dueno", "gerente_sucursal"));
+
+router.post("/", validate(schemas.crearOptica), controller.crearOptica);
+
+router.get("/buscar", controller.buscarPorCodigo);
 
 router.post(
-  '/',
-  autenticar,
-  soloTipo('indigo'),
-  soloRol('dueno', 'gerente_sucursal'),
-  clientesController.crearOptica
-);
-
-router.get(
-  '/buscar',
-  autenticar,
-  soloTipo('indigo'),
-  soloRol('dueno', 'gerente_sucursal'),
-  clientesController.buscarPorCodigo
-);
-
-router.post(
-  '/asignar-proveedor',
-  autenticar,
-  soloTipo('indigo'),
-  soloRol('dueno', 'gerente_sucursal'),
-  clientesController.asignarProveedor
+  "/asignar-proveedor",
+  validate(schemas.asignarProveedor),
+  controller.asignarProveedor
 );
 
 module.exports = router;
