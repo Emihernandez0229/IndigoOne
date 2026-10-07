@@ -56,6 +56,16 @@ export async function createUser(
         }
       );
 
+    case "INDIGO_SUBGERENTE":
+      return httpClient.post("/api/indigo/usuarios/subgerentes",
+        {
+          nombre:
+            payload.name,
+          sucursal_id:
+            payload.branchId || null,
+        }
+      );
+
     case "INDIGO_SALES":
       return httpClient.post("/api/indigo/usuarios/empleados",
         {

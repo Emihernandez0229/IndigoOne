@@ -1,25 +1,15 @@
-# React + Vite
+Ya termine el frontend de Sucursales y Personal de Indigo (vista del Dueño). Esto es lo que incluye cada uno:
 
-LO QUE YA ESTA HECHO
-1. hice los 2 .env que me dijiste en back y front
-2. mi base de datos con los roles
-3. btn de cerra sesion 
-4. tenia una version vieja, ya la cambie
-5. confirmacion al dar de baja y de alta
-6. al registar un usuario el selector ya checa bien el rol elegido, gerente= solo sucursales sin gerente asignado
-7. cambio de tono de ver detalles de una seucursal
-8. el gerente de sucursal ahora puede editar su porpia sucursal
-9. kpi no se mostraban en dahsboar en ningun rol, ya quedo de nuevo
+Sucursales
 
-INIDCACIONES PARA EL SUPERVISOR
- 1. bug: el gerente de sucursal al eidtar su sucrusal pierde su propia asignacion como responsable que es el mismo.
+Listado con búsqueda, filtro por estado y paginación de 10 en 10.
+Alta de sucursal: nombre, responsable (solo se listan gerentes realmente disponibles, sin opción de "sin asignar") y ubicación en cascada País, Estado, Municipio.
+Detalle en panel lateral con pestañas "Información general" / "Personal", datos de responsables y KPIs resumen.
+Dar de alta / dar de baja con confirmación.
+Personal (antes "Usuarios")
 
-
-
-
-
-
-
- PENDIENTES POR HACER 
- 1. opticas
- 2. (con ventas, no es literal ventas, al menos por ahora no, lo unico que haran ellos seran registrar trabajos a bicel, pero eso dejalo al final, indigo dejalo al final, ayuda a leo a hacer sus vistas ajjaja, namas arregla lo que te pedi de usuasrios y susucrsales de indigo)
+Lista solo al personal de sucursal (gerentes, subgerentes, ventas, laboratorio)
+Es de solo consulta: se quitó la creación/edición desde aquí.
+Dar de baja / dar de alta solo aplica a Gerentes de sucursal; los demás roles son de solo lectura.
+Detalle en panel lateral: información personal, sucursal asignada, acciones administrativas.
+Todo esto corre hoy contra datos de prueba en el mock-backend 4001. 

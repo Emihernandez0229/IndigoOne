@@ -93,10 +93,15 @@ export const PERMISSIONS = {
     "user.update",
     "user.deactivate",
 
+    "client.view",
+
     "sales.view",
 
     "laboratory.view",
     "laboratory.job.view",
+
+    "inventory.view",
+    "inventory.manage",
 
     "reports.global",
     "reports.branch",
@@ -111,14 +116,17 @@ export const PERMISSIONS = {
     "branch.deactivate",
 
     "user.view",
-    "user.create",
-    "user.update",
     "user.deactivate",
+
+    "client.view",
 
     "sales.view",
 
     "laboratory.view",
     "laboratory.job.view",
+
+    "inventory.view",
+    "inventory.manage",
 
     "reports.global",
     "reports.branch",
@@ -140,6 +148,31 @@ export const PERMISSIONS = {
     "laboratory.view",
     "laboratory.job.view",
 
+    "inventory.view",
+    "inventory.manage",
+
+    "reports.branch",
+  ],
+
+
+  // Mismos permisos que Gerente de Sucursal.
+  [ROLES.INDIGO_SUBGERENTE]: [
+    "branch.view",
+    "branch.update",
+
+    "user.view",
+    "user.create",
+    "user.update",
+    "user.deactivate",
+
+    "sales.view",
+
+    "laboratory.view",
+    "laboratory.job.view",
+
+    "inventory.view",
+    "inventory.manage",
+
     "reports.branch",
   ],
 
@@ -151,6 +184,8 @@ export const PERMISSIONS = {
     "sales.view",
 
     "laboratory.job.create",
+
+    "inventory.view",
   ],
 
 
@@ -163,37 +198,103 @@ export const PERMISSIONS = {
 
   // OPTICAS
   [ROLES.OPTICA_DUENO]: [
+    "optica.settings.view",
+    "optica.settings.manage",
+
+    "optica.catalog.view",
+    "optica.catalog.create",
+    "optica.catalog.update",
+    "optica.catalog.deactivate",
+
+    "optica.branch.view",
+    "optica.branch.create",
+    "optica.branch.update",
+    "optica.branch.deactivate",
+
     "optica.user.view",
     "optica.user.create",
+    "optica.user.update",
+    "optica.user.deactivate",
 
     "optica.sales.view",
+    "optica.sales.create",
+    "optica.sales.manage",
 
     "optica.patient.view",
+    "optica.patient.create",
+    "optica.patient.update",
+    "optica.patient.deactivate",
+
+    "optica.appointment.manage",
+
+    "optica.lab.view",
+    "optica.lab.create",
+    "optica.lab.manage",
+
+    "optica.inventory.view",
+    "optica.inventory.manage",
 
     "optica.reports.view",
   ],
 
 
   [ROLES.OPTICA_ENCARGADO]: [
+    "optica.settings.view",
+
+    "optica.catalog.view",
+    "optica.catalog.create",
+    "optica.catalog.update",
+    "optica.catalog.deactivate",
+
+    "optica.branch.view",
+    "optica.branch.update",
+
     "optica.user.view",
     "optica.user.create",
+    "optica.user.update",
+    "optica.user.deactivate",
 
     "optica.sales.view",
+    "optica.sales.create",
+    "optica.sales.manage",
 
     "optica.patient.view",
     "optica.patient.create",
+    "optica.patient.update",
+    "optica.patient.deactivate",
 
     "optica.appointment.manage",
+
+    "optica.lab.view",
+    "optica.lab.create",
+    "optica.lab.manage",
+
+    "optica.inventory.view",
+    "optica.inventory.manage",
+
+    "optica.reports.view",
   ],
 
 
   [ROLES.OPTICA_EMPLEADO]: [
+    "optica.catalog.view",
+
     "optica.patient.view",
     "optica.patient.create",
+    "optica.patient.update",
+    "optica.patient.deactivate",
 
     "optica.appointment.manage",
 
+    "optica.sales.view",
     "optica.sales.create",
+
+    "optica.lab.view",
+    "optica.lab.create",
+
+    "optica.inventory.view",
+
+    "optica.reports.view",
   ],
 
 };

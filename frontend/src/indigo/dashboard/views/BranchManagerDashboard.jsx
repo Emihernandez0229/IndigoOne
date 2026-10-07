@@ -1,9 +1,12 @@
+import { useState } from "react";
+
 import DashboardLayout from "../../../shared/dashboard/DashboardLayout";
 import DashboardGrid from "../../../shared/dashboard/DashboardGrid";
 import DashboardPanel from "../../../shared/dashboard/DashboardPanel";
 
 import ChartContainer from "../../../shared/charts/ChartContainer";
 import BarChart from "../../../shared/charts/BarChart";
+import DonutChart from "../../../shared/charts/DonutChart";
 
 import LoadingSpinner from "../../../shared/components/LoadingSpinner";
 import ErrorState from "../../../shared/components/ErrorState";
@@ -16,15 +19,27 @@ import useIndigoDashboard from "../hooks/useIndigoDashboard";
 import LaboratoryQueue from "../components/LaboratoryQueue";
 
 
+const SALES_PERIODS = [
+  { value: "week", label: "Semana" },
+  { value: "month", label: "Mes" },
+  { value: "year", label: "Año" },
+];
+
+
 export default function BranchManagerDashboard() {
 
   const { data, loading, error } = useIndigoDashboard();
+  const [salesPeriod, setSalesPeriod] = useState("month");
 
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState />;
   if (!data || Object.keys(data).length === 0) return <EmptyState />;
 
+  const laboratoryByStatus = (data.laboratoryByStatus ?? []).filter(
+    (status) => status.label !== "Cancelados"
+  );
+  const salesByPeriod = data.salesByPeriod?.[salesPeriod] ?? [];
 
   return (
 
@@ -39,14 +54,48 @@ export default function BranchManagerDashboard() {
         <div className="col-span-12 xl:col-span-7">
 
           <ChartContainer
-            title="Ventas por usuario"
-            subtitle="Rendimiento del equipo."
+            title="Ventas"
+            subtitle="Por período."
+            action={
+              <div className="inline-flex rounded-lg bg-background p-1">
+                {SALES_PERIODS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setSalesPeriod(option.value)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                      salesPeriod === option.value
+                        ? "bg-surface text-text-primary shadow-sm"
+                        : "text-text-secondary"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            }
           >
             <BarChart
-              data={data.salesByEmployee ?? []}
+              data={salesByPeriod}
               dataKey="sales"
               labelKey="name"
             />
+          </ChartContainer>
+
+        </div>
+
+        <div className="col-span-12 xl:col-span-5">
+
+          <ChartContainer
+            title="Órdenes de laboratorio"
+            subtitle="Por estado."
+          >
+            <DonutChart data={laboratoryByStatus} centerLabel="Órdenes" />
+
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-background px-4 py-3 text-sm">
+              <span className="text-text-secondary">Mermas registradas</span>
+              <span className="font-semibold text-text-primary">{data.mermasRegistradas ?? 0}</span>
+            </div>
           </ChartContainer>
 
         </div>
@@ -56,7 +105,7 @@ export default function BranchManagerDashboard() {
         </div>
 
         <Can permission="user.view">
-          <div className="col-span-12">
+          <div className="col-span-12 xl:col-span-7">
 
             <DashboardPanel
               title="Equipo"

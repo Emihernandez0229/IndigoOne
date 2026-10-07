@@ -3,13 +3,6 @@ import { describe, it, expect } from "vitest";
 import { filterBranches } from "./filterBranches";
 
 
-// const branches = [
-//   { id: 1, name: "Sucursal Centro", status: "active" },
-//   { id: 2, name: "Sucursal Norte", status: "active" },
-//   { id: 3, name: "Sucursal Poniente", status: "inactive" },
-// ];
-
-
 describe("filterBranches", () => {
 
   it("sin filtros devuelve todo", () => {

@@ -1,82 +1,66 @@
 import { useEffect, useState } from "react";
 
-
-import {
-  getOpticaDashboardData
-} from "../services/dashboardService";
-
+import { useAuth } from "../../../shared/context/AuthContext";
+import { getOpticasDashboardData } from "../services/dashboardService";
+import { mapKpisToCards } from "../mapKpisOpticas";
 
 
-export default function useOpticaDashboard(){
+/**
+ * Carga los datos del dashboard de Ópticas para el rol del usuario actual.
+ */
+export default function useOpticasDashboard() {
+
+  const { user } = useAuth();
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
 
-  const [data,setData] = useState(null);
+  useEffect(() => {
 
+    let active = true;
 
-  const [loading,setLoading] = useState(true);
+    async function load() {
 
-
-  const [error,setError] = useState(null);
-
-
-
-  useEffect(()=>{
-
-
-    async function loadDashboard(){
-
-
-      try{
-
+      try {
 
         setLoading(true);
 
+        const response = await getOpticasDashboardData(user?.role);
 
-        const response =
-          await getOpticaDashboardData();
+        if (active) {
+          setData({
+            ...response,
+            kpis: mapKpisToCards(user?.role, response?.kpis),
+          });
+        }
 
+      } catch (err) {
 
-        setData(response);
+        if (active) {
+          setError(err);
+        }
 
+      } finally {
 
-
-      }catch(error){
-
-
-        setError(error);
-
-
-      }finally{
-
-
-        setLoading(false);
-
+        if (active) {
+          setLoading(false);
+        }
 
       }
 
-
     }
 
+    load();
+
+    return () => {
+      active = false;
+    };
+
+  }, [user?.role]);
 
 
-    loadDashboard();
-
-
-
-  },[]);
-
-
-
-
-  return {
-
-    data,
-
-    loading,
-
-    error
-
-  };
-
+  return { data, loading, error };
 
 }

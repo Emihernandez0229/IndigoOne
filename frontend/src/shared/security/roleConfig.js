@@ -106,6 +106,13 @@ export const ROLE_CONFIG = {
     label: "Gerente de sucursal",
   },
 
+  [ROLES.INDIGO_SUBGERENTE]: {
+    module: "indigo",
+    home: "/indigo/dashboard",
+    navigation: indigoNavigation,
+    label: "Subgerente",
+  },
+
   [ROLES.INDIGO_EMPLEADO_VENTAS]: {
     module: "indigo",
     home: "/indigo/dashboard",
@@ -131,14 +138,14 @@ export const ROLE_CONFIG = {
     module: "opticas",
     home: "/opticas/dashboard",
     navigation: opticaNavigation,
-    label: "Gerente Óptica",
+    label: "Jefe de Sucursal",
   },
 
   [ROLES.OPTICA_EMPLEADO]: {
     module: "opticas",
     home: "/opticas/dashboard",
     navigation: opticaNavigation,
-    label: "Empleado Óptica",
+    label: "Ventas Óptica",
   },
 
 };

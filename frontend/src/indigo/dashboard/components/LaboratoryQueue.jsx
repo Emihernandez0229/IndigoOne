@@ -13,7 +13,7 @@ export default function LaboratoryQueue({
         return (
             <DashboardPanel
 
-                title="Trabajos laboratorio"
+                title="Últimos trabajos de laboratorio"
 
                 subtitle="Seguimiento de producción."
 
@@ -34,7 +34,7 @@ export default function LaboratoryQueue({
 
         <DashboardPanel
 
-            title="Trabajos laboratorio"
+            title="Últimos trabajos de laboratorio"
 
             subtitle="Seguimiento de producción."
 

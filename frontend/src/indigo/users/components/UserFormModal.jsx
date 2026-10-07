@@ -404,6 +404,8 @@ export default function UserFormModal({
       form.role ===
         "INDIGO_BRANCH_MANAGER" ||
       form.role ===
+        "INDIGO_SUBGERENTE" ||
+      form.role ===
         "INDIGO_SALES" ||
       form.role ===
         "INDIGO_LAB";

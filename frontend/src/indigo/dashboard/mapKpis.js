@@ -20,18 +20,35 @@ export function mapKpisToCards(role, kpis) {
     case ROLES.INDIGO_SUPER_USUARIO:
     case ROLES.INDIGO_DUENO:
       return [
-        { id: "sucursalesActivas", type: "branches", title: "Sucursales activas", value: String(kpis.sucursalesActivas ?? 0) },
-        { id: "ventasHoy", type: "sales", title: "Ventas hoy", value: currency(kpis.ventasHoy) },
-        { id: "cantidadVentasHoy", type: "orders", title: "Ventas realizadas hoy", value: String(kpis.cantidadVentasHoy ?? 0) },
-        { id: "ordenesLaboratorio", type: "laboratory", title: "Órdenes a laboratorio", value: String(kpis.ordenesLaboratorio ?? 0) },
+        {
+          id: "sucursalesActivas", type: "branches", title: "Sucursales activas",
+          value: String(kpis.sucursalesActivas ?? 0), color: "blue",
+          description: "Operando",
+        },
+        {
+          id: "ventasHoy", type: "sales", title: "Ventas hoy",
+          value: currency(kpis.ventasHoy), color: "pink",
+          description: "En todas las sucursales",
+        },
+        {
+          id: "clientes", type: "patients", title: "Clientes",
+          value: String(kpis.clientes ?? 0), color: "purple",
+          description: `Activos: ${kpis.clientesActivos ?? 0}  ·  Inactivos: ${kpis.clientesInactivos ?? 0}`,
+        },
+        { id: "ordenesLaboratorio", type: "laboratory", title: "Órdenes a laboratorio", value: String(kpis.ordenesLaboratorio ?? 0), color: "orange" },
       ];
 
     case ROLES.INDIGO_GERENTE_SUCURSAL:
+    case ROLES.INDIGO_SUBGERENTE:
       return [
-        { id: "ventasHoy", type: "sales", title: "Ventas hoy", value: currency(kpis.ventasHoy) },
-        { id: "cantidadVentasHoy", type: "orders", title: "Ventas realizadas hoy", value: String(kpis.cantidadVentasHoy ?? 0) },
-        { id: "empleados", type: "team", title: "Empleados activos", value: String(kpis.empleados ?? 0) },
-        { id: "ordenesLaboratorio", type: "laboratory", title: "Órdenes a laboratorio", value: String(kpis.ordenesLaboratorio ?? 0) },
+        {
+          id: "clientes", type: "patients", title: "Clientes",
+          value: String(kpis.clientes ?? 0), color: "purple",
+          description: `Activos: ${kpis.clientesActivos ?? 0}  ·  Inactivos: ${kpis.clientesInactivos ?? 0}`,
+        },
+        { id: "empleados", type: "team", title: "Empleados", value: String(kpis.empleados ?? 0), color: "blue" },
+        { id: "productosDisponibles", type: "products", title: "Productos disponibles", value: String(kpis.productosDisponibles ?? 0), color: "orange" },
+        { id: "ventasHoy", type: "sales", title: "Ventas hoy", value: currency(kpis.ventasHoy), color: "pink" },
       ];
 
     case ROLES.INDIGO_EMPLEADO_VENTAS:
