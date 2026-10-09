@@ -25,11 +25,11 @@ function Field({ label, value }) {
 }
 
 
-export default function UserDetailPanel({ user, branch, canDeactivate = false, onDeactivate, onActivate }) {
+export default function UserDetailPanel({ user, branch, canDeactivate = false, onDeactivate, onActivate, allowDeactivateAll = false }) {
 
   if (!user) return null;
 
-  const isManager = user.role === ROLES.INDIGO_GERENTE_SUCURSAL;
+  const canManageThisUser = allowDeactivateAll || user.role === ROLES.INDIGO_GERENTE_SUCURSAL;
 
   return (
     <div className="space-y-6">
@@ -54,6 +54,7 @@ export default function UserDetailPanel({ user, branch, canDeactivate = false, o
           </div>
           <Field label="Usuario" value={user.username} />
           <Field label="Teléfono" value={user.phone} />
+          <Field label="Correo electrónico" value={user.email} />
         </dl>
       </div>
 
@@ -77,7 +78,7 @@ export default function UserDetailPanel({ user, branch, canDeactivate = false, o
       <div className="rounded-2xl border border-gray-200 bg-surface p-5">
         <SectionTitle icon={ShieldCheck}>Acciones administrativas</SectionTitle>
 
-        {isManager ? (
+        {canManageThisUser ? (
           canDeactivate && (
             user.status === "active" ? (
               <button

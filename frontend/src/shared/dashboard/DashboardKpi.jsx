@@ -19,6 +19,7 @@ export default function DashboardKpi({
   trendDirection = "up",
   type,
   color,
+  dense = false,
 }) {
 
   const Icon = kpiIcons[type];
@@ -38,18 +39,18 @@ export default function DashboardKpi({
   return (
 
     <article
-      className="
+      className={`
         rounded-2xl
         border
         border-gray-200
         bg-surface
-        p-5
         shadow-sm
         transition-all
         duration-200
         hover:-translate-y-0.5
         hover:shadow-md
-      "
+        ${dense ? "p-3" : "p-5"}
+      `}
     >
 
 
@@ -58,7 +59,7 @@ export default function DashboardKpi({
           flex
           items-start
           justify-between
-          gap-4
+          gap-3
         "
       >
 
@@ -66,24 +67,23 @@ export default function DashboardKpi({
         <div className="min-w-0">
 
           <p
-            className="
-              text-sm
+            className={`
               font-medium
               text-text-secondary
-            "
+              ${dense ? "text-xs" : "text-sm"}
+            `}
           >
             {title}
           </p>
 
 
           <p
-            className="
-              mt-3
-              text-3xl
+            className={`
               font-bold
               tracking-tight
               text-text-primary
-            "
+              ${dense ? "mt-1 text-xl" : "mt-3 text-3xl"}
+            `}
           >
             {value}
           </p>
@@ -97,20 +97,18 @@ export default function DashboardKpi({
             <div
               className={`
                 flex
-                h-11
-                w-11
                 shrink-0
                 items-center
                 justify-center
                 rounded-xl
+                ${dense ? "h-8 w-8" : "h-11 w-11"}
                 ${palette ? palette.bg : "bg-indigo-light"}
               `}
             >
 
               <Icon
                 className={`
-                  h-6
-                  w-6
+                  ${dense ? "h-4 w-4" : "h-6 w-6"}
                   ${palette ? palette.text : "text-indigo-primary"}
                 `}
               />
@@ -128,14 +126,14 @@ export default function DashboardKpi({
         (trend || description) && (
 
           <div
-            className="
-              mt-4
+            className={`
               flex
               flex-wrap
               items-center
               gap-x-2
               gap-y-1
-            "
+              ${dense ? "mt-2" : "mt-4"}
+            `}
           >
 
             {
@@ -146,9 +144,8 @@ export default function DashboardKpi({
                     inline-flex
                     items-center
                     gap-1
-                    text-sm
                     font-medium
-
+                    ${dense ? "text-xs" : "text-sm"}
                     ${
                       isPositive
                         ? "text-success"
@@ -157,7 +154,7 @@ export default function DashboardKpi({
                   `}
                 >
 
-                  <TrendIcon className="h-4 w-4" />
+                  <TrendIcon className={dense ? "h-3 w-3" : "h-4 w-4"} />
 
                   <span>
                     {trend}
@@ -173,10 +170,10 @@ export default function DashboardKpi({
               description && (
 
                 <span
-                  className="
-                    text-sm
+                  className={`
                     text-text-secondary
-                  "
+                    ${dense ? "text-xs" : "text-sm"}
+                  `}
                 >
                   {description}
                 </span>

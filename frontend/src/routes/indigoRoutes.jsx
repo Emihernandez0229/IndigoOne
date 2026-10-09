@@ -2,19 +2,23 @@ import { Route, Navigate } from "react-router-dom";
 
 import IndigoDashboard from "../indigo/dashboard/IndigoDashboard";
 import BranchesPage from "../indigo/branches/BranchesPage";
-import UsersPage from "../indigo/users/UsersPage";
-import ClientsPage from "../indigo/clients/ClientsPage";
+import MyBranchPage from "../indigo/branches/MyBranchPage";
+import UsersRouter from "../indigo/users/UsersRouter";
+import ClientsRouter from "../indigo/clients/ClientsRouter";
+import ClientFormPage from "../indigo/clients/manager/ClientFormPage";
+import LaboratoryPage from "../indigo/laboratory/LaboratoryPage";
+import MermasPage from "../indigo/mermas/MermasPage";
+import ReportsPage from "../indigo/reports/ReportsPage";
 import InventoryPage from "../indigo/inventory/InventoryPage";
 import InventoryDetailPage from "../indigo/inventory/InventoryDetailPage";
-import ComingSoon from "../shared/pages/ComingSoon";
+import TrabajosRouter from "../indigo/sales/TrabajosRouter";
+import NewJobPage from "../indigo/sales/NewJobPage";
 
 import ProtectedRoute from "./ProtectedRoute";
 
 
 /**
  * Rutas del modulo INDIGO.
- * Se montan dentro de <ProtectedRoute> + <AppLayout> (ver privateRoutes).
- * Cada bloque protegido exige el permiso correspondiente.
  */
 export default function IndigoRoutes() {
 
@@ -28,26 +32,31 @@ export default function IndigoRoutes() {
 
       <Route element={<ProtectedRoute permission="branch.view" />}>
         <Route path="sucursales" element={<BranchesPage />} />
+        <Route path="mi-sucursal" element={<MyBranchPage />} />
       </Route>
 
       <Route element={<ProtectedRoute permission="user.view" />}>
-        <Route path="usuarios" element={<UsersPage />} />
+        <Route path="usuarios" element={<UsersRouter />} />
       </Route>
 
       <Route element={<ProtectedRoute permission="client.view" />}>
-        <Route path="clientes" element={<ClientsPage />} />
+        <Route path="clientes" element={<ClientsRouter />} />
+        <Route path="clientes/nuevo" element={<ClientFormPage />} />
+        <Route path="clientes/:id/editar" element={<ClientFormPage />} />
       </Route>
 
       <Route element={<ProtectedRoute permission="reports.branch" />}>
-        <Route path="reportes" element={<ComingSoon title="Reportes" />} />
-      </Route>
-
-      <Route element={<ProtectedRoute permission="sales.view" />}>
-        <Route path="ventas" element={<ComingSoon title="Ventas" />} />
+        <Route path="reportes" element={<ReportsPage />} />
       </Route>
 
       <Route element={<ProtectedRoute permission="laboratory.job.view" />}>
-        <Route path="laboratorio" element={<ComingSoon title="Laboratorio" />} />
+        <Route path="laboratorio" element={<LaboratoryPage />} />
+        <Route path="mermas" element={<MermasPage />} />
+        <Route path="trabajos" element={<TrabajosRouter />} />
+      </Route>
+
+      <Route element={<ProtectedRoute permission="laboratory.job.create" />}>
+        <Route path="trabajos/nuevo" element={<NewJobPage />} />
       </Route>
 
       <Route element={<ProtectedRoute permission="inventory.view" />}>

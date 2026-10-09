@@ -57,7 +57,10 @@ export default function DonutChart({ data = [], height = 200, centerLabel }) {
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
               {item.label}
             </span>
-            <span className="font-semibold text-text-primary">{item.value}</span>
+            <span className="font-semibold text-text-primary">
+              {item.value}
+              {item.percent != null && <span className="ml-2 text-text-secondary">{item.percent}%</span>}
+            </span>
           </div>
         ))}
       </div>

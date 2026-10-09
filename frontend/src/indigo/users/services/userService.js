@@ -127,6 +127,31 @@ export async function updateUser(
 
 }
 
+// Flujo del Gerente/Subgerente (modulo "Empleados" de su propia sucursal).
+export async function createEmployee(payload) {
+  const endpoint = payload.role === "indigo:subgerente" ? "subgerentes" : "empleados";
+
+  return httpClient.post(`/api/indigo/usuarios/${endpoint}`, {
+    nombre: payload.name,
+    telefono: payload.phone,
+    correo: payload.email,
+    usuario: payload.username,
+    tipo: payload.role === "indigo:empleado_laboratorio" ? "laboratorio" : "ventas",
+    sucursal_id: payload.branchId,
+  });
+}
+
+
+export async function updateEmployee(id, payload) {
+  return httpClient.put(`/api/indigo/usuarios/${id}`, {
+    nombre: payload.name,
+    telefono: payload.phone,
+    correo: payload.email,
+    puesto: payload.role,
+  });
+}
+
+
 export async function deactivateUser(
   id
 ) {

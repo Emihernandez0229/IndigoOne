@@ -6,11 +6,12 @@ import IconButton from "../../../shared/components/IconButton";
 export default function ClientTable({ clients = [], onView }) {
 
   const columns = [
-    { key: "code", label: "Código" },
+    { key: "code", label: "ID" },
     { key: "name", label: "Cliente" },
-    { key: "businessName", label: "Razón social" },
-    { key: "branchName", label: "Sucursal" },
+    { key: "type", label: "Tipo" },
+    { key: "rfc", label: "RFC" },
     { key: "phone", label: "Teléfono" },
+    { key: "email", label: "Correo" },
     {
       key: "status",
       label: "Estado",
@@ -20,6 +21,11 @@ export default function ClientTable({ clients = [], onView }) {
           label={row.status === "active" ? "Activo" : "Inactivo"}
         />
       ),
+    },
+    {
+      key: "branches",
+      label: "Sucursales",
+      render: (row) => (row.branches ?? []).length,
     },
     {
       key: "actions",
@@ -37,6 +43,7 @@ export default function ClientTable({ clients = [], onView }) {
       columns={columns}
       data={clients}
       emptyMessage="No hay clientes que coincidan con la búsqueda."
+      pageSize={10}
     />
   );
 }

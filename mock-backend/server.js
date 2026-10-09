@@ -112,17 +112,355 @@ let indigoUsuarios = [
   { id: "u-vta-3", displayId: 13, name: "Sofia", username: "VTA333333", role: "indigo:empleado_ventas", branchId: "suc-3", branchName: "Indigo Monterrey", status: "active", phone: "8192223344" },
 ];
 
+// `branches`: cada cliente (optica) puede tener presencia fisica en mas de
+// una ciudad, y cada una de esas sucursales la abastece la sucursal de
+// Indigo de esa misma plaza (no necesariamente todas la misma) - por eso
+// se registra una entrada por sucursal del cliente, cada una con su propia
+// sucursal de Indigo asignada, en vez de un solo branchId a nivel cliente.
 let indigoClientes = [
-  { id: "cli-1", displayId: 1, name: "EVPU", code: "CLI-00001", businessName: "EVPU S.A. de C.V.", branchId: "suc-1", branchName: "Indigo Tapachula", phone: "9619876543", email: "ventas@evpu.com", status: "active" },
-  { id: "cli-2", displayId: 2, name: "Óptica Visión", code: "CLI-00002", businessName: "Óptica Visión S.A. de C.V.", branchId: "suc-1", branchName: "Indigo Tapachula", phone: "9611234567", email: "contacto@opticavision.com", status: "active" },
-  { id: "cli-3", displayId: 3, name: "Centro Óptico", code: "CLI-00003", businessName: "Centro Óptico S.A. de C.V.", branchId: "suc-1", branchName: "Indigo Tapachula", phone: "9619875678", email: "info@centroopcio.com", status: "inactive" },
-  { id: "cli-4", displayId: 4, name: "Visual Center", code: "CLI-00004", businessName: "Visual Center S.A. de C.V.", branchId: "suc-2", branchName: "Indigo CDMX", phone: "5587654321", email: "hola@visualcenter.com", status: "active" },
-  { id: "cli-5", displayId: 5, name: "CDMX Visión", code: "CLI-00005", businessName: "CDMX Visión S.A. de C.V.", branchId: "suc-2", branchName: "Indigo CDMX", phone: "5555337788", email: "info@cdmxvision.com", status: "active" },
-  { id: "cli-6", displayId: 6, name: "Lentes Plus", code: "CLI-00006", businessName: "Lentes Plus S.A. de C.V.", branchId: "suc-3", branchName: "Indigo Monterrey", phone: "8122334455", email: "ventas@lentesplus.com", status: "inactive" },
-  { id: "cli-7", displayId: 7, name: "Más Visión", code: "CLI-00007", businessName: "Más Visión S.A. de C.V.", branchId: "suc-3", branchName: "Indigo Monterrey", phone: "8126789012", email: "ventas@masvision.com", status: "active" },
+  {
+    id: "cli-1", displayId: 1, name: "EVPU", code: "CLI-00001", businessName: "EVPU S.A. de C.V.",
+    rfc: "EVP9805123A4", type: "Óptica", phone: "9619876543", email: "ventas@evpu.com",
+    fiscalAddress: "Av. Central 123, Tapachula, Chiapas", status: "active",
+    branches: [
+      { id: "cli-1-b1", name: "Tapachula", indigoBranchId: "suc-1", indigoBranchName: "Indigo Tapachula", status: "active" },
+      { id: "cli-1-b2", name: "Ciudad de México", indigoBranchId: "suc-2", indigoBranchName: "Indigo CDMX", status: "active" },
+    ],
+    history: [
+      { date: "2025-09-02", amount: 18500 },
+      { date: "2025-10-14", amount: 32000 },
+      { date: "2025-11-18", amount: 50000 },
+    ],
+  },
+  {
+    id: "cli-2", displayId: 2, name: "Óptica Visión", code: "CLI-00002", businessName: "Óptica Visión S.A. de C.V.",
+    rfc: "OVI8704217B2", type: "Óptica", phone: "9611234567", email: "contacto@opticavision.com",
+    fiscalAddress: "Calle 5 #100, Tapachula, Chiapas", status: "active",
+    branches: [
+      { id: "cli-2-b1", name: "Tapachula", indigoBranchId: "suc-1", indigoBranchName: "Indigo Tapachula", status: "active" },
+    ],
+    history: [
+      { date: "2025-08-20", amount: 12400 },
+      { date: "2025-10-05", amount: 9800 },
+    ],
+  },
+  {
+    id: "cli-3", displayId: 3, name: "Centro Óptico", code: "CLI-00003", businessName: "Centro Óptico S.A. de C.V.",
+    rfc: "CEO7609186K1", type: "Óptica", phone: "9619875678", email: "info@centroopcio.com",
+    fiscalAddress: "Av. Insurgentes 45, Tapachula, Chiapas", status: "inactive",
+    branches: [
+      { id: "cli-3-b1", name: "Tapachula", indigoBranchId: "suc-1", indigoBranchName: "Indigo Tapachula", status: "inactive" },
+    ],
+    history: [
+      { date: "2025-06-11", amount: 15200 },
+    ],
+  },
+  {
+    id: "cli-4", displayId: 4, name: "Visual Center", code: "CLI-00004", businessName: "Visual Center S.A. de C.V.",
+    rfc: "VIC9201123F5", type: "Óptica", phone: "5587654321", email: "hola@visualcenter.com",
+    fiscalAddress: "Reforma 200, Ciudad de México", status: "active",
+    branches: [
+      { id: "cli-4-b1", name: "Ciudad de México", indigoBranchId: "suc-2", indigoBranchName: "Indigo CDMX", status: "active" },
+    ],
+    history: [
+      { date: "2025-09-28", amount: 21000 },
+      { date: "2025-11-02", amount: 17600 },
+    ],
+  },
+  {
+    id: "cli-5", displayId: 5, name: "CDMX Visión", code: "CLI-00005", businessName: "CDMX Visión S.A. de C.V.",
+    rfc: "CDV8703128T6", type: "Óptica", phone: "5555337788", email: "info@cdmxvision.com",
+    fiscalAddress: "Polanco 88, Ciudad de México", status: "active",
+    branches: [
+      { id: "cli-5-b1", name: "Ciudad de México", indigoBranchId: "suc-2", indigoBranchName: "Indigo CDMX", status: "active" },
+    ],
+    history: [],
+  },
+  {
+    id: "cli-6", displayId: 6, name: "Lentes Plus", code: "CLI-00006", businessName: "Lentes Plus S.A. de C.V.",
+    rfc: "LPE9107234M7", type: "Óptica", phone: "8122334455", email: "ventas@lentesplus.com",
+    fiscalAddress: "Av. Constitución 300, Monterrey, Nuevo León", status: "inactive",
+    branches: [
+      { id: "cli-6-b1", name: "Monterrey", indigoBranchId: "suc-3", indigoBranchName: "Indigo Monterrey", status: "inactive" },
+    ],
+    history: [
+      { date: "2025-05-15", amount: 8900 },
+    ],
+  },
+  {
+    id: "cli-7", displayId: 7, name: "Más Visión", code: "CLI-00007", businessName: "Más Visión S.A. de C.V.",
+    rfc: "MVI9506015P3", type: "Óptica", phone: "8126789012", email: "ventas@masvision.com",
+    fiscalAddress: "Av. Gómez Morín 150, Monterrey, Nuevo León", status: "active",
+    branches: [
+      { id: "cli-7-b1", name: "Monterrey", indigoBranchId: "suc-3", indigoBranchName: "Indigo Monterrey", status: "active" },
+    ],
+    history: [
+      { date: "2025-07-09", amount: 11300 },
+      { date: "2025-09-19", amount: 14700 },
+      { date: "2025-10-30", amount: 19950 },
+    ],
+  },
 ];
 
-app.get("/api/indigo/clientes", (req, res) => res.json(indigoClientes));
+registrarCrud("/api/indigo/clientes", () => indigoClientes, {
+  crear: (body) => {
+    const direccion = [body.direccion, body.municipio, body.estado].filter(Boolean).join(", ");
+    return {
+      id: newId(), displayId: indigoClientes.length + 1,
+      code: `CLI-${String(indigoClientes.length + 1).padStart(5, "0")}`,
+      name: body.nombre_comercial, businessName: body.razon_social,
+      rfc: body.rfc, type: "Óptica", phone: body.telefono, email: body.correo,
+      fiscalAddress: direccion, status: "active",
+      branches: [
+        {
+          id: newId(),
+          name: body.sucursal_cliente_nombre || body.municipio || body.nombre_comercial,
+          indigoBranchId: body.indigo_sucursal_id || null,
+          indigoBranchName: body.indigo_sucursal_nombre || null,
+          status: "active",
+        },
+      ],
+      history: [],
+    };
+  },
+  actualizar: (body) => {
+    const direccion = [body.direccion, body.municipio, body.estado].filter(Boolean).join(", ");
+    return {
+      name: body.nombre_comercial, businessName: body.razon_social,
+      rfc: body.rfc, phone: body.telefono, email: body.correo,
+      fiscalAddress: direccion,
+    };
+  },
+});
+
+let indigoLaboratorio = [
+  {
+    id: "lab-1", displayId: 1, folio: "LAB-000230", branchId: "suc-1", branchName: "Indigo Tapachula",
+    clientName: "Óptica Visión", seller: "Yoanna", serviceType: "montaje", biselType: "Manual", quantity: 1, urgent: false,
+    labPerson: "Leo", acceptedBy: null, status: "pending",
+    entryAt: "2026-10-05T09:15:00", acceptedAt: null, processingAt: null, completedAt: null, deliveredAt: null,
+    lossReason: null, workItems: ["Montaje solicitado en armazón del cliente."],
+  },
+  {
+    id: "lab-2", displayId: 2, folio: "LAB-000231", branchId: "suc-1", branchName: "Indigo Tapachula",
+    clientName: "EVPU", seller: "Yoanna", serviceType: "bisel", biselType: "Automático", quantity: 2, urgent: true,
+    labPerson: "Leo", acceptedBy: "Leo", status: "processing",
+    entryAt: "2026-10-03T10:32:00", acceptedAt: "2026-10-03T10:45:00", processingAt: "2026-10-03T11:10:00", completedAt: null, deliveredAt: null,
+    lossReason: null, workItems: ["Bisel urgente solicitado, entrega el mismo día.", "Mica colocada en biseladora automática."],
+  },
+  {
+    id: "lab-3", displayId: 3, folio: "LAB-000232", branchId: "suc-1", branchName: "Indigo Tapachula",
+    clientName: "Centro Óptico", seller: "Yoanna", serviceType: "tinte", biselType: "Automático", quantity: 1, urgent: false,
+    labPerson: "Leo", acceptedBy: "Leo", status: "completed",
+    entryAt: "2026-09-28T09:00:00", acceptedAt: "2026-09-28T09:15:00", processingAt: "2026-09-28T09:40:00", completedAt: "2026-09-28T11:05:00", deliveredAt: "2026-09-28T13:20:00",
+    lossReason: null, workItems: ["Mica con tinte gris aplicado.", "Bisel automático realizado.", "Control de calidad aprobado.", "Entregado en sucursal."],
+  },
+  {
+    id: "lab-4", displayId: 4, folio: "LAB-000233", branchId: "suc-1", branchName: "Indigo Tapachula",
+    clientName: "Óptica Visión", seller: "Yoanna", serviceType: "bisel", biselType: "Automático", quantity: 1, urgent: false,
+    labPerson: "Leo", acceptedBy: "Leo", status: "loss",
+    entryAt: "2026-09-15T12:00:00", acceptedAt: "2026-09-15T12:10:00", processingAt: "2026-09-15T12:30:00", completedAt: null, deliveredAt: null,
+    lossAt: "2026-09-15T13:15:00",
+    lossReason: "El lente se rompió durante el proceso de biselado.",
+    workItems: ["Mica colocada en biseladora automática.", "El lente se rompió durante el proceso de biselado.", "Se notificó al cliente; se repetirá el trabajo sin costo."],
+  },
+  {
+    id: "lab-5", displayId: 5, folio: "LAB-000234", branchId: "suc-1", branchName: "Indigo Tapachula",
+    clientName: "EVPU", seller: "Yoanna", serviceType: "montaje", biselType: "Manual", quantity: 1, urgent: false,
+    labPerson: "Leo", acceptedBy: "Leo", status: "warranty",
+    entryAt: "2026-08-20T08:40:00", acceptedAt: "2026-08-20T09:00:00", processingAt: "2026-08-20T09:20:00", completedAt: "2026-08-20T10:30:00", deliveredAt: "2026-08-20T12:00:00",
+    lossReason: null,
+    workItems: ["Mica con tinte colocada.", "Bisel manual aplicado.", "Entregado en sucursal.", "Cliente reportó una rayadura; ingresado a garantía."],
+  },
+  {
+    id: "lab-6", displayId: 6, folio: "LAB-000235", branchId: "suc-2", branchName: "Indigo CDMX",
+    clientName: "Visual Center", seller: "Carla", serviceType: "montaje", biselType: "Manual", quantity: 1, urgent: false,
+    labPerson: "Pablo", acceptedBy: null, status: "pending",
+    entryAt: "2026-10-04T10:00:00", acceptedAt: null, processingAt: null, completedAt: null, deliveredAt: null,
+    lossReason: null, workItems: ["Pendiente de confirmar material con el cliente."],
+  },
+  {
+    id: "lab-7", displayId: 7, folio: "LAB-000236", branchId: "suc-2", branchName: "Indigo CDMX",
+    clientName: "CDMX Visión", seller: "Carla", serviceType: "bisel", biselType: "Automático", quantity: 3, urgent: true,
+    labPerson: "Pablo", acceptedBy: "Pablo", status: "processing",
+    entryAt: "2026-10-02T11:50:00", acceptedAt: "2026-10-02T12:05:00", processingAt: "2026-10-02T12:20:00", completedAt: null, deliveredAt: null,
+    lossReason: null, workItems: ["3 piezas ingresadas, mismo pedido.", "En proceso de bisel automático."],
+  },
+  {
+    id: "lab-8", displayId: 8, folio: "LAB-000237", branchId: "suc-2", branchName: "Indigo CDMX",
+    clientName: "Visual Center", seller: "Carla", serviceType: "bisel", biselType: "Automático", quantity: 1, urgent: false,
+    labPerson: "Pablo", acceptedBy: "Pablo", status: "completed",
+    entryAt: "2026-09-25T09:25:00", acceptedAt: "2026-09-25T09:40:00", processingAt: "2026-09-25T10:00:00", completedAt: "2026-09-25T11:30:00", deliveredAt: "2026-09-25T14:00:00",
+    lossReason: null, workItems: ["Mica colocada.", "Bisel automático aplicado sin incidencias.", "Entregado en sucursal."],
+  },
+  {
+    id: "lab-9", displayId: 9, folio: "LAB-000238", branchId: "suc-3", branchName: "Indigo Monterrey",
+    clientName: "Más Visión", seller: "Sofia", serviceType: "montaje", biselType: "Manual", quantity: 1, urgent: false,
+    labPerson: "Diego", acceptedBy: null, status: "pending",
+    entryAt: "2026-10-01T15:40:00", acceptedAt: null, processingAt: null, completedAt: null, deliveredAt: null,
+    lossReason: null, workItems: ["Trabajo registrado, pendiente de aceptar."],
+  },
+  {
+    id: "lab-10", displayId: 10, folio: "LAB-000239", branchId: "suc-3", branchName: "Indigo Monterrey",
+    clientName: "Lentes Plus", seller: "Sofia", serviceType: "bisel", biselType: "Automático", quantity: 2, urgent: false,
+    labPerson: "Diego", acceptedBy: "Diego", status: "processing",
+    entryAt: "2026-09-20T13:15:00", acceptedAt: "2026-09-20T13:30:00", processingAt: "2026-09-20T13:50:00", completedAt: null, deliveredAt: null,
+    lossReason: null, workItems: ["2 piezas en proceso de bisel automático."],
+  },
+  {
+    id: "lab-11", displayId: 11, folio: "LAB-000240", branchId: "suc-3", branchName: "Indigo Monterrey",
+    clientName: "Más Visión", seller: "Sofia", serviceType: "tinte", biselType: "Automático", quantity: 1, urgent: false,
+    labPerson: "Diego", acceptedBy: "Diego", status: "completed",
+    entryAt: "2026-07-10T10:10:00", acceptedAt: "2026-07-10T10:25:00", processingAt: "2026-07-10T10:45:00", completedAt: "2026-07-10T12:00:00", deliveredAt: "2026-07-10T15:00:00",
+    lossReason: null, workItems: ["Mica con tinte colocada.", "Bisel automático aplicado.", "Entregado en sucursal."],
+  },
+  {
+    id: "lab-12", displayId: 12, folio: "LAB-000241", branchId: "suc-2", branchName: "Indigo CDMX",
+    clientName: "Visual Center", seller: "Carla", serviceType: "bisel", biselType: "Automático", quantity: 1, urgent: true,
+    labPerson: "Pablo", acceptedBy: "Pablo", status: "loss",
+    entryAt: "2026-08-05T11:00:00", acceptedAt: "2026-08-05T11:15:00", processingAt: "2026-08-05T11:40:00", completedAt: null, deliveredAt: null,
+    lossAt: "2026-08-05T13:30:00",
+    lossReason: "Accidente en la máquina biseladora, la mica quedó inservible.",
+    workItems: ["Mica colocada en biseladora.", "Accidente en la máquina biseladora, la mica quedó inservible.", "Se repuso el material desde almacén central."],
+  },
+  {
+    id: "lab-13", displayId: 13, folio: "LAB-000242", branchId: "suc-1", branchName: "Indigo Tapachula",
+    clientName: "Centro Óptico", seller: "Yoanna", serviceType: "bisel", biselType: "Ranurado", quantity: 1, urgent: false,
+    labPerson: "Leo", acceptedBy: "Leo", status: "loss",
+    entryAt: "2026-10-02T09:15:00", acceptedAt: "2026-10-02T09:40:00", processingAt: "2026-10-02T10:10:00", completedAt: null, deliveredAt: null,
+    lossAt: "2026-10-02T12:30:00",
+    lossReason: "El material presentó un defecto de fábrica (burbuja interna) detectado durante el proceso.",
+    workItems: ["Mica colocada en biseladora ranurada.", "El material presentó un defecto de fábrica (burbuja interna).", "Se notificó al cliente."],
+  },
+  {
+    id: "lab-14", displayId: 14, folio: "LAB-000243", branchId: "suc-2", branchName: "Indigo CDMX",
+    clientName: "CDMX Visión", seller: "Carla", serviceType: "bisel", biselType: "Perforado", quantity: 2, urgent: true,
+    labPerson: "Pablo", acceptedBy: "Pablo", status: "loss",
+    entryAt: "2026-10-03T06:05:00", acceptedAt: "2026-10-03T06:25:00", processingAt: "2026-10-03T06:50:00", completedAt: null, deliveredAt: null,
+    lossAt: "2026-10-03T09:10:00",
+    lossReason: "Fractura durante el perforado para montaje al aire.",
+    workItems: ["Mica colocada para perforado al aire.", "Fractura durante el proceso de perforado.", "Se repuso el material y se avisó al cliente."],
+  },
+  {
+    id: "lab-15", displayId: 15, folio: "LAB-000244", branchId: "suc-3", branchName: "Indigo Monterrey",
+    clientName: "Lentes Plus", seller: "Sofia", serviceType: "bisel", biselType: "Manual", quantity: 1, urgent: false,
+    labPerson: "Diego", acceptedBy: "Diego", status: "loss",
+    entryAt: "2026-09-30T14:10:00", acceptedAt: "2026-09-30T14:30:00", processingAt: "2026-09-30T14:55:00", completedAt: null, deliveredAt: null,
+    lossAt: "2026-09-30T17:25:00",
+    lossReason: "Rayadura profunda detectada en la inspección final.",
+    workItems: ["Mica colocada en biseladora manual.", "Rayadura profunda detectada en inspección final.", "Pieza descartada."],
+  },
+];
+
+// Backfill de campos que el modulo "Trabajos u ordenes" del Empleado de
+// Ventas necesita (quien registro el trabajo en el sistema - puede ser
+// distinto de quien hizo la venta - y la fecha/hora de entrega prometida).
+// Se hace con un .map() en vez de tocar los 15 registros de arriba.
+const SELLER_IDS = { Yoanna: "u-vta-1", Carla: "u-vta-2", Sofia: "u-vta-3" };
+indigoLaboratorio = indigoLaboratorio.map((job) => ({
+  registeredBy: job.seller,
+  registeredById: SELLER_IDS[job.seller] || null,
+  requestedDeliveryAt: new Date(new Date(job.entryAt).getTime() + 2 * 86400000).toISOString(),
+  ...job,
+  // "Añadir detalles" (Empleado de Laboratorio) necesita texto + quien lo
+  // escribio + cuando, no solo el texto plano que tenian estos 15 iniciales.
+  workItems: (job.workItems || []).map((item) =>
+    typeof item === "string" ? { text: item, author: job.labPerson || null, at: job.entryAt } : item
+  ),
+}));
+
+app.get("/api/indigo/mermas", (req, res) => res.json(indigoLaboratorio.filter((job) => job.status === "loss")));
+
+app.get("/api/indigo/laboratorio", (req, res) => res.json(indigoLaboratorio));
+
+function nextLabFolio() {
+  const nums = indigoLaboratorio
+    .map((j) => parseInt(String(j.folio).replace(/\D/g, ""), 10))
+    .filter((n) => !Number.isNaN(n));
+  const max = nums.length ? Math.max(...nums) : 229;
+  return `LAB-${String(max + 1).padStart(6, "0")}`;
+}
+
+// Usada por el Empleado de Ventas al registrar un trabajo nuevo desde
+// "Trabajos u ordenes". Siempre nace "pendiente" - lo acepta laboratorio.
+app.post("/api/indigo/laboratorio", (req, res) => {
+  const body = req.body;
+  const branch = indigoSucursales.find((s) => s.id === body.sucursal_id);
+
+  const item = {
+    id: newId(), displayId: indigoLaboratorio.length + 1,
+    folio: nextLabFolio(),
+    branchId: body.sucursal_id || null, branchName: branch?.name || "",
+    clientName: body.cliente_nombre, seller: body.vendedor_nombre,
+    serviceType: body.tipo_trabajo || "bisel", biselType: body.tipo_bisel, quantity: Number(body.cantidad) || 1,
+    urgent: body.tipo_servicio === "urgente",
+    labPerson: null, acceptedBy: null, status: "pending",
+    entryAt: new Date().toISOString(),
+    acceptedAt: null, processingAt: null, completedAt: null, deliveredAt: null, lossAt: null,
+    requestedDeliveryAt: body.fecha_entrega && body.hora_entrega ? `${body.fecha_entrega}T${body.hora_entrega}` : null,
+    registeredBy: body.registrado_por_nombre || body.vendedor_nombre,
+    registeredById: body.registrado_por_id || null,
+    lossReason: null, workItems: [],
+  };
+
+  indigoLaboratorio.unshift(item);
+  res.status(201).json(item);
+});
+
+function encontrarTrabajo(id, res) {
+  const job = indigoLaboratorio.find((j) => j.id === id);
+  if (!job) {
+    res.status(404).json({ error: "No encontrado" });
+    return null;
+  }
+  return job;
+}
+
+// Acciones del Empleado de Laboratorio sobre un trabajo ya registrado por
+// Ventas: aceptar (pendiente -> en proceso), terminar (-> terminado),
+// registrar merma (-> merma, con explicacion obligatoria), y agregar una
+// entrada al log de "Añadir detalles".
+
+app.patch("/api/indigo/laboratorio/:id/aceptar", (req, res) => {
+  const job = encontrarTrabajo(req.params.id, res);
+  if (!job) return;
+  const now = new Date().toISOString();
+  job.status = "processing";
+  job.acceptedAt = now;
+  job.processingAt = now;
+  job.acceptedBy = req.body.nombre || null;
+  job.labPerson = job.labPerson || req.body.nombre || null;
+  res.json(job);
+});
+
+app.patch("/api/indigo/laboratorio/:id/terminar", (req, res) => {
+  const job = encontrarTrabajo(req.params.id, res);
+  if (!job) return;
+  job.status = "completed";
+  job.completedAt = new Date().toISOString();
+  job.completedBy = req.body.nombre || null;
+  res.json(job);
+});
+
+app.patch("/api/indigo/laboratorio/:id/merma", (req, res) => {
+  const job = encontrarTrabajo(req.params.id, res);
+  if (!job) return;
+  if (!req.body.motivo) return res.status(400).json({ error: "La explicación de la merma es obligatoria." });
+  job.status = "loss";
+  job.lossAt = new Date().toISOString();
+  job.lossReason = req.body.motivo;
+  job.lossBy = req.body.nombre || null;
+  res.json(job);
+});
+
+app.post("/api/indigo/laboratorio/:id/detalles", (req, res) => {
+  const job = encontrarTrabajo(req.params.id, res);
+  if (!job) return;
+  if (!req.body.texto) return res.status(400).json({ error: "Escribe un detalle del trabajo." });
+  const entry = { text: req.body.texto, author: req.body.nombre || null, at: new Date().toISOString() };
+  job.workItems = [...(job.workItems || []), entry];
+  res.json(job);
+});
 
 let indigoInventario = [
   { id: "inv-1", displayId: 1, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", gender: "hombre", measurements: "56-17-140", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 48, stockReserved: 6, stockMin: 10, cost: 450, active: true, photos: [
@@ -135,6 +473,14 @@ let indigoInventario = [
   { id: "inv-2", displayId: 4, code: "ARM-002", model: "Wayfarer Mini", description: "Armazón de acetato compacto, ideal para rostros pequeños.", color: "Negro", type: "armazones", material: "JD Sport", gender: "unisex", measurements: "50-19-135", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 3, stockReserved: 1, stockMin: 5, cost: 380, active: true, photos: [] },
   { id: "inv-3", displayId: 5, code: "ARM-003", model: "Round Vintage", description: "Armazón redondo de inspiración vintage.", color: "Carey", type: "armazones", material: "Cactus", gender: "mujer", measurements: "48-20-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 0, stockReserved: 0, stockMin: 4, cost: 500, active: true, photos: [] },
   { id: "inv-4", displayId: 6, code: "MIC-001", model: "Progresiva HD", description: "Mica progresiva de alta definición.", color: "Transparente", type: "micas", material: "Progresivos Superfit", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 14, stockReserved: 4, stockMin: 8, cost: 900, active: true, photos: [] },
+  { id: "inv-5", displayId: 7, code: "ACC-001", model: "Cordón para lentes ajustable", description: "Cordón ajustable para sujetar lentes.", color: "Negro", type: "accesorios", material: "Nylon", gender: "unisex", measurements: "70cm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 120, stockReserved: 10, stockMin: 20, cost: 35, active: true, photos: [] },
+  { id: "inv-5b", displayId: 8, code: "ACC-001", model: "Cordón para lentes ajustable", description: "Cordón ajustable para sujetar lentes.", color: "Negro", type: "accesorios", material: "Nylon", gender: "unisex", measurements: "70cm", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 95, stockReserved: 5, stockMin: 20, cost: 35, active: true, photos: [] },
+  { id: "inv-6", displayId: 9, code: "ACC-002", model: "Paño de microfibra", description: "Paño de microfibra para limpieza de lentes.", color: "Azul", type: "accesorios", material: "Microfibra", gender: "unisex", measurements: "15x15 cm", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 260, stockReserved: 0, stockMin: 30, cost: 18, active: true, photos: [] },
+  { id: "inv-7", displayId: 10, code: "EST-001", model: "Estuche rígido con cierre", description: "Estuche rígido con cierre para armazones.", color: "Negro", type: "estuches", material: "EVA", gender: "unisex", measurements: "16x6x5 cm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 85, stockReserved: 8, stockMin: 15, cost: 60, active: true, photos: [] },
+  { id: "inv-7b", displayId: 11, code: "EST-001", model: "Estuche rígido con cierre", description: "Estuche rígido con cierre para armazones.", color: "Negro", type: "estuches", material: "EVA", gender: "unisex", measurements: "16x6x5 cm", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 40, stockReserved: 2, stockMin: 15, cost: 60, active: true, photos: [] },
+  { id: "inv-8", displayId: 12, code: "OTR-001", model: "Kit de destornilladores para lentes", description: "Kit de mini destornilladores para ajuste de armazones.", color: "Gris", type: "otros", material: "Metal", gender: "unisex", measurements: "N/A", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 18, stockReserved: 0, stockMin: 5, cost: 45, active: true, photos: [] },
+  { id: "inv-9", displayId: 13, code: "ARM-004", model: "Armazón al aire titanio", description: "Armazón al aire de titanio, ultraligero.", color: "Plata", type: "armazones", material: "Friend", gender: "hombre", measurements: "54-18-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 0, stockReserved: 0, stockMin: 6, cost: 1150, active: true, photos: [] },
+  { id: "inv-10", displayId: 14, code: "ARM-005", model: "Armazón infantil flexible", description: "Armazón flexible resistente para niños.", color: "Azul", type: "armazones", material: "Toki Kids", gender: "unisex", measurements: "44-16-125", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 6, stockReserved: 1, stockMin: 8, cost: 420, active: true, photos: [] },
 ];
 
 let opticaSucursales = [
@@ -198,21 +544,74 @@ function registrarCrud(basePath, getStore, extra = {}) {
 
 // ---- Indigo ----
 
+// Si en el form de sucursal se escribe un nombre en "nuevo gerente" (porque
+// no habia ningun gerente disponible para asignar), aqui se da de alta ese
+// gerente de verdad en indigoUsuarios, para que aparezca tambien en el
+// modulo Personal - no solo como texto suelto en la sucursal.
+function crearGerenteParaSucursal(nombre, branchId, branchName) {
+  const id = newId();
+  indigoUsuarios.unshift({
+    id, displayId: indigoUsuarios.length + 1,
+    name: nombre, username: "NEW" + Math.floor(Math.random() * 10000),
+    role: "indigo:gerente_sucursal", branchId, branchName,
+    status: "active", phone: "",
+  });
+  return id;
+}
+
 registrarCrud("/api/indigo/sucursales", () => indigoSucursales, {
-  crear: (body) => ({
-    id: newId(), displayId: indigoSucursales.length + 1,
-    name: body.nombre, image: body.imagen || "", address: "", phone: "",
-    country: body.pais || "", state: body.estado || "", municipality: body.municipio || "",
-    manager: body.nuevo_gerente_nombre || null, managerId: body.gerente_indigo_usuario_id || null,
-    managerPhone: "", subManager: null, subManagerId: null, subManagerPhone: "",
-    staff: 0, products: 0, customers: 0, labJobs: 0, status: "active", staffList: [],
-  }),
-  actualizar: (body) => ({
-    name: body.nombre,
-    manager: body.nuevo_gerente_nombre || body.manager || null,
-    managerId: body.gerente_indigo_usuario_id || null,
-    country: body.pais, state: body.estado, municipality: body.municipio,
-  }),
+  crear: (body) => {
+    const id = newId();
+    const nombreSucursal = body.nombre;
+
+    let managerId = body.gerente_indigo_usuario_id || null;
+    let managerName = null;
+
+    if (body.nuevo_gerente_nombre) {
+      managerId = crearGerenteParaSucursal(body.nuevo_gerente_nombre, id, nombreSucursal);
+      managerName = body.nuevo_gerente_nombre;
+    } else if (managerId) {
+      managerName = indigoUsuarios.find((u) => u.id === managerId)?.name || null;
+    }
+
+    return {
+      id, displayId: indigoSucursales.length + 1,
+      name: nombreSucursal, image: body.imagen || "", address: "", phone: "",
+      country: body.pais || "", state: body.estado || "", municipality: body.municipio || "",
+      manager: managerName, managerId,
+      managerPhone: "", subManager: null, subManagerId: null, subManagerPhone: "",
+      staff: managerId ? 1 : 0, products: 0, customers: 0, labJobs: 0, status: "active",
+      staffList: managerId ? [{ name: managerName, role: "Gerente de sucursal" }] : [],
+    };
+  },
+  // El PUT lo usan dos formularios distintos (edicion completa del Dueño,
+  // y la edicion acotada de "Mi sucursal" del Gerente/Subgerente), cada uno
+  // manda solo sus propios campos - por eso el patch se arma condicional,
+  // nunca pisando con `undefined` lo que el otro formulario no mando.
+  actualizar: (body, existingRow) => {
+    const patch = {};
+
+    if (body.nombre !== undefined) patch.name = body.nombre;
+    if (body.pais !== undefined) patch.country = body.pais;
+    if (body.estado !== undefined) patch.state = body.estado;
+    if (body.municipio !== undefined) patch.municipality = body.municipio;
+
+    if (body.nuevo_gerente_nombre) {
+      patch.managerId = crearGerenteParaSucursal(body.nuevo_gerente_nombre, existingRow.id, body.nombre || existingRow.name);
+      patch.manager = body.nuevo_gerente_nombre;
+    } else if (body.gerente_indigo_usuario_id !== undefined) {
+      patch.managerId = body.gerente_indigo_usuario_id || null;
+      patch.manager = body.manager ?? null;
+    }
+
+    if (body.direccion !== undefined) patch.address = body.direccion;
+    if (body.telefono !== undefined) patch.phone = body.telefono;
+    if (body.gerente_telefono !== undefined) patch.managerPhone = body.gerente_telefono;
+    if (body.subgerente_nombre !== undefined) patch.subManager = body.subgerente_nombre;
+    if (body.subgerente_telefono !== undefined) patch.subManagerPhone = body.subgerente_telefono;
+
+    return patch;
+  },
 });
 
 app.get("/api/indigo/sucursales/gerentes-disponibles", (req, res) => {
@@ -232,6 +631,17 @@ registrarCrud("/api/indigo/usuarios", () => indigoUsuarios, {
     role: "indigo:empleado_ventas", branchId: body.sucursal_id || null,
     branchName: "Indigo Tapachula", status: "active",
   }),
+  // El Gerente/Subgerente edita nombre, telefono, correo y puesto/rol del
+  // empleado desde el modulo de Empleados - nunca la sucursal (esa queda
+  // fija, asignada automaticamente).
+  actualizar: (body) => {
+    const patch = {};
+    if (body.nombre !== undefined) patch.name = body.nombre;
+    if (body.telefono !== undefined) patch.phone = body.telefono;
+    if (body.correo !== undefined) patch.email = body.correo;
+    if (body.puesto !== undefined) patch.role = body.puesto;
+    return patch;
+  },
 });
 
 // Rutas por rol que realmente usa createUser() del front (el POST generico
@@ -240,10 +650,10 @@ function crearUsuarioIndigo(body, role) {
   const branch = indigoSucursales.find((s) => s.id === body.sucursal_id);
   const item = {
     id: newId(), displayId: indigoUsuarios.length + 1,
-    name: body.nombre, username: "NEW" + Math.floor(Math.random() * 10000),
+    name: body.nombre, username: body.usuario || "NEW" + Math.floor(Math.random() * 10000),
     role, branchId: body.sucursal_id || null,
     branchName: branch?.name || body.nueva_sucursal_nombre || "Sin asignar",
-    status: "active",
+    status: "active", phone: body.telefono || "", email: body.correo || "",
   };
   indigoUsuarios.unshift(item);
   return item;
