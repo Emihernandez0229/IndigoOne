@@ -11,6 +11,7 @@ import ErrorState from "../../shared/components/ErrorState";
 import { useAuth } from "../../shared/context/AuthContext";
 import { ROLES } from "../../shared/security/roles";
 import { onlyDigits } from "../../shared/utils/textInput";
+import { useFormValidation } from "../../shared/hooks/useFormValidation";
 
 import useLaboratoryJobs from "../laboratory/hooks/useLaboratoryJobs";
 import useBranches from "../branches/hooks/useBranches";
@@ -63,7 +64,7 @@ export default function NewJobPage() {
   const { users, loading: loadingUsers, error: errorUsers } = useUsers();
 
   const [form, setForm] = useState(EMPTY);
-  const [errors, setErrors] = useState({});
+  const { errors, validate, clearError } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [lastFolio, setLastFolio] = useState(null);
 
@@ -89,7 +90,7 @@ export default function NewJobPage() {
     const raw = event?.target ? event.target.value : event;
     const value = transform ? transform(raw ?? "") : raw;
     setForm((prev) => ({ ...prev, [field]: value ?? "" }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    clearError(field);
   };
 
   const loading = loadingJobs || loadingBranches || loadingClients || loadingUsers;
@@ -107,28 +108,34 @@ export default function NewJobPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const nextErrors = {};
-    if (!form.clientId) nextErrors.clientId = "Selecciona un cliente.";
-    if (!form.sellerId) nextErrors.sellerId = "Selecciona un vendedor.";
-    if (!form.serviceType) nextErrors.serviceType = "Selecciona el tipo de servicio.";
-    if (!form.biselType) nextErrors.biselType = "Selecciona el tipo de bisel.";
-    if (!form.quantity || Number(form.quantity) < 1) nextErrors.quantity = "La cantidad debe ser al menos 1.";
-    if (!form.deliveryDate) nextErrors.deliveryDate = "Selecciona la fecha de entrega.";
-    if (!form.deliveryTime) nextErrors.deliveryTime = "Selecciona la hora de entrega.";
+    const deliveryDateRequired = !form.deliveryDate;
+    const deliveryDatePast = !deliveryDateRequired && form.deliveryDate < today;
+    const deliveryDateInvalid = deliveryDateRequired || deliveryDatePast;
+    const deliveryDateMessage = deliveryDateRequired
+      ? "Selecciona la fecha de entrega."
+      : "No puedes elegir una fecha anterior a hoy.";
 
-    if (!nextErrors.deliveryDate && form.deliveryDate < today) {
-      nextErrors.deliveryDate = "No puedes elegir una fecha anterior a hoy.";
-    }
-
-    if (!nextErrors.deliveryDate && !nextErrors.deliveryTime) {
+    const deliveryTimeRequired = !form.deliveryTime;
+    let deliveryTimeInvalid = deliveryTimeRequired;
+    let deliveryTimeMessage = "Selecciona la hora de entrega.";
+    if (!deliveryDateInvalid && !deliveryTimeRequired) {
       const deliveryAt = new Date(`${form.deliveryDate}T${form.deliveryTime}`);
       if (deliveryAt < new Date()) {
-        nextErrors.deliveryTime = "La fecha y hora de entrega no pueden ser anteriores a ahora.";
+        deliveryTimeInvalid = true;
+        deliveryTimeMessage = "La fecha y hora de entrega no pueden ser anteriores a ahora.";
       }
     }
 
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    const isValid = validate([
+      ["clientId", !form.clientId, "Selecciona un cliente."],
+      ["sellerId", !form.sellerId, "Selecciona un vendedor."],
+      ["serviceType", !form.serviceType, "Selecciona el tipo de servicio."],
+      ["biselType", !form.biselType, "Selecciona el tipo de bisel."],
+      ["quantity", !form.quantity || Number(form.quantity) < 1, "La cantidad debe ser al menos 1."],
+      ["deliveryDate", deliveryDateInvalid, deliveryDateMessage],
+      ["deliveryTime", deliveryTimeInvalid, deliveryTimeMessage],
+    ]);
+    if (!isValid) return;
 
     const seller = users.find((u) => u.id === form.sellerId);
 

@@ -12,6 +12,7 @@ import { getRoleConfig } from "../../shared/security/roleConfig";
 
 import useUsers from "../users/hooks/useUsers";
 import { onlyLetters, onlyDigits, isValidEmail, isValidPhone } from "../../shared/utils/textInput";
+import { useFormValidation } from "../../shared/hooks/useFormValidation";
 
 
 function formatDate(value) {
@@ -58,12 +59,12 @@ export default function ProfilePage() {
 
   const [editingInfo, setEditingInfo] = useState(false);
   const [infoForm, setInfoForm] = useState(null);
-  const [infoErrors, setInfoErrors] = useState({});
+  const { errors: infoErrors, validate: validateInfo, resetErrors: resetInfoErrors } = useFormValidation();
   const [savingInfo, setSavingInfo] = useState(false);
 
   const [editingContact, setEditingContact] = useState(false);
   const [contactForm, setContactForm] = useState(null);
-  const [contactErrors, setContactErrors] = useState({});
+  const { errors: contactErrors, validate: validateContact, resetErrors: resetContactErrors } = useFormValidation();
   const [savingContact, setSavingContact] = useState(false);
 
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
@@ -86,7 +87,7 @@ export default function ProfilePage() {
 
   function startEditingInfo() {
     setInfoForm({ name: me.name ?? "", username: me.username ?? "", phone: me.phone ?? "", email: me.email ?? "" });
-    setInfoErrors({});
+    resetInfoErrors();
     setEditingInfo(true);
   }
 
@@ -95,16 +96,13 @@ export default function ProfilePage() {
   }
 
   async function saveInfo() {
-    const errors = {};
-    if (!infoForm.name.trim()) errors.name = "Requerido.";
-    if (!infoForm.username.trim()) errors.username = "Requerido.";
-    if (infoForm.phone && !isValidPhone(infoForm.phone)) errors.phone = "Debe tener 10 dígitos.";
-    if (infoForm.email && !isValidEmail(infoForm.email)) errors.email = "Correo inválido.";
-
-    if (Object.keys(errors).length > 0) {
-      setInfoErrors(errors);
-      return;
-    }
+    const isValid = validateInfo([
+      ["name", !infoForm.name.trim(), "Requerido."],
+      ["username", !infoForm.username.trim(), "Requerido."],
+      ["phone", infoForm.phone && !isValidPhone(infoForm.phone), "Debe tener 10 dígitos."],
+      ["email", infoForm.email && !isValidEmail(infoForm.email), "Correo inválido."],
+    ]);
+    if (!isValid) return;
 
     setSavingInfo(true);
     try {
@@ -121,7 +119,7 @@ export default function ProfilePage() {
       phone: me.emergencyContact?.phone ?? "",
       relation: me.emergencyContact?.relation ?? "",
     });
-    setContactErrors({});
+    resetContactErrors();
     setEditingContact(true);
   }
 
@@ -130,13 +128,10 @@ export default function ProfilePage() {
   }
 
   async function saveContact() {
-    const errors = {};
-    if (contactForm.phone && !isValidPhone(contactForm.phone)) errors.phone = "Debe tener 10 dígitos.";
-
-    if (Object.keys(errors).length > 0) {
-      setContactErrors(errors);
-      return;
-    }
+    const isValid = validateContact([
+      ["phone", contactForm.phone && !isValidPhone(contactForm.phone), "Debe tener 10 dígitos."],
+    ]);
+    if (!isValid) return;
 
     setSavingContact(true);
     try {

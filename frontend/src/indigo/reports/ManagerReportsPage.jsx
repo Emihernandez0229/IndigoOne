@@ -26,15 +26,12 @@ import {
   inRange,
   pct,
   formatShortDate,
-  formatAxisDate,
+  buildPeriodWindows,
 } from "./utils";
 
 
 const WORK_TYPE_COLOR = "#8B7FE0";
 const WORK_TYPE_WORST_COLOR = "#F06595";
-
-const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 
 function bucketStats(jobs, from, to, name) {
@@ -66,58 +63,11 @@ function bucketStats(jobs, from, to, name) {
 // La granularidad de "Trabajos en el tiempo" y "Trabajos" sigue al boton de
 // arriba: Semanal -> ultimos 7 dias (por dia), Mensual -> ultimas 4 semanas
 // (por semana), Anual -> los meses del año en curso (por mes). Un rango
-// personalizado cae de vuelta a buckets semanales entre esas fechas.
+// personalizado cae de vuelta a buckets semanales entre esas fechas. Las
+// ventanas de fecha son compartidas (ver reports/utils.js); las estadisticas
+// por ventana siguen siendo propias de Reportes.
 function buildPeriodBuckets(jobs, periodMode, range) {
-  const now = new Date();
-
-  if (periodMode === "week") {
-    const buckets = [];
-    for (let i = 6; i >= 0; i--) {
-      const day = new Date(now); day.setDate(now.getDate() - i);
-      const from = new Date(day); from.setHours(0, 0, 0, 0);
-      const to = new Date(day); to.setHours(23, 59, 59, 999);
-      buckets.push(bucketStats(jobs, from, to, i === 0 ? "Hoy" : WEEKDAY_LABELS[day.getDay()]));
-    }
-    return buckets;
-  }
-
-  if (periodMode === "month") {
-    const buckets = [];
-    for (let i = 3; i >= 0; i--) {
-      const to = new Date(now); to.setDate(now.getDate() - i * 7);
-      const from = new Date(to); from.setDate(to.getDate() - 6); from.setHours(0, 0, 0, 0);
-      buckets.push(bucketStats(jobs, from, to, i === 0 ? "Esta semana" : `Hace ${i} sem.`));
-    }
-    return buckets;
-  }
-
-  if (periodMode === "year") {
-    const buckets = [];
-    for (let m = 0; m < 12; m++) {
-      const from = new Date(now.getFullYear(), m, 1);
-      const to = new Date(now.getFullYear(), m + 1, 0, 23, 59, 59, 999);
-      buckets.push(bucketStats(jobs, from, to, MONTH_LABELS[m]));
-    }
-    return buckets;
-  }
-
-  // Rango personalizado: buckets semanales entre range.from y range.to.
-  if (!range.from || !range.to) return [];
-  const buckets = [];
-  const cursor = new Date(range.from);
-  cursor.setHours(0, 0, 0, 0);
-  const end = new Date(range.to);
-
-  while (cursor <= end) {
-    const bucketEnd = new Date(cursor);
-    bucketEnd.setDate(bucketEnd.getDate() + 6);
-    bucketEnd.setHours(23, 59, 59, 999);
-    const effectiveEnd = bucketEnd > end ? end : bucketEnd;
-    buckets.push(bucketStats(jobs, cursor, effectiveEnd, formatAxisDate(cursor)));
-    cursor.setDate(cursor.getDate() + 7);
-  }
-
-  return buckets;
+  return buildPeriodWindows(periodMode, range).map(({ label, from, to }) => bucketStats(jobs, from, to, label));
 }
 
 

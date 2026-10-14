@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { UserPlus, Phone, Mail, Briefcase, Building2, User, Lock, Eye, EyeOff, ShieldCheck } from "lucide-react";
 
-import Modal from "../../../../shared/components/Modal";
-import Input from "../../../../shared/components/Input";
-import Button from "../../../../shared/components/Button";
-import { onlyLetters, onlyDigits, isValidEmail, isValidPhone } from "../../../../shared/utils/textInput";
-import { SUPERUSER_PERSONAL_ROLES, generatePersonalUsername } from "../../constants";
-import { ROLES } from "../../../../shared/security/roles";
+import Modal from "../../../shared/components/Modal";
+import Input from "../../../shared/components/Input";
+import Button from "../../../shared/components/Button";
+import { useFormValidation } from "../../../shared/hooks/useFormValidation";
+import { onlyLetters, onlyDigits, isValidEmail, isValidPhone } from "../../../shared/utils/textInput";
+import { EMPLOYEE_ROLES, generatePersonalUsername } from "../constants";
+import { ROLES } from "../../../shared/security/roles";
 
 
 const NAME_MAX = 40;
@@ -44,10 +45,23 @@ const selectClass = `
 `;
 
 
-export default function PersonalFormModal({ open, branches = [], existingUsers = [], onClose, onSubmit }) {
+/**
+ * Alta de personal, compartida por dos flujos:
+ *  - Gerente/Subgerente ("Empleados"): pasa `branch` (sucursal fija, no
+ *    seleccionable) y `roleOptions` limitado a su equipo. Nunca incluye
+ *    Dueño como rol, asi que esa rama nunca se activa para este flujo.
+ *  - Super usuario ("Personal"): pasa `branches` (lista seleccionable) y
+ *    `roleOptions` con todos los roles, incluido Dueño - al elegir Dueño la
+ *    sucursal se omite (esa cuenta no pertenece a ninguna sucursal).
+ */
+export default function PersonnelFormModal({
+  open, branch, branches, existingUsers = [], roleOptions = EMPLOYEE_ROLES,
+  title = "Nuevo empleado", submitLabel = "Crear empleado",
+  onClose, onSubmit,
+}) {
 
   const [form, setForm] = useState(EMPTY);
-  const [errors, setErrors] = useState({});
+  const { errors, validate, clearError, resetErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [requirePasswordChange, setRequirePasswordChange] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -57,7 +71,7 @@ export default function PersonalFormModal({ open, branches = [], existingUsers =
   if (open && !wasOpen) {
     setWasOpen(true);
     setForm(EMPTY);
-    setErrors({});
+    resetErrors();
     setRequirePasswordChange(true);
     setCredentials(generatePassword());
   } else if (!open && wasOpen) {
@@ -66,29 +80,34 @@ export default function PersonalFormModal({ open, branches = [], existingUsers =
 
   if (!open) return null;
 
+  // Sucursal bloqueada (Gerente/Subgerente) si viene `branch`; seleccionable
+  // (Super usuario) si viene `branches`. Dueño nunca tiene sucursal.
+  const branchLocked = Boolean(branch);
   const isDueno = form.role === ROLES.INDIGO_DUENO;
   const username = form.role ? generatePersonalUsername(form.role, existingUsers) : "—";
-  const selectedBranch = branches.find((b) => b.id === form.branchId);
+  const selectedBranch = branches?.find((b) => b.id === form.branchId);
 
   const set = (field, transform) => (event) => {
     const raw = event?.target ? event.target.value : event;
     const value = transform ? transform(raw ?? "") : raw;
     setForm((prev) => ({ ...prev, [field]: value ?? "", ...(field === "role" && value === ROLES.INDIGO_DUENO ? { branchId: "" } : {}) }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    clearError(field);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const nextErrors = {};
-    if (!form.name.trim()) nextErrors.name = "El nombre es obligatorio.";
-    if (!isValidPhone(form.phone)) nextErrors.phone = "El teléfono debe tener exactamente 10 dígitos.";
-    if (form.email && !isValidEmail(form.email)) nextErrors.email = "Escribe un correo electrónico válido.";
-    if (!form.role) nextErrors.role = "Selecciona un rol.";
-    if (!isDueno && !form.branchId) nextErrors.branchId = "Selecciona una sucursal.";
+    const isValid = validate([
+      ["name", !form.name.trim(), "El nombre es obligatorio."],
+      ["phone", !isValidPhone(form.phone), "El teléfono debe tener exactamente 10 dígitos."],
+      ["email", form.email && !isValidEmail(form.email), "Escribe un correo electrónico válido."],
+      ["role", !form.role, "Selecciona un puesto."],
+      ["branchId", !isDueno && !branchLocked && !form.branchId, "Selecciona una sucursal."],
+    ]);
+    if (!isValid) return;
 
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    const resolvedBranchId = branchLocked ? branch?.id : (isDueno ? null : form.branchId);
+    const resolvedBranchName = branchLocked ? branch?.name : (isDueno ? "Sin sucursal" : selectedBranch?.name);
 
     try {
       setSaving(true);
@@ -100,8 +119,8 @@ export default function PersonalFormModal({ open, branches = [], existingUsers =
         username,
         password: credentials,
         passwordChangeRequired: requirePasswordChange,
-        branchId: isDueno ? null : form.branchId,
-        branchName: isDueno ? "Sin sucursal" : selectedBranch?.name,
+        branchId: resolvedBranchId,
+        branchName: resolvedBranchName,
       });
       onClose();
     } finally {
@@ -110,7 +129,7 @@ export default function PersonalFormModal({ open, branches = [], existingUsers =
   };
 
   return (
-    <Modal isOpen={open} onClose={onClose} title="Nuevo personal" size="xl">
+    <Modal isOpen={open} onClose={onClose} title={title} size="xl">
 
       <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
 
@@ -149,32 +168,41 @@ export default function PersonalFormModal({ open, branches = [], existingUsers =
           </div>
 
           <div className="border-t border-gray-100 pt-6">
-            <SectionTitle icon={Briefcase} step={2} subtitle="Rol que ocupará y sucursal a la que se asignará.">
+            <SectionTitle icon={Briefcase} step={2} subtitle="Puesto que ocupará y sucursal donde trabajará.">
               Información laboral
             </SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium text-text-primary">Rol *</label>
+                <label className="mb-2 block text-sm font-medium text-text-primary">Puesto / Rol *</label>
                 <select value={form.role} onChange={set("role")} className={selectClass}>
-                  <option value="">Selecciona un rol...</option>
-                  {SUPERUSER_PERSONAL_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  <option value="">Selecciona un puesto...</option>
+                  {roleOptions.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
                 {errors.role && <p className="mt-1.5 text-sm text-error">{errors.role}</p>}
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-text-primary">Sucursal {isDueno ? "" : "*"}</label>
+                <label className="mb-2 block text-sm font-medium text-text-primary">Sucursal {!branchLocked && !isDueno ? "*" : ""}</label>
+
                 {isDueno ? (
                   <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-background px-4 py-3 text-text-secondary">
                     <Building2 className="h-4 w-4" />
                     Sin sucursal
                   </div>
+                ) : branchLocked ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-background px-4 py-3 text-text-secondary">
+                    <Building2 className="h-4 w-4" />
+                    {branch?.name ?? "—"}
+                    <Lock className="ml-auto h-3.5 w-3.5" />
+                  </div>
                 ) : (
                   <select value={form.branchId} onChange={set("branchId")} className={selectClass}>
                     <option value="">Selecciona una sucursal...</option>
-                    {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    {branches?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 )}
+
                 {errors.branchId && <p className="mt-1.5 text-sm text-error">{errors.branchId}</p>}
+                {branchLocked && <p className="mt-1.5 text-xs text-text-secondary">Asignada automáticamente según tu sucursal.</p>}
               </div>
             </div>
           </div>
@@ -220,7 +248,7 @@ export default function PersonalFormModal({ open, branches = [], existingUsers =
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={saving} className="inline-flex items-center gap-2">
               <UserPlus className="h-4 w-4" />
-              {saving ? "Creando..." : "Crear cuenta"}
+              {saving ? "Creando..." : submitLabel}
             </Button>
           </div>
 
@@ -240,15 +268,19 @@ export default function PersonalFormModal({ open, branches = [], existingUsers =
 
           <div className="mt-3 border-t border-gray-100 pt-3 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-text-secondary">Rol</span>
+              <span className="text-text-secondary">Puesto / Rol</span>
               <span className="font-medium text-text-primary">
-                {SUPERUSER_PERSONAL_ROLES.find((r) => r.value === form.role)?.label ?? "Selecciona un rol..."}
+                {roleOptions.find((r) => r.value === form.role)?.label ?? "Selecciona un puesto..."}
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between">
               <span className="text-text-secondary">Sucursal</span>
-              <span className="font-medium text-text-primary">{isDueno ? "Sin sucursal" : (selectedBranch?.name ?? "—")}</span>
+              <span className="inline-flex items-center gap-1 font-medium text-text-primary">
+                {isDueno ? "Sin sucursal" : branchLocked ? branch?.name : (selectedBranch?.name ?? "—")}
+                {branchLocked && <Lock className="h-3 w-3 text-text-secondary" />}
+              </span>
             </div>
+            {branchLocked && <p className="mt-1 text-right text-xs text-text-secondary">(Asignada automáticamente)</p>}
           </div>
 
           <div className="mt-3 border-t border-gray-100 pt-3 text-sm">

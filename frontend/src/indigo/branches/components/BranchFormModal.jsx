@@ -5,6 +5,7 @@ import Button from "../../../shared/components/Button";
 import { COUNTRIES, getStatesForCountry, getMunicipalitiesForState } from "../../../shared/constants/locations";
 import { onlyLetters } from "../../../shared/utils/textInput";
 import { listAvailableManagers } from "../services/branchService";
+import { useFormValidation } from "../../../shared/hooks/useFormValidation";
 
 
 const NAME_MAX_LENGTH = 40;
@@ -48,7 +49,7 @@ export default function BranchFormModal({
 }) {
 
   const [form, setForm] = useState(() => crearFormDesdeSucursal(branch));
-  const [errors, setErrors] = useState({});
+  const { errors, validate, clearError, clearErrors, resetErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [managers, setManagers] = useState([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
@@ -67,8 +68,8 @@ export default function BranchFormModal({
   useEffect(() => {
     if (!open) return;
     setForm(crearFormDesdeSucursal(branch));
-    setErrors({});
-  }, [open, branch]);
+    resetErrors();
+  }, [open, branch, resetErrors]);
 
 
   useEffect(() => {
@@ -102,21 +103,21 @@ export default function BranchFormModal({
     const raw = event?.target ? event.target.value : event;
     const value = transform ? transform(raw ?? "") : raw;
     setForm((prev) => ({ ...prev, [field]: value ?? "" }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    clearError(field);
   };
 
 
   const handleCountryChange = (event) => {
     const value = event.target.value;
     setForm((prev) => ({ ...prev, country: value, state: "", municipality: "" }));
-    setErrors((prev) => ({ ...prev, country: undefined, state: undefined, municipality: undefined }));
+    clearErrors(["country", "state", "municipality"]);
   };
 
 
   const handleStateChange = (event) => {
     const value = event.target.value;
     setForm((prev) => ({ ...prev, state: value, municipality: "" }));
-    setErrors((prev) => ({ ...prev, state: undefined, municipality: undefined }));
+    clearErrors(["state", "municipality"]);
   };
 
 
@@ -129,45 +130,37 @@ export default function BranchFormModal({
       managerId: value,
       manager: selected?.nombre ?? "",
     }));
-    setErrors((prev) => ({ ...prev, managerId: undefined }));
+    clearError("managerId");
   };
 
 
   const startNewManager = () => {
     setForm((prev) => ({ ...prev, managerMode: "new", managerId: "", manager: "" }));
-    setErrors((prev) => ({ ...prev, managerId: undefined }));
+    clearError("managerId");
   };
 
 
   const cancelNewManager = () => {
     setForm((prev) => ({ ...prev, managerMode: "existing", manager: "" }));
-    setErrors((prev) => ({ ...prev, managerId: undefined }));
+    clearError("managerId");
   };
 
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const nextErrors = {};
-
     const name = String(form.name ?? "").trim();
-
     const newManagerName = String(form.manager ?? "").trim();
 
-    if (!name) nextErrors.name = "El nombre es obligatorio.";
-
-    if (form.managerMode === "new") {
-      if (!newManagerName) nextErrors.managerId = "Escribe el nombre del nuevo gerente.";
-    } else if (!form.managerId) {
-      nextErrors.managerId = "Selecciona un gerente disponible.";
-    }
-
-    if (!form.country) nextErrors.country = "Selecciona un país.";
-    if (!form.state) nextErrors.state = "Selecciona un estado.";
-    if (!form.municipality) nextErrors.municipality = "Selecciona un municipio.";
-
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    const isValid = validate([
+      ["name", !name, "El nombre es obligatorio."],
+      ["managerId", form.managerMode === "new" ? !newManagerName : !form.managerId,
+        form.managerMode === "new" ? "Escribe el nombre del nuevo gerente." : "Selecciona un gerente disponible."],
+      ["country", !form.country, "Selecciona un país."],
+      ["state", !form.state, "Selecciona un estado."],
+      ["municipality", !form.municipality, "Selecciona un municipio."],
+    ]);
+    if (!isValid) return;
 
     try {
       setSaving(true);

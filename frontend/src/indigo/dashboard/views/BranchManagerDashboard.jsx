@@ -19,7 +19,7 @@ import useInventory from "../../inventory/hooks/useInventory";
 import SalesPerformanceChart from "../components/SalesPerformanceChart";
 import TeamActivityPanel from "../components/TeamActivityPanel";
 import BranchMetricComparisonList from "../../reports/components/BranchMetricComparisonList";
-import { getPeriodRange, inRange, pct } from "../../reports/utils";
+import { getPeriodRange, inRange, pct, buildPeriodWindows } from "../../reports/utils";
 import { CHART_COLORS } from "../../../shared/charts/chartTheme";
 
 
@@ -28,10 +28,6 @@ const PERIODS = [
   { value: "month", label: "Mensual" },
   { value: "year", label: "Anual" },
 ];
-
-const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-
 
 function sumAmount(jobs, from, to) {
   return jobs
@@ -43,41 +39,16 @@ function sumAmount(jobs, from, to) {
 }
 
 
-// Ultimos 7 dias (el ultimo = "Hoy"), ultimas 4 semanas, o los 12 meses del
-// año en curso - cada punto suma el monto de los trabajos registrados.
+// Ultimos 7 dias (el ultimo = "Hoy"), ultimas 4 semanas, o los ultimos 12
+// meses terminando en el mes en curso - cada punto suma el monto de los
+// trabajos registrados. Las ventanas de fecha son compartidas (ver
+// reports/utils.js); solo el valor por ventana (suma de monto) es propio.
 function buildSalesBuckets(jobs, period) {
-  const now = new Date();
-
-  if (period === "week") {
-    const buckets = [];
-    for (let i = 6; i >= 0; i--) {
-      const day = new Date(now);
-      day.setDate(now.getDate() - i);
-      const from = new Date(day); from.setHours(0, 0, 0, 0);
-      const to = new Date(day); to.setHours(23, 59, 59, 999);
-      buckets.push({ label: i === 0 ? "Hoy" : WEEKDAY_LABELS[day.getDay()], amount: sumAmount(jobs, from, to) });
-    }
-    return buckets;
-  }
-
-  if (period === "month") {
-    const buckets = [];
-    for (let i = 3; i >= 0; i--) {
-      const to = new Date(now); to.setDate(now.getDate() - i * 7);
-      const from = new Date(to); from.setDate(to.getDate() - 6); from.setHours(0, 0, 0, 0);
-      buckets.push({ label: i === 0 ? "Esta semana" : `Hace ${i} sem.`, amount: sumAmount(jobs, from, to) });
-    }
-    return buckets;
-  }
-
-  const buckets = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const from = new Date(d.getFullYear(), d.getMonth(), 1);
-    const to = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
-    buckets.push({ label: MONTH_LABELS[d.getMonth()], amount: sumAmount(jobs, from, to) });
-  }
-  return buckets;
+  const mode = period === "year" ? "year-rolling" : period;
+  return buildPeriodWindows(mode).map(({ label, from, to }) => ({
+    label,
+    amount: sumAmount(jobs, from, to),
+  }));
 }
 
 

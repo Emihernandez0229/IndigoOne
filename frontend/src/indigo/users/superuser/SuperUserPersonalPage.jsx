@@ -20,8 +20,8 @@ import { filterUsers } from "../filterUsers";
 import { SUPERUSER_PERSONAL_ROLES } from "../constants";
 import UserDetailPanel from "../components/UserDetailPanel";
 import PersonalTable from "./components/PersonalTable";
-import PersonalFormModal from "./components/PersonalFormModal";
-import EditPersonalModal from "./components/EditPersonalModal";
+import PersonnelFormModal from "../components/PersonnelFormModal";
+import EditPersonnelModal from "../components/EditPersonnelModal";
 import ResetPasswordModal from "./components/ResetPasswordModal";
 
 
@@ -185,19 +185,25 @@ export default function SuperUserPersonalPage() {
 
       </div>
 
-      <PersonalFormModal
+      <PersonnelFormModal
         open={createOpen}
         branches={branches}
         existingUsers={users}
+        roleOptions={SUPERUSER_PERSONAL_ROLES}
+        title="Nuevo personal"
+        submitLabel="Crear cuenta"
         onClose={() => setCreateOpen(false)}
         onSubmit={handleCreate}
       />
 
-      <EditPersonalModal
+      <EditPersonnelModal
         key={editingUser?.id ?? "none"}
         open={Boolean(editingUser)}
         user={editingUser}
         branches={branches}
+        roleOptions={SUPERUSER_PERSONAL_ROLES}
+        allowUsernameEdit
+        title="Editar personal"
         onClose={() => setEditingUser(null)}
         onSubmit={handleEdit}
       />

@@ -20,8 +20,8 @@ import { filterUsers } from "../filterUsers";
 import { getEmployeeRoleOptions } from "../constants";
 import UserDetailPanel from "../components/UserDetailPanel";
 import ManagerEmployeeTable from "./components/ManagerEmployeeTable";
-import EmployeeFormModal from "./components/EmployeeFormModal";
-import EditEmployeeModal from "./components/EditEmployeeModal";
+import PersonnelFormModal from "../components/PersonnelFormModal";
+import EditPersonnelModal from "../components/EditPersonnelModal";
 
 
 export default function ManagerEmployeesPage() {
@@ -172,21 +172,24 @@ export default function ManagerEmployeesPage() {
 
       </div>
 
-      <EmployeeFormModal
+      <PersonnelFormModal
         open={createOpen}
         branch={myBranch}
         existingUsers={users}
         roleOptions={roleOptions}
+        title="Nuevo empleado"
+        submitLabel="Crear empleado"
         onClose={() => setCreateOpen(false)}
         onSubmit={handleCreate}
       />
 
-      <EditEmployeeModal
+      <EditPersonnelModal
         key={editingUser?.id ?? "none"}
         open={Boolean(editingUser)}
         user={editingUser}
         branch={myBranch}
         roleOptions={roleOptions}
+        title="Editar empleado"
         onClose={() => setEditingUser(null)}
         onSubmit={handleEdit}
       />

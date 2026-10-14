@@ -3,6 +3,7 @@ import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
 import { onlyLetters, onlyDigits, alphanumericDotSpaces, isValidPhone } from "../../../shared/utils/textInput";
+import { useFormValidation } from "../../../shared/hooks/useFormValidation";
 
 
 const ADDRESS_MAX = 50;
@@ -29,21 +30,21 @@ function formFromBranch(branch) {
 export default function MyBranchEditModal({ open, branch, onClose, onSubmit }) {
 
   const [form, setForm] = useState(() => formFromBranch(branch));
-  const [errors, setErrors] = useState({});
+  const { errors, validate, clearError, resetErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [loadedBranch, setLoadedBranch] = useState(branch);
 
   if (open && branch !== loadedBranch) {
     setLoadedBranch(branch);
     setForm(formFromBranch(branch));
-    setErrors({});
+    resetErrors();
   }
 
   const set = (field, transform) => (event) => {
     const raw = event?.target ? event.target.value : event;
     const value = transform ? transform(raw ?? "") : raw;
     setForm((prev) => ({ ...prev, [field]: value ?? "" }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    clearError(field);
   };
 
   const handleSubmit = async (event) => {
@@ -55,17 +56,15 @@ export default function MyBranchEditModal({ open, branch, onClose, onSubmit }) {
     const subManager = form.subManager.trim();
     const subManagerPhone = form.subManagerPhone.trim();
 
-    const nextErrors = {};
-
-    if (!address) nextErrors.address = "La dirección es obligatoria.";
-    if (!isValidPhone(phone)) nextErrors.phone = "Escribe un teléfono válido de 10 dígitos.";
-    if (managerPhone && !isValidPhone(managerPhone)) nextErrors.managerPhone = "El teléfono debe tener 10 dígitos.";
-    if (subManagerPhone && !isValidPhone(subManagerPhone)) nextErrors.subManagerPhone = "El teléfono debe tener 10 dígitos.";
-    if (subManager && !subManagerPhone) nextErrors.subManagerPhone = "Escribe el teléfono del subgerente.";
-    if (subManagerPhone && !subManager) nextErrors.subManager = "Escribe el nombre del subgerente.";
-
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    const isValid = validate([
+      ["address", !address, "La dirección es obligatoria."],
+      ["phone", !isValidPhone(phone), "Escribe un teléfono válido de 10 dígitos."],
+      ["managerPhone", managerPhone && !isValidPhone(managerPhone), "El teléfono debe tener 10 dígitos."],
+      ["subManagerPhone", subManagerPhone && !isValidPhone(subManagerPhone), "El teléfono debe tener 10 dígitos."],
+      ["subManagerPhone", subManager && !subManagerPhone, "Escribe el teléfono del subgerente."],
+      ["subManager", subManagerPhone && !subManager, "Escribe el nombre del subgerente."],
+    ]);
+    if (!isValid) return;
 
     try {
       setSaving(true);

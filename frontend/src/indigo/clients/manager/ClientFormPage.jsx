@@ -20,6 +20,7 @@ import {
 
 import useClients from "../hooks/useClients";
 import useBranches from "../../branches/hooks/useBranches";
+import { useFormValidation } from "../../../shared/hooks/useFormValidation";
 
 
 const NAME_MAX = 30;
@@ -102,7 +103,7 @@ export default function ClientFormPage() {
   );
 
   const [form, setForm] = useState(() => formFromClient(existingClient));
-  const [errors, setErrors] = useState({});
+  const { errors, validate, clearError } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
   const [loadedClient, setLoadedClient] = useState(existingClient);
@@ -119,7 +120,7 @@ export default function ClientFormPage() {
     const raw = event?.target ? event.target.value : event;
     const value = transform ? transform(raw ?? "") : raw;
     setForm((prev) => ({ ...prev, [field]: value ?? "" }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    clearError(field);
   };
 
   const handleCountryChange = (event) => {
@@ -142,23 +143,13 @@ export default function ClientFormPage() {
     event.preventDefault();
 
     const required = ["name", "businessName", "rfc", "phone", "email", "country", "state", "municipality", "address", "postalCode", "branchLocationName"];
-    const nextErrors = {};
-    required.forEach((field) => {
-      if (!String(form[field] ?? "").trim()) nextErrors[field] = "Este campo es obligatorio.";
-    });
-
-    if (!nextErrors.phone && !isValidPhone(form.phone)) {
-      nextErrors.phone = "El teléfono debe tener exactamente 10 dígitos.";
-    }
-    if (!nextErrors.email && !isValidEmail(form.email)) {
-      nextErrors.email = "Escribe un correo electrónico válido.";
-    }
-    if (!nextErrors.postalCode && !isValidPostalCode(form.postalCode)) {
-      nextErrors.postalCode = "El código postal debe tener exactamente 5 dígitos.";
-    }
-
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    const isValid = validate([
+      ...required.map((field) => [field, !String(form[field] ?? "").trim(), "Este campo es obligatorio."]),
+      ["phone", Boolean(form.phone.trim()) && !isValidPhone(form.phone), "El teléfono debe tener exactamente 10 dígitos."],
+      ["email", Boolean(form.email.trim()) && !isValidEmail(form.email), "Escribe un correo electrónico válido."],
+      ["postalCode", Boolean(form.postalCode.trim()) && !isValidPostalCode(form.postalCode), "El código postal debe tener exactamente 5 dígitos."],
+    ]);
+    if (!isValid) return;
 
     try {
       setSaving(true);

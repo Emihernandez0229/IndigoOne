@@ -17,9 +17,7 @@ import useLaboratoryJobs from "../../laboratory/hooks/useLaboratoryJobs";
 import PriorityBadge from "../../laboratory/components/PriorityBadge";
 import SalesPerformanceChart from "../components/SalesPerformanceChart";
 import LabJobDetailPanel from "../../lab/components/LabJobDetailPanel";
-
-
-const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+import { buildPeriodWindows } from "../../reports/utils";
 
 
 function formatDeliveryDay(value) {
@@ -38,27 +36,18 @@ function formatDeliveryDay(value) {
 
 
 // Ultimos 7 dias (el ultimo = "Hoy"): cuenta trabajos terminados por dia,
-// para la grafica "Flujo de producción".
+// para la grafica "Flujo de producción". Las ventanas de fecha son
+// compartidas (ver reports/utils.js); el conteo por ventana sigue siendo
+// propio de este dashboard.
 function buildProductionBuckets(jobs) {
-  const now = new Date();
-  const buckets = [];
-
-  for (let i = 6; i >= 0; i--) {
-    const day = new Date(now);
-    day.setDate(now.getDate() - i);
-    const from = new Date(day); from.setHours(0, 0, 0, 0);
-    const to = new Date(day); to.setHours(23, 59, 59, 999);
-
-    const count = jobs.filter((j) => {
+  return buildPeriodWindows("week").map(({ label, from, to }) => ({
+    label,
+    count: jobs.filter((j) => {
       if (j.status !== "completed" || !j.completedAt) return false;
       const d = new Date(j.completedAt);
       return d >= from && d <= to;
-    }).length;
-
-    buckets.push({ label: i === 0 ? "Hoy" : WEEKDAY_LABELS[day.getDay()], count });
-  }
-
-  return buckets;
+    }).length,
+  }));
 }
 
 

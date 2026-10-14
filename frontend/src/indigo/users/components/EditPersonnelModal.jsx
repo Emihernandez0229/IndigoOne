@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Save, Phone, Mail, Building2, User, Briefcase, Lock, ShieldCheck } from "lucide-react";
 
-import Modal from "../../../../shared/components/Modal";
-import Input from "../../../../shared/components/Input";
-import Button from "../../../../shared/components/Button";
-import { onlyLetters, onlyDigits, isValidEmail, isValidPhone } from "../../../../shared/utils/textInput";
-import { EMPLOYEE_ROLES } from "../../constants";
+import Modal from "../../../shared/components/Modal";
+import Input from "../../../shared/components/Input";
+import Button from "../../../shared/components/Button";
+import { onlyLetters, onlyDigits, isValidEmail, isValidPhone } from "../../../shared/utils/textInput";
+import { EMPLOYEE_ROLES } from "../constants";
+import { ROLES } from "../../../shared/security/roles";
+import { useFormValidation } from "../../../shared/hooks/useFormValidation";
 
 
 const NAME_MAX = 40;
@@ -14,9 +16,11 @@ const NAME_MAX = 40;
 function formFromUser(user) {
   return {
     name: user?.name ?? "",
+    username: user?.username ?? "",
     phone: user?.phone ?? "",
     email: user?.email ?? "",
     role: user?.role ?? "",
+    branchId: user?.branchId ?? "",
   };
 }
 
@@ -45,43 +49,63 @@ const selectClass = `
 `;
 
 
-export default function EditEmployeeModal({ open, user, branch, roleOptions = EMPLOYEE_ROLES, onClose, onSubmit }) {
+/**
+ * Edicion de personal, compartida por dos flujos:
+ *  - Gerente/Subgerente ("Empleados"): pasa `branch` (sucursal fija) y
+ *    `roleOptions` limitado a su equipo. Sin campo de usuario editable
+ *    (`allowUsernameEdit` no se pasa).
+ *  - Super usuario ("Personal"): pasa `branches` (lista seleccionable,
+ *    permite mover de sucursal), `roleOptions` con todos los roles
+ *    incluido Dueño, y `allowUsernameEdit` para poder corregir el usuario.
+ */
+export default function EditPersonnelModal({
+  open, user, branch, branches, roleOptions = EMPLOYEE_ROLES, allowUsernameEdit = false,
+  title = "Editar empleado", onClose, onSubmit,
+}) {
 
   const [form, setForm] = useState(() => formFromUser(user));
-  const [errors, setErrors] = useState({});
+  const { errors, validate, clearError, resetErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [loadedUser, setLoadedUser] = useState(user);
 
   if (open && user !== loadedUser) {
     setLoadedUser(user);
     setForm(formFromUser(user));
-    setErrors({});
+    resetErrors();
   }
 
   if (!open) return null;
 
+  const branchLocked = Boolean(branch);
+  const isDueno = form.role === ROLES.INDIGO_DUENO;
+
   const set = (field, transform) => (event) => {
     const raw = event?.target ? event.target.value : event;
     const value = transform ? transform(raw ?? "") : raw;
-    setForm((prev) => ({ ...prev, [field]: value ?? "" }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    setForm((prev) => ({ ...prev, [field]: value ?? "", ...(field === "role" && value === ROLES.INDIGO_DUENO ? { branchId: "" } : {}) }));
+    clearError(field);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const nextErrors = {};
-    if (!form.name.trim()) nextErrors.name = "El nombre es obligatorio.";
-    if (!isValidPhone(form.phone)) nextErrors.phone = "El teléfono debe tener exactamente 10 dígitos.";
-    if (form.email && !isValidEmail(form.email)) nextErrors.email = "Escribe un correo electrónico válido.";
-    if (!form.role) nextErrors.role = "Selecciona un puesto.";
+    const isValid = validate([
+      ["name", !form.name.trim(), "El nombre es obligatorio."],
+      ["username", allowUsernameEdit && !form.username.trim(), "El usuario es obligatorio."],
+      ["phone", !isValidPhone(form.phone), "El teléfono debe tener exactamente 10 dígitos."],
+      ["email", form.email && !isValidEmail(form.email), "Escribe un correo electrónico válido."],
+      ["role", !form.role, "Selecciona un puesto."],
+      ["branchId", !isDueno && !branchLocked && !form.branchId, "Selecciona una sucursal."],
+    ]);
+    if (!isValid) return;
 
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    const payload = { name: form.name.trim(), phone: form.phone, email: form.email.trim(), role: form.role };
+    if (allowUsernameEdit) payload.username = form.username.trim();
+    if (!branchLocked) payload.branchId = isDueno ? null : form.branchId;
 
     try {
       setSaving(true);
-      await onSubmit({ name: form.name.trim(), phone: form.phone, email: form.email.trim(), role: form.role });
+      await onSubmit(payload);
       onClose();
     } finally {
       setSaving(false);
@@ -89,14 +113,14 @@ export default function EditEmployeeModal({ open, user, branch, roleOptions = EM
   };
 
   return (
-    <Modal isOpen={open} onClose={onClose} title="Editar empleado" size="xl">
+    <Modal isOpen={open} onClose={onClose} title={title} size="xl">
 
       <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
 
         <div className="space-y-6 lg:col-span-2">
 
           <div>
-            <SectionTitle icon={User} step={1} subtitle="Datos básicos del empleado.">
+            <SectionTitle icon={User} step={1} subtitle="Datos básicos de la persona.">
               Información personal
             </SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -106,13 +130,21 @@ export default function EditEmployeeModal({ open, user, branch, roleOptions = EM
                 onChange={set("name", (v) => onlyLetters(v, NAME_MAX))}
                 error={errors.name}
               />
+              {allowUsernameEdit && (
+                <Input
+                  label="Usuario *"
+                  value={form.username}
+                  onChange={set("username")}
+                  error={errors.username}
+                />
+              )}
               <Input
                 label="Teléfono *"
                 value={form.phone}
                 onChange={set("phone", (v) => onlyDigits(v, 10))}
                 error={errors.phone}
               />
-              <div className="sm:col-span-2">
+              <div className={allowUsernameEdit ? "" : "sm:col-span-2"}>
                 <Input
                   label="Correo electrónico"
                   type="email"
@@ -138,13 +170,30 @@ export default function EditEmployeeModal({ open, user, branch, roleOptions = EM
                 {errors.role && <p className="mt-1.5 text-sm text-error">{errors.role}</p>}
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-text-primary">Sucursal</label>
-                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-background px-4 py-3 text-text-secondary">
-                  <Building2 className="h-4 w-4" />
-                  {branch?.name ?? user?.branchName ?? "—"}
-                  <Lock className="ml-auto h-3.5 w-3.5" />
-                </div>
-                <p className="mt-1.5 text-xs text-text-secondary">No se puede modificar desde aquí.</p>
+                <label className="mb-2 block text-sm font-medium text-text-primary">Sucursal {!branchLocked && !isDueno ? "*" : ""}</label>
+
+                {isDueno ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-background px-4 py-3 text-text-secondary">
+                    <Building2 className="h-4 w-4" />
+                    Sin sucursal
+                  </div>
+                ) : branchLocked ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-background px-4 py-3 text-text-secondary">
+                    <Building2 className="h-4 w-4" />
+                    {branch?.name ?? user?.branchName ?? "—"}
+                    <Lock className="ml-auto h-3.5 w-3.5" />
+                  </div>
+                ) : (
+                  <select value={form.branchId} onChange={set("branchId")} className={selectClass}>
+                    <option value="">Selecciona una sucursal...</option>
+                    {branches?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                )}
+
+                {errors.branchId && <p className="mt-1.5 text-sm text-error">{errors.branchId}</p>}
+                <p className="mt-1.5 text-xs text-text-secondary">
+                  {branchLocked ? "No se puede modificar desde aquí." : "Puedes mover esta cuenta a otra sucursal."}
+                </p>
               </div>
             </div>
           </div>
@@ -181,8 +230,8 @@ export default function EditEmployeeModal({ open, user, branch, roleOptions = EM
             <div className="mt-2 flex items-center justify-between">
               <span className="text-text-secondary">Sucursal</span>
               <span className="inline-flex items-center gap-1 font-medium text-text-primary">
-                {branch?.name ?? user?.branchName}
-                <Lock className="h-3 w-3 text-text-secondary" />
+                {isDueno ? "Sin sucursal" : branchLocked ? (branch?.name ?? user?.branchName) : (branches?.find((b) => b.id === form.branchId)?.name ?? "—")}
+                {branchLocked && <Lock className="h-3 w-3 text-text-secondary" />}
               </span>
             </div>
           </div>
