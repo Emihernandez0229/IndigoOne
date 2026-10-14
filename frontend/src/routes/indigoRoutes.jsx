@@ -8,7 +8,9 @@ import ClientsRouter from "../indigo/clients/ClientsRouter";
 import ClientFormPage from "../indigo/clients/manager/ClientFormPage";
 import LaboratoryPage from "../indigo/laboratory/LaboratoryPage";
 import MermasPage from "../indigo/mermas/MermasPage";
-import ReportsPage from "../indigo/reports/ReportsPage";
+import ReportsRouter from "../indigo/reports/ReportsRouter";
+import ProfilePage from "../indigo/profile/ProfilePage";
+import BitacoraPage from "../indigo/bitacora/BitacoraPage";
 import InventoryPage from "../indigo/inventory/InventoryPage";
 import InventoryDetailPage from "../indigo/inventory/InventoryDetailPage";
 import TrabajosRouter from "../indigo/sales/TrabajosRouter";
@@ -30,6 +32,8 @@ export default function IndigoRoutes() {
 
       <Route path="dashboard" element={<IndigoDashboard />} />
 
+      <Route path="perfil" element={<ProfilePage />} />
+
       <Route element={<ProtectedRoute permission="branch.view" />}>
         <Route path="sucursales" element={<BranchesPage />} />
         <Route path="mi-sucursal" element={<MyBranchPage />} />
@@ -46,7 +50,7 @@ export default function IndigoRoutes() {
       </Route>
 
       <Route element={<ProtectedRoute permission="reports.branch" />}>
-        <Route path="reportes" element={<ReportsPage />} />
+        <Route path="reportes" element={<ReportsRouter />} />
       </Route>
 
       <Route element={<ProtectedRoute permission="laboratory.job.view" />}>
@@ -62,6 +66,10 @@ export default function IndigoRoutes() {
       <Route element={<ProtectedRoute permission="inventory.view" />}>
         <Route path="inventario" element={<InventoryPage />} />
         <Route path="inventario/:id" element={<InventoryDetailPage />} />
+      </Route>
+
+      <Route element={<ProtectedRoute permission="bitacora.view" />}>
+        <Route path="bitacora" element={<BitacoraPage />} />
       </Route>
 
     </Route>

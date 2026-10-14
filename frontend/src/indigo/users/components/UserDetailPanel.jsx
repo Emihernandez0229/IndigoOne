@@ -1,4 +1,4 @@
-import { Ban, RotateCcw, Info, Users, Building2, ShieldCheck } from "lucide-react";
+import { Ban, RotateCcw, Info, Users, Building2, ShieldCheck, KeyRound } from "lucide-react";
 
 import StatusBadge from "../../../shared/components/StatusBadge";
 import { ROLES } from "../../../shared/security/roles";
@@ -25,7 +25,7 @@ function Field({ label, value }) {
 }
 
 
-export default function UserDetailPanel({ user, branch, canDeactivate = false, onDeactivate, onActivate, allowDeactivateAll = false }) {
+export default function UserDetailPanel({ user, branch, canDeactivate = false, onDeactivate, onActivate, allowDeactivateAll = false, canResetPassword = false, onResetPassword }) {
 
   if (!user) return null;
 
@@ -79,27 +79,40 @@ export default function UserDetailPanel({ user, branch, canDeactivate = false, o
         <SectionTitle icon={ShieldCheck}>Acciones administrativas</SectionTitle>
 
         {canManageThisUser ? (
-          canDeactivate && (
-            user.status === "active" ? (
+          <div className="space-y-3">
+            {canDeactivate && (
+              user.status === "active" ? (
+                <button
+                  type="button"
+                  onClick={() => onDeactivate?.(user)}
+                  className="flex w-full items-center gap-2 rounded-xl border border-error/30 bg-error/5 px-4 py-3 text-sm font-medium text-error transition hover:bg-error/10"
+                >
+                  <Ban className="h-4 w-4" />
+                  Dar de baja
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onActivate?.(user)}
+                  className="flex w-full items-center gap-2 rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-sm font-medium text-success transition hover:bg-success/10"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Dar de alta
+                </button>
+              )
+            )}
+
+            {canResetPassword && (
               <button
                 type="button"
-                onClick={() => onDeactivate?.(user)}
-                className="flex w-full items-center gap-2 rounded-xl border border-error/30 bg-error/5 px-4 py-3 text-sm font-medium text-error transition hover:bg-error/10"
+                onClick={() => onResetPassword?.(user)}
+                className="flex w-full items-center gap-2 rounded-xl border border-indigo-primary/30 bg-indigo-light/40 px-4 py-3 text-sm font-medium text-indigo-primary transition hover:bg-indigo-light"
               >
-                <Ban className="h-4 w-4" />
-                Dar de baja
+                <KeyRound className="h-4 w-4" />
+                Restablecer contraseña
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => onActivate?.(user)}
-                className="flex w-full items-center gap-2 rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-sm font-medium text-success transition hover:bg-success/10"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Dar de alta
-              </button>
-            )
-          )
+            )}
+          </div>
         ) : (
           <div className="flex items-start gap-2 rounded-xl bg-background px-4 py-3 text-sm text-text-secondary">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />

@@ -7,6 +7,7 @@ import {
   FileText,
   Glasses,
   AlertTriangle,
+  ClipboardList,
 } from "lucide-react";
 
 
@@ -76,6 +77,13 @@ export const indigoNavigation = [
     path: "/indigo/reportes",
     icon: FileText,
     permission: "reports.branch",
+  },
+
+  {
+    label: "Bitácora",
+    path: "/indigo/bitacora",
+    icon: ClipboardList,
+    permission: "bitacora.view",
   },
 
 ];

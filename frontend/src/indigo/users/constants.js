@@ -81,3 +81,24 @@ export function getEmployeeRoleOptions(viewerRole) {
   }
   return EMPLOYEE_ROLES;
 }
+
+
+// Modulo "Personal" (Super usuario): puede dar de alta/editar cualquier
+// rol - incluido Dueño - en cualquier sucursal. Nunca otro Super usuario.
+export const SUPERUSER_PERSONAL_ROLES = INDIGO_USER_ROLES.filter(
+  (role) => role.value !== ROLES.INDIGO_SUPER_USUARIO
+);
+
+const ROLE_USERNAME_PREFIX = {
+  [ROLES.INDIGO_DUENO]: "DUE",
+  [ROLES.INDIGO_GERENTE_SUCURSAL]: "GTE",
+  [ROLES.INDIGO_SUBGERENTE]: "SUB",
+  [ROLES.INDIGO_EMPLEADO_VENTAS]: "VTA",
+  [ROLES.INDIGO_EMPLEADO_LABORATORIO]: "LAB",
+};
+
+export function generatePersonalUsername(role, existingUsers = []) {
+  const prefix = ROLE_USERNAME_PREFIX[role] ?? "USR";
+  const sameRoleCount = existingUsers.filter((u) => u.role === role).length;
+  return `${prefix}-${String(sameRoleCount + 1).padStart(5, "0")}`;
+}

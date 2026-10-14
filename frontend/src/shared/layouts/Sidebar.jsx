@@ -5,17 +5,25 @@ import { NavLink } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
+  UserCircle,
 } from "lucide-react";
 
 import { filterMenuByPermissions } from "../navigation/filterMenu";
 
 import usePermissions from "../hooks/usePermissions";
+import { useAuth } from "../context/AuthContext";
+import { getRoleConfig } from "../security/roleConfig";
 
 export default function Sidebar({ items = [] }) {
 
   const [isOpen, setIsOpen] = useState(true);
 
   const { permissions } = usePermissions();
+  const { user } = useAuth();
+
+  // "Mi perfil" es para todos los roles de Indigo (dueño, gerente,
+  // subgerente, ventas, laboratorio) - por ahora no aplica a Opticas.
+  const showProfileLink = getRoleConfig(user?.role)?.module === "indigo";
 
 
   const menuItems = filterMenuByPermissions(items, permissions);
@@ -174,6 +182,42 @@ export default function Sidebar({ items = [] }) {
         }
 
       </nav>
+
+
+      {/* MI PERFIL */}
+
+      {
+        showProfileLink && (
+
+          <div className="border-t border-white/10 px-3 py-3">
+
+            <NavLink
+              to="/indigo/perfil"
+              className={({ isActive }) => `
+                flex
+                items-center
+                gap-3
+                rounded-xl
+                px-4
+                py-3
+                text-sm
+                font-medium
+                transition
+                ${
+                  isActive
+                    ? "bg-indigo-secondary text-white"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                }
+              `}
+            >
+              <UserCircle className="h-5 w-5 shrink-0" />
+              {isOpen && <span>Mi perfil</span>}
+            </NavLink>
+
+          </div>
+
+        )
+      }
 
 
       {/* FOOTER */}

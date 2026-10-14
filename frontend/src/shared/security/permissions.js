@@ -106,6 +106,8 @@ export const PERMISSIONS = {
     "reports.global",
     "reports.branch",
     "reports.period",
+
+    "bitacora.view",
   ],
 
 

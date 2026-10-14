@@ -112,6 +112,15 @@ let indigoUsuarios = [
   { id: "u-vta-3", displayId: 13, name: "Sofia", username: "VTA333333", role: "indigo:empleado_ventas", branchId: "suc-3", branchName: "Indigo Monterrey", status: "active", phone: "8192223344" },
 ];
 
+// Datos que necesita "Mi perfil" (todos los roles) y que los 13 usuarios de
+// arriba no traian: correo, fecha de ingreso y contacto de emergencia.
+indigoUsuarios = indigoUsuarios.map((u, index) => ({
+  email: `${u.username.toLowerCase()}@indigo.mx`,
+  createdAt: new Date(2025, 3, 10 + (index % 15)).toISOString(),
+  emergencyContact: { name: "", phone: "", relation: "" },
+  ...u,
+}));
+
 // `branches`: cada cliente (optica) puede tener presencia fisica en mas de
 // una ciudad, y cada una de esas sucursales la abastece la sucursal de
 // Indigo de esa misma plaza (no necesariamente todas la misma) - por eso
@@ -357,10 +366,16 @@ let indigoLaboratorio = [
 // distinto de quien hizo la venta - y la fecha/hora de entrega prometida).
 // Se hace con un .map() en vez de tocar los 15 registros de arriba.
 const SELLER_IDS = { Yoanna: "u-vta-1", Carla: "u-vta-2", Sofia: "u-vta-3" };
+// Precio base por tipo de servicio (pesos por pieza), usado para estimar el
+// monto de venta de cada trabajo - el modulo de Laboratorio no cobra, pero
+// el Dashboard de Gerente de sucursal necesita una cifra de "ventas" por
+// periodo y esta es la unica fuente de datos real que hay por sucursal.
+const SERVICE_PRICES = { bisel: 350, montaje: 450, tinte: 300, otro: 400 };
 indigoLaboratorio = indigoLaboratorio.map((job) => ({
   registeredBy: job.seller,
   registeredById: SELLER_IDS[job.seller] || null,
   requestedDeliveryAt: new Date(new Date(job.entryAt).getTime() + 2 * 86400000).toISOString(),
+  amount: (SERVICE_PRICES[job.serviceType] || 350) * (job.quantity || 1),
   ...job,
   // "Añadir detalles" (Empleado de Laboratorio) necesita texto + quien lo
   // escribio + cuando, no solo el texto plano que tenian estos 15 iniciales.
@@ -368,6 +383,203 @@ indigoLaboratorio = indigoLaboratorio.map((job) => ({
     typeof item === "string" ? { text: item, author: job.labPerson || null, at: job.entryAt } : item
   ),
 }));
+
+// Datos de preview para el Dashboard de Dueño: 7 sucursales extra (10 en
+// total con las 3 de arriba) con trabajos de laboratorio variados, para ver
+// como se ve la grafica "Estado de trabajos por sucursal" con mas barras.
+// Solo son datos de muestra (sin usuarios/clientes propios), no afectan el
+// resto de los modulos.
+function daysAgo(n, hour) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  d.setHours(hour, 0, 0, 0);
+  return d.toISOString();
+}
+
+const PREVIEW_BRANCHES = [
+  { id: "suc-4", name: "Indigo Oaxaca", state: "Oaxaca", municipality: "Oaxaca de Juárez", seller: "Ana", labPerson: "Raúl", total: 9 },
+  { id: "suc-5", name: "Indigo Puebla", state: "Puebla", municipality: "Puebla", seller: "Iván", labPerson: "Dulce", total: 8 },
+  { id: "suc-6", name: "Indigo Guadalajara", state: "Jalisco", municipality: "Guadalajara", seller: "Marco", labPerson: "Fernanda", total: 7 },
+  { id: "suc-7", name: "Indigo Mérida", state: "Yucatán", municipality: "Mérida", seller: "Lupita", labPerson: "Toño", total: 6 },
+  { id: "suc-8", name: "Indigo Querétaro", state: "Querétaro", municipality: "Querétaro", seller: "Hugo", labPerson: "Nadia", total: 5 },
+  { id: "suc-9", name: "Indigo Tijuana", state: "Baja California", municipality: "Tijuana", seller: "Brenda", labPerson: "Kevin", total: 4 },
+  { id: "suc-10", name: "Indigo Cancún", state: "Quintana Roo", municipality: "Cancún", seller: "Rodrigo", labPerson: "Paola", total: 3 },
+];
+
+indigoSucursales.push(
+  ...PREVIEW_BRANCHES.map((b, i) => ({
+    id: b.id, displayId: 4 + i, name: b.name,
+    image: "", address: "", phone: "",
+    country: "México", state: b.state, municipality: b.municipality,
+    manager: null, managerId: null, managerPhone: "",
+    subManager: null, subManagerId: null, subManagerPhone: "",
+    staff: 0, products: 0, customers: 0, labJobs: b.total, status: "active",
+    staffList: [],
+  }))
+);
+
+PREVIEW_BRANCHES.forEach((branch, branchIndex) => {
+  const jobs = [];
+
+  // Pendientes/en proceso: siempre cuentan como "ahora", sin importar fecha.
+  jobs.push({ status: "pending", daysAgo: 0 });
+  if (branch.total >= 4) jobs.push({ status: "processing", daysAgo: 0 });
+  // Mermas: una muestra reciente (esta semana) para que el filtro de
+  // periodo se note al cambiar entre Hoy/Semana/Mes.
+  if (branch.total >= 6) jobs.push({ status: "loss", daysAgo: 3 });
+
+  // El resto son "terminados", repartidos entre hoy / esta semana / este
+  // mes para que los 3 botones de periodo muestren totales distintos.
+  const completedOffsets = [0, 1, 4, 9, 15, 22, 27];
+  while (jobs.length < branch.total) {
+    jobs.push({ status: "completed", daysAgo: completedOffsets[(jobs.length * 3) % completedOffsets.length] });
+  }
+
+  const SERVICE_TYPES_CYCLE = ["bisel", "montaje", "tinte", "otro"];
+
+  jobs.forEach((job, jobIndex) => {
+    const entryAt = daysAgo(job.daysAgo + 1, 9);
+    const isPending = job.status === "pending";
+    const serviceType = SERVICE_TYPES_CYCLE[jobIndex % SERVICE_TYPES_CYCLE.length];
+
+    indigoLaboratorio.push({
+      id: `lab-prev-${branch.id}-${jobIndex}`,
+      displayId: 1000 + branchIndex * 20 + jobIndex,
+      folio: `LAB-0009${branchIndex}${jobIndex}`,
+      branchId: branch.id, branchName: branch.name,
+      clientName: "Cliente de muestra", seller: branch.seller, serviceType, biselType: "Automático",
+      quantity: 1, urgent: false,
+      amount: SERVICE_PRICES[serviceType],
+      labPerson: branch.labPerson, acceptedBy: isPending ? null : branch.labPerson,
+      status: job.status,
+      entryAt,
+      acceptedAt: isPending ? null : daysAgo(job.daysAgo + 1, 9.25),
+      processingAt: isPending ? null : daysAgo(job.daysAgo + 1, 9.5),
+      completedAt: job.status === "completed" ? daysAgo(job.daysAgo, 13) : null,
+      deliveredAt: null,
+      lossAt: job.status === "loss" ? daysAgo(job.daysAgo, 13) : null,
+      lossReason: job.status === "loss" ? "Defecto detectado durante el proceso de bisel." : null,
+      workItems: [],
+      registeredBy: branch.seller, registeredById: null,
+      requestedDeliveryAt: daysAgo(Math.max(job.daysAgo - 2, 0), 17),
+    });
+  });
+});
+
+// Mas personal de Ventas y Laboratorio en las 3 sucursales reales (para que
+// el Dashboard de Gerente/Subgerente - "Comparacion de mermas por
+// laboratorista" y "Actividad del equipo" - tenga varias personas con
+// rendimientos distintos, no solo 1 vendedor/1 laboratorista por sucursal.
+const STAFF_SEEDS = [
+  {
+    branchId: "suc-1", branchName: "Indigo Tapachula",
+    sellers: ["Diana", "Héctor", "Paola", "Iván"],
+    lab: [
+      { name: "Oscar", completed: 35, merma: 1 },
+      { name: "Valeria", completed: 20, merma: 4 },
+      { name: "Gael", completed: 28, merma: 2 },
+      { name: "Fabiola", completed: 15, merma: 0 },
+    ],
+  },
+  {
+    branchId: "suc-2", branchName: "Indigo CDMX",
+    sellers: ["Luis", "Andrea", "Tomás", "Ximena"],
+    lab: [
+      { name: "Dulce", completed: 30, merma: 2 },
+      { name: "Raúl", completed: 18, merma: 5 },
+      { name: "Cielo", completed: 24, merma: 1 },
+      { name: "Beto", completed: 12, merma: 1 },
+    ],
+  },
+  {
+    branchId: "suc-3", branchName: "Indigo Monterrey",
+    sellers: ["Karla", "Emilio", "Noemí", "Saúl"],
+    lab: [
+      { name: "Vero", completed: 26, merma: 1 },
+      { name: "Iker", completed: 19, merma: 3 },
+      { name: "Mayra", completed: 22, merma: 2 },
+      { name: "Checo", completed: 14, merma: 0 },
+    ],
+  },
+];
+
+let staffCounter = 0;
+STAFF_SEEDS.forEach((branch) => {
+  const sellerUsers = branch.sellers.map((name) => {
+    staffCounter += 1;
+    const id = `u-vta-x${staffCounter}`;
+    indigoUsuarios.push({
+      id, displayId: 1000 + staffCounter, name,
+      username: `VTA${1000 + staffCounter}`, role: "indigo:empleado_ventas",
+      branchId: branch.branchId, branchName: branch.branchName, status: "active", phone: "",
+    });
+    return { id, name };
+  });
+
+  let sellerCursor = 0;
+  const nextSeller = () => {
+    const s = sellerUsers[sellerCursor % sellerUsers.length];
+    sellerCursor += 1;
+    return s;
+  };
+
+  branch.lab.forEach((person) => {
+    staffCounter += 1;
+    const labId = `u-lab-x${staffCounter}`;
+    indigoUsuarios.push({
+      id: labId, displayId: 1000 + staffCounter, name: person.name,
+      username: `LAB${1000 + staffCounter}`, role: "indigo:empleado_laboratorio",
+      branchId: branch.branchId, branchName: branch.branchName, status: "active", phone: "",
+    });
+
+    for (let i = 0; i < person.completed; i++) {
+      const daysOffset = i % 45;
+      const seller = nextSeller();
+      indigoLaboratorio.push({
+        id: `lab-staff-${labId}-c${i}`,
+        displayId: 3000 + staffCounter * 100 + i,
+        folio: `LAB-S${staffCounter}C${i}`,
+        branchId: branch.branchId, branchName: branch.branchName,
+        clientName: "Cliente de muestra", seller: seller.name, serviceType: "bisel", biselType: "Automático",
+        quantity: 1, urgent: false,
+        labPerson: person.name, acceptedBy: person.name, status: "completed",
+        entryAt: daysAgo(daysOffset + 1, 9),
+        acceptedAt: daysAgo(daysOffset + 1, 9),
+        processingAt: daysAgo(daysOffset + 1, 9),
+        completedAt: daysAgo(daysOffset, 13),
+        deliveredAt: null, lossAt: null, lossReason: null, workItems: [],
+        registeredBy: seller.name, registeredById: seller.id,
+        requestedDeliveryAt: daysAgo(Math.max(daysOffset - 2, 0), 17),
+        amount: 350,
+      });
+    }
+
+    for (let i = 0; i < person.merma; i++) {
+      const daysOffset = (i * 9 + 3) % 45;
+      const seller = nextSeller();
+      indigoLaboratorio.push({
+        id: `lab-staff-${labId}-m${i}`,
+        displayId: 3000 + staffCounter * 100 + 50 + i,
+        folio: `LAB-S${staffCounter}M${i}`,
+        branchId: branch.branchId, branchName: branch.branchName,
+        clientName: "Cliente de muestra", seller: seller.name, serviceType: "bisel", biselType: "Automático",
+        quantity: 1, urgent: false,
+        labPerson: person.name, acceptedBy: person.name, status: "loss",
+        entryAt: daysAgo(daysOffset + 1, 9),
+        acceptedAt: daysAgo(daysOffset + 1, 9),
+        processingAt: daysAgo(daysOffset + 1, 9),
+        completedAt: null,
+        deliveredAt: null,
+        lossAt: daysAgo(daysOffset, 13),
+        lossReason: "Defecto detectado durante el proceso de bisel.",
+        workItems: [],
+        registeredBy: seller.name, registeredById: seller.id,
+        requestedDeliveryAt: daysAgo(Math.max(daysOffset - 2, 0), 17),
+        amount: 350,
+      });
+    }
+  });
+});
 
 app.get("/api/indigo/mermas", (req, res) => res.json(indigoLaboratorio.filter((job) => job.status === "loss")));
 
@@ -506,6 +718,10 @@ let opticaInventario = [
 // arreglo en memoria, imitando lo que hará el backend real.
 // =========================================================
 
+// `extra.onChange?.(accion, antes, despues, body)` es opcional - solo lo
+// usa el registro de /api/indigo/usuarios para alimentar la Bitacora
+// (Super usuario). El resto de los recursos no lo pasan, asi que no cambia
+// nada para ellos.
 function registrarCrud(basePath, getStore, extra = {}) {
 
   app.get(basePath, (req, res) => res.json(getStore()));
@@ -513,6 +729,7 @@ function registrarCrud(basePath, getStore, extra = {}) {
   app.post(basePath, (req, res) => {
     const item = extra.crear ? extra.crear(req.body) : req.body;
     getStore().unshift(item);
+    extra.onChange?.("crear", null, item, req.body);
     res.status(201).json(item);
   });
 
@@ -520,7 +737,9 @@ function registrarCrud(basePath, getStore, extra = {}) {
     const store = getStore();
     const idx = store.findIndex((row) => row.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: "No encontrado" });
+    const antes = { ...store[idx] };
     store[idx] = { ...store[idx], ...(extra.actualizar ? extra.actualizar(req.body, store[idx]) : req.body) };
+    extra.onChange?.("actualizar", antes, store[idx], req.body);
     res.json(store[idx]);
   });
 
@@ -528,7 +747,9 @@ function registrarCrud(basePath, getStore, extra = {}) {
     const store = getStore();
     const idx = store.findIndex((row) => row.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: "No encontrado" });
+    const antes = { ...store[idx] };
     store[idx] = { ...store[idx], status: "inactive", active: false };
+    extra.onChange?.("baja", antes, store[idx], req.body);
     res.json(store[idx]);
   });
 
@@ -536,7 +757,9 @@ function registrarCrud(basePath, getStore, extra = {}) {
     const store = getStore();
     const idx = store.findIndex((row) => row.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: "No encontrado" });
+    const antes = { ...store[idx] };
     store[idx] = { ...store[idx], status: "active", active: true };
+    extra.onChange?.("reactivacion", antes, store[idx], req.body);
     res.json(store[idx]);
   });
 
@@ -624,6 +847,104 @@ app.get("/api/indigo/sucursales/gerentes-disponibles", (req, res) => {
   res.json(disponibles.map((u) => ({ id: u.id, nombre: u.name })));
 });
 
+// =========================================================
+// BITACORA (Super usuario): historial de solo lectura de altas, bajas,
+// ediciones y reseteos de contraseña sobre cuentas. Se alimenta sola cada
+// vez que una accion sobre /api/indigo/usuarios trae quien la hizo
+// (realizado_por_nombre) - las que no lo traen (ej. Gerente administrando
+// a su propio equipo, o "Mi perfil") no se registran.
+// =========================================================
+let indigoBitacora = [
+  {
+    id: "bit-1", folio: "BIT-000407", tipo: "edicion",
+    actorName: "Gerente Centro", actorRole: "indigo:gerente_sucursal", actorBranchName: "Centro",
+    targetName: "Vendedor A", targetUsername: "ventas.centro01", targetRole: "indigo:empleado_ventas", targetBranchName: "Centro",
+    changes: [{ field: "Usuario", before: "ventedor01", after: "ventas.centro01" }],
+    team: "CAJA-CENTRO-02", at: daysAgo(0, 12.5),
+  },
+  {
+    id: "bit-2", folio: "BIT-000406", tipo: "reseteo_contrasena",
+    actorName: "Super usuario", actorRole: "indigo:super_usuario", actorBranchName: "",
+    targetName: "Vendedor B", targetUsername: "ventas.centro02", targetRole: "indigo:empleado_ventas", targetBranchName: "Centro",
+    changes: [], team: "CAJA-CENTRO-01", at: daysAgo(0, 10.25),
+  },
+  {
+    id: "bit-3", folio: "BIT-000405", tipo: "edicion",
+    actorName: "Super usuario", actorRole: "indigo:super_usuario", actorBranchName: "",
+    targetName: "Laborista C", targetUsername: "lab.poniente01", targetRole: "indigo:empleado_laboratorio", targetBranchName: "Poniente",
+    changes: [{ field: "Sucursal", before: "Sur", after: "Poniente" }],
+    team: "LAB-PONIENTE-01", at: daysAgo(0, 9.05),
+  },
+  {
+    id: "bit-4", folio: "BIT-000404", tipo: "baja",
+    actorName: "Gerente Norte", actorRole: "indigo:gerente_sucursal", actorBranchName: "Norte",
+    targetName: "Vendedor D", targetUsername: "ventas.norte04", targetRole: "indigo:empleado_ventas", targetBranchName: "Norte",
+    changes: [], team: "CAJA-NORTE-04", at: daysAgo(1, 18.33),
+  },
+  {
+    id: "bit-5", folio: "BIT-000403", tipo: "alta_usuario",
+    actorName: "Super usuario", actorRole: "indigo:super_usuario", actorBranchName: "",
+    targetName: "Gerente nuevo", targetUsername: "gte.oriente01", targetRole: "indigo:gerente_sucursal", targetBranchName: "Oriente",
+    changes: [], team: "GTE-ORIENTE-01", at: daysAgo(1, 16.78),
+  },
+  {
+    id: "bit-6", folio: "BIT-000402", tipo: "edicion",
+    actorName: "Gerente Centro", actorRole: "indigo:gerente_sucursal", actorBranchName: "Centro",
+    targetName: "Vendedor A", targetUsername: "ventas.centro01", targetRole: "indigo:empleado_ventas", targetBranchName: "Centro",
+    changes: [{ field: "Teléfono", before: "9610000000", after: "9611112222" }],
+    team: "CAJA-CENTRO-02", at: daysAgo(1, 12.5),
+  },
+  {
+    id: "bit-7", folio: "BIT-000401", tipo: "reactivacion",
+    actorName: "Super usuario", actorRole: "indigo:super_usuario", actorBranchName: "",
+    targetName: "Subgerente Sur", targetUsername: "sub.sur01", targetRole: "indigo:subgerente", targetBranchName: "Sur",
+    changes: [], team: "SUB-SUR-01", at: daysAgo(1, 9.17),
+  },
+  {
+    id: "bit-8", folio: "BIT-000400", tipo: "edicion",
+    actorName: "Super usuario", actorRole: "indigo:super_usuario", actorBranchName: "",
+    targetName: "Empleado", targetUsername: "ventas.centro03", targetRole: "indigo:subgerente", targetBranchName: "Centro",
+    changes: [{ field: "Rol", before: "Ventas", after: "Subgerente" }],
+    team: "CAJA-CENTRO-03", at: daysAgo(2, 17.92),
+  },
+  {
+    id: "bit-9", folio: "BIT-000399", tipo: "alta_usuario",
+    actorName: "Gerente Sur", actorRole: "indigo:gerente_sucursal", actorBranchName: "Sur",
+    targetName: "Vendedor nuevo", targetUsername: "ventas.sur05", targetRole: "indigo:empleado_ventas", targetBranchName: "Sur",
+    changes: [], team: "CAJA-SUR-01", at: daysAgo(2, 13.03),
+  },
+  {
+    id: "bit-10", folio: "BIT-000398", tipo: "baja",
+    actorName: "Super usuario", actorRole: "indigo:super_usuario", actorBranchName: "",
+    targetName: "Gerente Poniente", targetUsername: "gte.poniente01", targetRole: "indigo:gerente_sucursal", targetBranchName: "Poniente",
+    changes: [], team: "GTE-PONIENTE-01", at: daysAgo(2, 10.33),
+  },
+];
+
+let nextBitacoraFolio = 408;
+
+function diffFields(antes, despues) {
+  if (!antes) return [];
+  const labels = { name: "Nombre", username: "Usuario", phone: "Teléfono", email: "Correo", role: "Rol", branchName: "Sucursal" };
+  return Object.entries(labels)
+    .filter(([key]) => antes[key] !== despues[key])
+    .map(([key, label]) => ({ field: label, before: antes[key] ?? "—", after: despues[key] ?? "—" }));
+}
+
+function logBitacora({ tipo, actorName, actorRole, actorBranchName, targetName, targetUsername, targetRole, targetBranchName, changes, team }) {
+  indigoBitacora.unshift({
+    id: newId(),
+    folio: `BIT-${String(nextBitacoraFolio++).padStart(6, "0")}`,
+    tipo, actorName, actorRole, actorBranchName: actorBranchName || "",
+    targetName, targetUsername, targetRole, targetBranchName: targetBranchName || "",
+    changes: changes || [],
+    team: team || "",
+    at: new Date().toISOString(),
+  });
+}
+
+app.get("/api/indigo/bitacora", (req, res) => res.json(indigoBitacora));
+
 registrarCrud("/api/indigo/usuarios", () => indigoUsuarios, {
   crear: (body) => ({
     id: newId(), displayId: indigoUsuarios.length + 1,
@@ -632,16 +953,120 @@ registrarCrud("/api/indigo/usuarios", () => indigoUsuarios, {
     branchName: "Indigo Tapachula", status: "active",
   }),
   // El Gerente/Subgerente edita nombre, telefono, correo y puesto/rol del
-  // empleado desde el modulo de Empleados - nunca la sucursal (esa queda
-  // fija, asignada automaticamente).
+  // empleado desde el modulo de Empleados (sucursal fija). El Super usuario
+  // (modulo "Personal") ademas puede reasignar la sucursal.
   actualizar: (body) => {
     const patch = {};
     if (body.nombre !== undefined) patch.name = body.nombre;
+    if (body.usuario !== undefined) patch.username = body.usuario;
     if (body.telefono !== undefined) patch.phone = body.telefono;
     if (body.correo !== undefined) patch.email = body.correo;
     if (body.puesto !== undefined) patch.role = body.puesto;
+    if (body.sucursal_id !== undefined) {
+      const branch = indigoSucursales.find((s) => s.id === body.sucursal_id);
+      patch.branchId = body.sucursal_id || null;
+      patch.branchName = branch?.name ?? "Sin sucursal";
+    }
+    // "Mi perfil" (todos los roles): contacto de emergencia.
+    if (body.contacto_nombre !== undefined || body.contacto_telefono !== undefined || body.contacto_parentesco !== undefined) {
+      patch.emergencyContact = {
+        name: body.contacto_nombre ?? "",
+        phone: body.contacto_telefono ?? "",
+        relation: body.contacto_parentesco ?? "",
+      };
+    }
     return patch;
   },
+  // Solo registra en Bitacora las acciones que traen quien las hizo - las
+  // que no (Gerente administrando su equipo, "Mi perfil") se quedan igual.
+  onChange: (accion, antes, despues, body) => {
+    if (!body?.realizado_por_nombre) return;
+    logBitacora({
+      tipo: accion === "crear" ? "alta_usuario" : accion === "actualizar" ? "edicion" : accion === "baja" ? "baja" : "reactivacion",
+      actorName: body.realizado_por_nombre,
+      actorRole: body.realizado_por_rol,
+      actorBranchName: body.realizado_por_sucursal,
+      targetName: despues.name,
+      targetUsername: despues.username,
+      targetRole: despues.role,
+      targetBranchName: despues.branchName,
+      changes: accion === "actualizar" ? diffFields(antes, despues) : [],
+    });
+  },
+});
+
+// "Mi perfil": cambio de contraseña - el backend mock no guarda contraseñas
+// reales (el login acepta cualquiera), asi que solo se simula el exito.
+app.patch("/api/indigo/usuarios/:id/password", (req, res) => {
+  const user = indigoUsuarios.find((u) => u.id === req.params.id);
+  if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+  if (!req.body.actual || !req.body.nueva) {
+    return res.status(400).json({ error: "Faltan campos" });
+  }
+  res.json({ ok: true });
+});
+
+// Modulo "Personal" (Super usuario): restablece la contraseña de cualquier
+// cuenta. El backend mock no guarda contraseñas reales, asi que solo marca
+// la bandera de "debe cambiarla" y registra la accion en la Bitacora -
+// nunca expone ni guarda una contraseña anterior.
+app.patch("/api/indigo/usuarios/:id/resetear-password", (req, res) => {
+  const user = indigoUsuarios.find((u) => u.id === req.params.id);
+  if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+
+  user.password_pendiente_cambio = true;
+
+  if (req.body.realizado_por_nombre) {
+    logBitacora({
+      tipo: "reseteo_contrasena",
+      actorName: req.body.realizado_por_nombre,
+      actorRole: req.body.realizado_por_rol,
+      actorBranchName: req.body.realizado_por_sucursal,
+      targetName: user.name,
+      targetUsername: user.username,
+      targetRole: user.role,
+      targetBranchName: user.branchName,
+      changes: [],
+    });
+  }
+
+  res.json({ ok: true });
+});
+
+// Modulo "Personal" (Super usuario): da de alta a CUALQUIER rol (incluido
+// Dueño) en CUALQUIER sucursal - a diferencia de /gerentes, /subgerentes y
+// /empleados que usa el Gerente/Subgerente, limitados a su propio equipo.
+app.post("/api/indigo/usuarios/personal", (req, res) => {
+  const body = req.body;
+  const branch = indigoSucursales.find((s) => s.id === body.sucursal_id);
+
+  const item = {
+    id: newId(), displayId: indigoUsuarios.length + 1,
+    name: body.nombre, username: body.usuario,
+    role: body.rol, branchId: body.sucursal_id || null,
+    branchName: branch?.name || (body.rol === "indigo:dueno" ? "Sin sucursal" : "Sin asignar"),
+    status: "active", phone: body.telefono || "", email: body.correo || "",
+    createdAt: new Date().toISOString(),
+    emergencyContact: { name: "", phone: "", relation: "" },
+    password_pendiente_cambio: Boolean(body.requiere_cambio_password),
+  };
+  indigoUsuarios.unshift(item);
+
+  if (body.realizado_por_nombre) {
+    logBitacora({
+      tipo: "alta_usuario",
+      actorName: body.realizado_por_nombre,
+      actorRole: body.realizado_por_rol,
+      actorBranchName: body.realizado_por_sucursal,
+      targetName: item.name,
+      targetUsername: item.username,
+      targetRole: item.role,
+      targetBranchName: item.branchName,
+      changes: [],
+    });
+  }
+
+  res.status(201).json(item);
 });
 
 // Rutas por rol que realmente usa createUser() del front (el POST generico

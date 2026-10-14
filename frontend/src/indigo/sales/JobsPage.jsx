@@ -77,7 +77,7 @@ export default function JobsPage() {
 
         <div className="min-w-0 flex-1 space-y-6 transition-all duration-300 ease-in-out">
 
-          <KpiRow items={kpis} dense />
+          <KpiRow items={kpis} columns={5} />
 
           <FilterBar>
             <SearchInput

@@ -152,6 +152,87 @@ export async function updateEmployee(id, payload) {
 }
 
 
+// "Mi perfil" (todos los roles): cada quien edita su propia informacion.
+export async function updateMyProfile(id, payload) {
+  return httpClient.put(`/api/indigo/usuarios/${id}`, {
+    nombre: payload.name,
+    usuario: payload.username,
+    telefono: payload.phone,
+    correo: payload.email,
+  });
+}
+
+
+export async function updateMyEmergencyContact(id, payload) {
+  return httpClient.put(`/api/indigo/usuarios/${id}`, {
+    contacto_nombre: payload.name,
+    contacto_telefono: payload.phone,
+    contacto_parentesco: payload.relation,
+  });
+}
+
+
+export async function changeMyPassword(id, payload) {
+  return httpClient.patch(`/api/indigo/usuarios/${id}/password`, {
+    actual: payload.currentPassword,
+    nueva: payload.newPassword,
+  });
+}
+
+
+// Modulo "Personal" (Super usuario): da de alta/edita cualquier rol en
+// cualquier sucursal, y registra quien lo hizo para la Bitacora.
+function actorFields(actor) {
+  return {
+    realizado_por_nombre: actor?.name,
+    realizado_por_rol: actor?.role,
+    realizado_por_sucursal: actor?.branchName,
+  };
+}
+
+
+export async function createPersonal(payload, actor) {
+  return httpClient.post("/api/indigo/usuarios/personal", {
+    nombre: payload.name,
+    usuario: payload.username,
+    telefono: payload.phone,
+    correo: payload.email,
+    rol: payload.role,
+    sucursal_id: payload.branchId || null,
+    requiere_cambio_password: payload.passwordChangeRequired,
+    ...actorFields(actor),
+  });
+}
+
+
+export async function updatePersonal(id, payload, actor) {
+  return httpClient.put(`/api/indigo/usuarios/${id}`, {
+    nombre: payload.name,
+    usuario: payload.username,
+    telefono: payload.phone,
+    correo: payload.email,
+    puesto: payload.role,
+    sucursal_id: payload.branchId ?? null,
+    ...actorFields(actor),
+  });
+}
+
+
+export async function deactivatePersonal(id, actor) {
+  return httpClient.patch(`/api/indigo/usuarios/${id}/deactivate`, actorFields(actor));
+}
+
+
+export async function activatePersonal(id, actor) {
+  return httpClient.patch(`/api/indigo/usuarios/${id}/activate`, actorFields(actor));
+}
+
+
+export async function resetPersonalPassword(id, actor) {
+  return httpClient.patch(`/api/indigo/usuarios/${id}/resetear-password`, actorFields(actor));
+}
+
+
 export async function deactivateUser(
   id
 ) {

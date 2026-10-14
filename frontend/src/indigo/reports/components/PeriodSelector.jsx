@@ -2,9 +2,9 @@ import { Calendar } from "lucide-react";
 import Input from "../../../shared/components/Input";
 
 const MODES = [
-  { value: "day", label: "Día" },
-  { value: "week", label: "Semana" },
-  { value: "month", label: "Mes" },
+  { value: "week", label: "Semanal" },
+  { value: "month", label: "Mensual" },
+  { value: "year", label: "Anual" },
   { value: "range", label: "Rango de fechas" },
 ];
 

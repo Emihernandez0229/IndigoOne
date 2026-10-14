@@ -30,6 +30,12 @@ export function getPeriodRange(mode, customFrom, customTo) {
     return { from: start, to: now };
   }
 
+  if (mode === "year") {
+    const start = new Date(now);
+    start.setFullYear(now.getFullYear() - 1);
+    return { from: start, to: now };
+  }
+
   if (mode === "range") {
     return {
       from: customFrom ? new Date(customFrom) : null,
@@ -180,6 +186,7 @@ export function computeBranchStats(jobs, branches) {
       merma,
       pctCompleted: pct(completed, total),
       pctMerma: pct(merma, total),
+      jobs: branchJobs,
     };
   });
 }
