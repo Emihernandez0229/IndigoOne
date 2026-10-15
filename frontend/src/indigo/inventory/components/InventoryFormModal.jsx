@@ -13,6 +13,7 @@ import {
   MAX_PRODUCT_PHOTOS,
   ACCEPTED_PHOTO_TYPES,
 } from "../constants";
+import { useFormValidation } from "../../../shared/hooks/useFormValidation";
 
 
 const EMPTY = {
@@ -78,7 +79,7 @@ export default function InventoryFormModal({
   const { user: currentUser } = useAuth();
 
   const [form, setForm] = useState(() => crearFormDesdeItem(item));
-  const [errors, setErrors] = useState({});
+  const { errors, setErrors, validate, clearError, clearErrors, resetErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [branches, setBranches] = useState([]);
   const [loadingBranches, setLoadingBranches] = useState(false);
@@ -103,8 +104,8 @@ export default function InventoryFormModal({
       return;
     }
     setForm(crearFormDesdeItem(item));
-    setErrors({});
-  }, [open, item]);
+    resetErrors();
+  }, [open, item, resetErrors]);
 
 
   useEffect(() => {
@@ -144,14 +145,14 @@ export default function InventoryFormModal({
   const set = (field) => (event) => {
     const value = event?.target ? event.target.value : event;
     setForm((prev) => ({ ...prev, [field]: value ?? "" }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    clearError(field);
   };
 
 
   const handleTypeChange = (event) => {
     const value = event.target.value;
     setForm((prev) => ({ ...prev, type: value, material: "" }));
-    setErrors((prev) => ({ ...prev, type: undefined, material: undefined }));
+    clearErrors(["type", "material"]);
   };
 
 
@@ -199,40 +200,26 @@ export default function InventoryFormModal({
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const nextErrors = {};
-
     const code = String(form.code ?? "").trim();
     const model = String(form.model ?? "").trim();
     const color = String(form.color ?? "").trim();
     const measurements = String(form.measurements ?? "").trim();
 
-    if (!code) nextErrors.code = "El código es obligatorio.";
-    if (!model) nextErrors.model = "El modelo es obligatorio.";
-    if (!color) nextErrors.color = "El color es obligatorio.";
-    if (!form.type) nextErrors.type = "Selecciona un tipo.";
-    if (!form.material) nextErrors.material = "Selecciona un material.";
-    if (!form.gender) nextErrors.gender = "Selecciona un género.";
-    if (!measurements) nextErrors.measurements = "Indica las medidas.";
+    const isValid = validate([
+      ["code", !code, "El código es obligatorio."],
+      ["model", !model, "El modelo es obligatorio."],
+      ["color", !color, "El color es obligatorio."],
+      ["type", !form.type, "Selecciona un tipo."],
+      ["material", !form.material, "Selecciona un material."],
+      ["gender", !form.gender, "Selecciona un género."],
+      ["measurements", !measurements, "Indica las medidas."],
+      ["stockAvailable", form.stockAvailable === "" || Number(form.stockAvailable) < 0, "Indica el stock disponible."],
+      ["stockMin", form.stockMin === "" || Number(form.stockMin) < 0, "Indica el stock mínimo."],
+      ["cost", form.cost === "" || Number(form.cost) < 0, "Indica el costo."],
+      ["branchId", !isBranchScoped && !isEdit && !form.branchId, "Selecciona una sucursal."],
+    ]);
 
-    if (form.stockAvailable === "" || Number(form.stockAvailable) < 0) {
-      nextErrors.stockAvailable = "Indica el stock disponible.";
-    }
-
-    if (form.stockMin === "" || Number(form.stockMin) < 0) {
-      nextErrors.stockMin = "Indica el stock mínimo.";
-    }
-
-    if (form.cost === "" || Number(form.cost) < 0) {
-      nextErrors.cost = "Indica el costo.";
-    }
-
-    if (!isBranchScoped && !isEdit && !form.branchId) {
-      nextErrors.branchId = "Selecciona una sucursal.";
-    }
-
-    setErrors(nextErrors);
-
-    if (Object.keys(nextErrors).length > 0) {
+    if (!isValid) {
       return;
     }
 

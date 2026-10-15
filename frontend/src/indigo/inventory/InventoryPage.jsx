@@ -1,211 +1,226 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import { Plus } from "lucide-react";
+import { Info } from "lucide-react";
 
 import PageContainer from "../../shared/layouts/PageContainer";
 import KpiRow from "../../shared/components/KpiRow";
-import Button from "../../shared/components/Button";
 import SearchInput from "../../shared/components/SearchInput";
 import FilterBar from "../../shared/filters/FilterBar";
 import SelectFilter from "../../shared/filters/SelectFilter";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
-import ConfirmDialog from "../../shared/components/ConfirmDialog";
-import Can from "../../shared/security/Can";
-import usePermissions from "../../shared/hooks/usePermissions";
+import DonutChart from "../../shared/charts/DonutChart";
+import { useAuth } from "../../shared/context/AuthContext";
+import { ROLES } from "../../shared/security/roles";
 
 import useInventory from "./hooks/useInventory";
+import useBranches from "../branches/hooks/useBranches";
 import { filterInventory } from "./filterInventory";
 import { getStockStatus } from "./stockStatus";
 import InventoryTable from "./components/InventoryTable";
-import InventoryFormModal from "./components/InventoryFormModal";
-import { PRODUCT_TYPES, ALL_MATERIALS, MATERIALS_BY_TYPE, INVENTORY_STATUSES } from "./constants";
+import BranchValueList from "./components/BranchValueList";
+import { PRODUCT_TYPES, INVENTORY_STATUSES } from "./constants";
+
+
+const CATEGORY_COLORS = {
+  armazones: "#5565C8",
+  micas: "#A855F7",
+  accesorios: "#F59E0B",
+  estuches: "#22A06B",
+  otros: "#9CA3AF",
+};
+
+
+const BRANCH_SCOPED_ROLES = [ROLES.INDIGO_GERENTE_SUCURSAL, ROLES.INDIGO_SUBGERENTE, ROLES.INDIGO_EMPLEADO_VENTAS];
 
 
 export default function InventoryPage() {
 
   const navigate = useNavigate();
-  const { can } = usePermissions();
-  const { items, loading, error, create, update, deactivate, activate } = useInventory();
+  const { user: currentUser } = useAuth();
+  const { items, loading: loadingItems, error: errorItems } = useInventory();
+  const { branches, loading: loadingBranches, error: errorBranches } = useBranches();
 
-  const [query, setQuery] = useState("");
-  const [type, setType] = useState("");
-  const [material, setMaterial] = useState("");
-  const [status, setStatus] = useState("");
-  const [branch, setBranch] = useState("");
-  const [modal, setModal] = useState({ open: false, mode: "create", item: null });
-  const [itemToDeactivate, setItemToDeactivate] = useState(null);
+  const isBranchScoped = BRANCH_SCOPED_ROLES.includes(currentUser?.role);
 
-
-  const materialOptions = type ? (MATERIALS_BY_TYPE[type] ?? []) : ALL_MATERIALS;
-
-  const handleTypeChange = (value) => {
-    setType(value);
-    const allowed = value ? MATERIALS_BY_TYPE[value] ?? [] : null;
-    if (allowed && material && !allowed.some((option) => option.value === material)) {
-      setMaterial("");
-    }
-  };
-
-
-  const branchOptions = useMemo(() => {
-    const map = new Map();
-    items.forEach((item) => {
-      if (item.branchId != null && !map.has(item.branchId)) {
-        map.set(item.branchId, { value: item.branchId, label: item.branchName });
-      }
-    });
-    return [...map.values()];
-  }, [items]);
-
-
-  const filtered = useMemo(
-    () => filterInventory(items, { query, type, material, status, branch }),
-    [items, query, type, material, status, branch]
+  const myBranch = useMemo(
+    () => branches.find((b) => b.id === currentUser?.sucursalId),
+    [branches, currentUser?.sucursalId]
   );
 
+  const scopedItems = useMemo(
+    () => (isBranchScoped ? items.filter((i) => i.branchId === myBranch?.id) : items),
+    [items, isBranchScoped, myBranch]
+  );
+
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
+  const [status, setStatus] = useState("");
+  const [branch, setBranch] = useState("");
+
+  const branchOptions = useMemo(
+    () => branches.map((b) => ({ value: b.id, label: b.name })),
+    [branches]
+  );
+
+  const filtered = useMemo(
+    () => filterInventory(scopedItems, { query, type: category, status, branch }),
+    [scopedItems, query, category, status, branch]
+  );
+
+  const activeItems = useMemo(() => scopedItems.filter((i) => i.active), [scopedItems]);
 
   const kpis = useMemo(() => {
-    const active = items.filter((item) => item.active);
-    const statuses = active.map(getStockStatus);
+    const totalPieces = activeItems.reduce((sum, i) => sum + Number(i.stockAvailable ?? 0), 0);
+    const totalValue = activeItems.reduce((sum, i) => sum + Number(i.stockAvailable ?? 0) * Number(i.cost ?? 0), 0);
+    const statuses = activeItems.map(getStockStatus);
+    const branchCount = new Set(activeItems.map((i) => i.branchId)).size;
 
     return [
       {
-        id: "total", type: "frames", title: "Total",
-        value: String(items.length), description: "Productos registrados",
+        id: "available", type: "products", title: "Productos disponibles", color: "purple",
+        value: totalPieces.toLocaleString("es-MX"),
+        description: isBranchScoped ? "Piezas en tu sucursal" : `Piezas en ${branchCount} sucursales`,
       },
       {
-        id: "available", type: "available", title: "Disponibles",
-        value: String(statuses.filter((s) => s === "available").length),
-        description: "Con stock suficiente",
+        id: "value", type: "revenue", title: "Valor total del inventario", color: "green",
+        value: `$${totalValue.toLocaleString("es-MX")}`, description: "MXN",
       },
       {
-        id: "lowStock", type: "lowStock", title: "Bajo stock",
-        value: String(statuses.filter((s) => s === "low_stock").length),
-        description: "Cerca del mínimo",
+        id: "lowStock", type: "lowStock", title: "Productos con stock bajo", color: "orange",
+        value: String(statuses.filter((s) => s === "low_stock").length), description: "Menos de 10 piezas",
       },
       {
-        id: "outOfStock", type: "outOfStock", title: "Agotados",
-        value: String(statuses.filter((s) => s === "out_of_stock").length),
-        description: "Sin unidades",
+        id: "outOfStock", type: "outOfStock", title: "Productos agotados", color: "red",
+        value: String(statuses.filter((s) => s === "out_of_stock").length), description: "Sin existencia",
       },
     ];
-  }, [items]);
+  }, [activeItems, isBranchScoped]);
 
+  const valueByBranch = useMemo(() => {
+    return branches
+      .map((b) => ({
+        id: b.id,
+        name: b.name,
+        value: activeItems
+          .filter((i) => i.branchId === b.id)
+          .reduce((sum, i) => sum + Number(i.stockAvailable ?? 0) * Number(i.cost ?? 0), 0),
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [branches, activeItems]);
 
-  const closeModal = () => setModal((m) => ({ ...m, open: false }));
+  const byCategory = useMemo(() => {
+    const totals = new Map();
+    activeItems.forEach((i) => {
+      totals.set(i.type, (totals.get(i.type) ?? 0) + Number(i.stockAvailable ?? 0));
+    });
+    return PRODUCT_TYPES
+      .map((c) => ({ label: c.label, value: totals.get(c.value) ?? 0, color: CATEGORY_COLORS[c.value] }))
+      .filter((c) => c.value > 0);
+  }, [activeItems]);
 
-  const handleSubmit = async (payload) => {
-    if (modal.mode === "edit" && modal.item) {
-      await update(modal.item.id, payload);
-    } else {
-      await create(payload);
-    }
-  };
+  // Para Gerente/Subgerente (una sola sucursal) "Valor por sucursal" no
+  // aporta nada, asi que se reemplaza por "Valor por categoria".
+  const valueByCategory = useMemo(() => {
+    return PRODUCT_TYPES
+      .map((c) => ({
+        id: c.value,
+        name: c.label,
+        value: activeItems
+          .filter((i) => i.type === c.value)
+          .reduce((sum, i) => sum + Number(i.stockAvailable ?? 0) * Number(i.cost ?? 0), 0),
+      }))
+      .filter((c) => c.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [activeItems]);
 
+  const loading = loadingItems || loadingBranches;
+  const error = errorItems || errorBranches;
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState />;
-
 
   return (
 
     <PageContainer
       title="Inventario"
-      description="Productos disponibles en tu alcance."
-      actions={
-        <Can permission="inventory.manage">
-          <Button
-            className="inline-flex items-center gap-2 py-2.5 text-sm"
-            onClick={() => setModal({ open: true, mode: "create", item: null })}
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo producto
-          </Button>
-        </Can>
+      description={
+        isBranchScoped
+          ? "Consulta los productos, existencias y valor del inventario de tu sucursal."
+          : "Consulta los productos, existencias y valor del inventario de todas las sucursales."
       }
     >
 
-      <div className="space-y-6">
+      <div className="flex items-start gap-6">
 
-        <KpiRow items={kpis} />
+        <div className="min-w-0 flex-1 space-y-6">
 
-        <FilterBar>
-          <SearchInput
-            className="w-full sm:max-w-xs"
-            value={query}
-            onChange={setQuery}
-            placeholder="Buscar por código o modelo"
-          />
-          <SelectFilter
-            label="Tipo"
-            value={type}
-            onChange={handleTypeChange}
-            placeholder="Todos los tipos"
-            options={PRODUCT_TYPES}
-          />
-          <SelectFilter
-            label="Material"
-            value={material}
-            onChange={setMaterial}
-            placeholder="Todos los materiales"
-            options={materialOptions}
-          />
-          <SelectFilter
-            label="Estado"
-            value={status}
-            onChange={setStatus}
-            placeholder="Todos los estados"
-            options={INVENTORY_STATUSES}
-          />
-          {branchOptions.length > 1 && (
-            <SelectFilter
-              label="Sucursal"
-              value={branch}
-              onChange={setBranch}
-              placeholder="Todas las sucursales"
-              options={branchOptions}
+          <KpiRow items={kpis} />
+
+          <FilterBar>
+            <SearchInput
+              className="w-full sm:max-w-xs"
+              value={query}
+              onChange={setQuery}
+              placeholder="Buscar por nombre o código..."
             />
-          )}
-        </FilterBar>
+            {!isBranchScoped && (
+              <SelectFilter
+                label="Sucursal"
+                value={branch}
+                onChange={setBranch}
+                placeholder="Todas"
+                options={branchOptions}
+              />
+            )}
+            <SelectFilter
+              label="Categoría"
+              value={category}
+              onChange={setCategory}
+              placeholder="Todas"
+              options={PRODUCT_TYPES}
+            />
+            <SelectFilter
+              label="Estado"
+              value={status}
+              onChange={setStatus}
+              placeholder="Todos"
+              options={INVENTORY_STATUSES}
+            />
+          </FilterBar>
 
-        <InventoryTable
-          items={filtered}
-          canEdit={can("inventory.manage")}
-          canDeactivate={can("inventory.manage")}
-          onView={(item) => navigate(`/indigo/inventario/${item.id}`)}
-          onEdit={(item) => setModal({ open: true, mode: "edit", item })}
-          onDeactivate={(item) => setItemToDeactivate(item)}
-          onActivate={(item) => activate(item.id)}
-        />
+          <InventoryTable
+            items={filtered}
+            onView={(item) => navigate(`/indigo/inventario/${item.id}`)}
+          />
+
+        </div>
+
+        <div className="w-full max-w-sm shrink-0 space-y-6">
+
+          <div className="rounded-2xl border border-gray-200 bg-surface p-5">
+            <h3 className="mb-4 text-base font-bold text-text-primary">
+              {isBranchScoped ? "Valor por categoría" : "Valor por sucursal"}
+            </h3>
+            <BranchValueList branches={isBranchScoped ? valueByCategory : valueByBranch} />
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-surface p-5">
+            <h3 className="mb-4 text-base font-bold text-text-primary">Inventario por categoría</h3>
+            <DonutChart data={byCategory} centerLabel="Piezas" />
+          </div>
+
+          <div className="flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            {isBranchScoped
+              ? "Las cantidades y valores provienen de los registros reales de tu sucursal."
+              : "Las cantidades y valores provienen de los registros reales de cada sucursal. La actualización del inventario corresponde a los gerentes."}
+          </div>
+
+        </div>
 
       </div>
 
-      <InventoryFormModal
-        key={`${modal.mode}-${modal.item?.id ?? "new"}-${modal.open}`}
-        open={modal.open}
-        mode={modal.mode}
-        item={modal.item}
-        onClose={closeModal}
-        onSubmit={handleSubmit}
-      />
-
-      <ConfirmDialog
-        open={Boolean(itemToDeactivate)}
-        title="Dar de baja producto"
-        description={
-          itemToDeactivate &&
-          `¿Seguro que quieres dar de baja "${itemToDeactivate.model}" (${itemToDeactivate.code})? Podrás volver a activarlo después.`
-        }
-        confirmLabel="Dar de baja"
-        variant="danger"
-        onConfirm={() => deactivate(itemToDeactivate.id)}
-        onClose={() => setItemToDeactivate(null)}
-      />
-
     </PageContainer>
-
   );
-
 }

@@ -5,6 +5,9 @@ export const ACCEPTED_PHOTO_TYPES = ["image/png", "image/jpeg"];
 export const PRODUCT_TYPES = [
   { value: "armazones", label: "Armazones" },
   { value: "micas", label: "Micas" },
+  { value: "accesorios", label: "Accesorios" },
+  { value: "estuches", label: "Estuches" },
+  { value: "otros", label: "Otros" },
 ];
 
 export const GENDERS = [

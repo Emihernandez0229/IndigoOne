@@ -3,13 +3,19 @@ import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
 import { COUNTRIES, getStatesForCountry, getMunicipalitiesForState } from "../../../shared/constants/locations";
+import { onlyLetters } from "../../../shared/utils/textInput";
 import { listAvailableManagers } from "../services/branchService";
+import { useFormValidation } from "../../../shared/hooks/useFormValidation";
+
+
+const NAME_MAX_LENGTH = 40;
 
 
 const EMPTY = {
   name: "",
   managerId: "",
   manager: "",
+  managerMode: "existing",
   country: "México",
   state: "",
   municipality: "",
@@ -43,7 +49,7 @@ export default function BranchFormModal({
 }) {
 
   const [form, setForm] = useState(() => crearFormDesdeSucursal(branch));
-  const [errors, setErrors] = useState({});
+  const { errors, validate, clearError, clearErrors, resetErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [managers, setManagers] = useState([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
@@ -62,8 +68,8 @@ export default function BranchFormModal({
   useEffect(() => {
     if (!open) return;
     setForm(crearFormDesdeSucursal(branch));
-    setErrors({});
-  }, [open, branch]);
+    resetErrors();
+  }, [open, branch, resetErrors]);
 
 
   useEffect(() => {
@@ -93,24 +99,25 @@ export default function BranchFormModal({
   }, [open, isEdit, branch?.managerId]);
 
 
-  const set = (field) => (event) => {
-    const value = event?.target ? event.target.value : event;
+  const set = (field, transform) => (event) => {
+    const raw = event?.target ? event.target.value : event;
+    const value = transform ? transform(raw ?? "") : raw;
     setForm((prev) => ({ ...prev, [field]: value ?? "" }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    clearError(field);
   };
 
 
   const handleCountryChange = (event) => {
     const value = event.target.value;
     setForm((prev) => ({ ...prev, country: value, state: "", municipality: "" }));
-    setErrors((prev) => ({ ...prev, country: undefined, state: undefined, municipality: undefined }));
+    clearErrors(["country", "state", "municipality"]);
   };
 
 
   const handleStateChange = (event) => {
     const value = event.target.value;
     setForm((prev) => ({ ...prev, state: value, municipality: "" }));
-    setErrors((prev) => ({ ...prev, state: undefined, municipality: undefined }));
+    clearErrors(["state", "municipality"]);
   };
 
 
@@ -123,33 +130,45 @@ export default function BranchFormModal({
       managerId: value,
       manager: selected?.nombre ?? "",
     }));
-    setErrors((prev) => ({ ...prev, managerId: undefined }));
+    clearError("managerId");
+  };
+
+
+  const startNewManager = () => {
+    setForm((prev) => ({ ...prev, managerMode: "new", managerId: "", manager: "" }));
+    clearError("managerId");
+  };
+
+
+  const cancelNewManager = () => {
+    setForm((prev) => ({ ...prev, managerMode: "existing", manager: "" }));
+    clearError("managerId");
   };
 
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const nextErrors = {};
-
     const name = String(form.name ?? "").trim();
+    const newManagerName = String(form.manager ?? "").trim();
 
-    if (!name) nextErrors.name = "El nombre es obligatorio.";
-    if (!form.managerId) nextErrors.managerId = "Selecciona un gerente disponible.";
-    if (!form.country) nextErrors.country = "Selecciona un país.";
-    if (!form.state) nextErrors.state = "Selecciona un estado.";
-    if (!form.municipality) nextErrors.municipality = "Selecciona un municipio.";
-
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    const isValid = validate([
+      ["name", !name, "El nombre es obligatorio."],
+      ["managerId", form.managerMode === "new" ? !newManagerName : !form.managerId,
+        form.managerMode === "new" ? "Escribe el nombre del nuevo gerente." : "Selecciona un gerente disponible."],
+      ["country", !form.country, "Selecciona un país."],
+      ["state", !form.state, "Selecciona un estado."],
+      ["municipality", !form.municipality, "Selecciona un municipio."],
+    ]);
+    if (!isValid) return;
 
     try {
       setSaving(true);
       await onSubmit({
         name,
         managerId: form.managerId,
-        manager: form.manager,
-        managerMode: "existing",
+        manager: form.managerMode === "new" ? newManagerName : form.manager,
+        managerMode: form.managerMode,
         country: form.country,
         state: form.state,
         municipality: form.municipality,
@@ -169,7 +188,7 @@ export default function BranchFormModal({
         <Input
           label="Nombre de sucursal"
           value={form.name ?? ""}
-          onChange={set("name")}
+          onChange={set("name", (v) => onlyLetters(v, NAME_MAX_LENGTH))}
           error={errors.name}
         />
 
@@ -178,27 +197,55 @@ export default function BranchFormModal({
             Responsable (Gerente de Sucursal)
           </label>
 
-          <select
-            id="branch-manager"
-            value={form.managerId ?? ""}
-            onChange={handleManagerChange}
-            disabled={loadingManagers}
-            className={selectClass}
-          >
-            <option value="">
-              {loadingManagers ? "Cargando..." : "Selecciona un gerente..."}
-            </option>
-            {managers.map((manager) => (
-              <option key={manager.id} value={manager.id}>{manager.nombre}</option>
-            ))}
-          </select>
+          {form.managerMode === "new" ? (
+            <>
+              <Input
+                id="branch-manager"
+                placeholder="Nombre del nuevo gerente"
+                value={form.manager ?? ""}
+                onChange={set("manager", (v) => onlyLetters(v, NAME_MAX_LENGTH))}
+                error={errors.managerId}
+              />
+              <button
+                type="button"
+                onClick={cancelNewManager}
+                className="mt-1.5 text-xs font-medium text-indigo-primary hover:underline"
+              >
+                Elegir un gerente existente
+              </button>
+            </>
+          ) : (
+            <>
+              <select
+                id="branch-manager"
+                value={form.managerId ?? ""}
+                onChange={handleManagerChange}
+                disabled={loadingManagers}
+                className={selectClass}
+              >
+                <option value="">
+                  {loadingManagers ? "Cargando..." : "Selecciona un gerente..."}
+                </option>
+                {managers.map((manager) => (
+                  <option key={manager.id} value={manager.id}>{manager.nombre}</option>
+                ))}
+              </select>
 
-          {errors.managerId && <p className="mt-1.5 text-sm text-error">{errors.managerId}</p>}
+              {errors.managerId && <p className="mt-1.5 text-sm text-error">{errors.managerId}</p>}
 
-          {managers.length === 0 && !loadingManagers && (
-            <p className="mt-1 text-xs text-text-secondary">
-              No hay gerentes disponibles para asignar. Da de alta uno nuevo desde Usuarios primero.
-            </p>
+              {!loadingManagers && (
+                <div className="mt-2">
+                  {managers.length === 0 && (
+                    <p className="mb-2 text-xs text-text-secondary">
+                      No hay gerentes disponibles para asignar.
+                    </p>
+                  )}
+                  <Button type="button" variant="outline" className="py-2 text-sm" onClick={startNewManager}>
+                    + Nuevo gerente de sucursal
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
 

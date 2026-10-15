@@ -62,6 +62,7 @@ export default function DataTable({
   emptyMessage = "No existen registros.",
   headerBorderColor,
   pageSize,
+  rowClassName,
 }) {
 
   const [page, setPage] = useState(1);
@@ -110,7 +111,10 @@ export default function DataTable({
 
           <tbody className="divide-y divide-gray-100">
             {pageData.map((row, index) => (
-              <tr key={row.id ?? index} className="transition hover:bg-background">
+              <tr
+                key={row.id ?? index}
+                className={`transition hover:bg-background ${rowClassName ? rowClassName(row) : ""}`}
+              >
                 {columns.map((column) => (
                   <td key={column.key} className="px-5 py-4 text-sm text-text-primary">
                     {column.render ? column.render(row) : row[column.key]}

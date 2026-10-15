@@ -106,6 +106,8 @@ export const PERMISSIONS = {
     "reports.global",
     "reports.branch",
     "reports.period",
+
+    "bitacora.view",
   ],
 
 
@@ -143,6 +145,11 @@ export const PERMISSIONS = {
     "user.update",
     "user.deactivate",
 
+    "client.view",
+    "client.create",
+    "client.update",
+    "client.deactivate",
+
     "sales.view",
 
     "laboratory.view",
@@ -165,6 +172,11 @@ export const PERMISSIONS = {
     "user.update",
     "user.deactivate",
 
+    "client.view",
+    "client.create",
+    "client.update",
+    "client.deactivate",
+
     "sales.view",
 
     "laboratory.view",
@@ -180,9 +192,12 @@ export const PERMISSIONS = {
   [ROLES.INDIGO_EMPLEADO_VENTAS]: [
     "customer.create",
 
+    "client.view",
+
     "sales.create",
     "sales.view",
 
+    "laboratory.job.view",
     "laboratory.job.create",
 
     "inventory.view",

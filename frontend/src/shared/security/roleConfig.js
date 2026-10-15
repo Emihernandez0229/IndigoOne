@@ -81,6 +81,8 @@
 import { ROLES } from "./roles";
 
 import { indigoNavigation } from "../navigation/indigoNavigation";
+import { salesNavigation } from "../navigation/salesNavigation";
+import { labNavigation } from "../navigation/labNavigation";
 import { opticaNavigation } from "../navigation/opticaNavigation";
 
 export const ROLE_CONFIG = {
@@ -116,15 +118,15 @@ export const ROLE_CONFIG = {
   [ROLES.INDIGO_EMPLEADO_VENTAS]: {
     module: "indigo",
     home: "/indigo/dashboard",
-    navigation: indigoNavigation,
-    label: "Ventas Indigo",
+    navigation: salesNavigation,
+    label: "Empleado de ventas",
   },
 
   [ROLES.INDIGO_EMPLEADO_LABORATORIO]: {
     module: "indigo",
     home: "/indigo/dashboard",
-    navigation: indigoNavigation,
-    label: "Laboratorio Indigo",
+    navigation: labNavigation,
+    label: "Empleado de laboratorio",
   },
 
   [ROLES.OPTICA_DUENO]: {
@@ -165,8 +167,22 @@ export function getHomePathForRole(role) {
 }
 
 
+// Gerente/Subgerente solo ven SU sucursal, asi que el item "Sucursales"
+// (la lista de todas) se cambia por "Mi sucursal" (detalle de la propia).
+const BRANCH_SCOPED_ROLES = [ROLES.INDIGO_GERENTE_SUCURSAL, ROLES.INDIGO_SUBGERENTE];
+
 export function getNavigationForRole(role) {
 
-  return ROLE_CONFIG[role]?.navigation ?? [];
+  const base = ROLE_CONFIG[role]?.navigation ?? [];
+
+  if (!BRANCH_SCOPED_ROLES.includes(role)) {
+    return base;
+  }
+
+  return base.map((item) =>
+    item.path === "/indigo/sucursales"
+      ? { ...item, label: "Mi sucursal", path: "/indigo/mi-sucursal" }
+      : item
+  );
 
 }

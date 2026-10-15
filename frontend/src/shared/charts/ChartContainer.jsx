@@ -3,6 +3,7 @@ export default function ChartContainer({
     subtitle,
     children,
     action,
+    align = "center",
 }) {
 
 
@@ -90,7 +91,7 @@ export default function ChartContainer({
 
 
 
-            <div className="flex flex-1 flex-col justify-center">
+            <div className={`flex flex-1 flex-col ${align === "start" ? "justify-start" : "justify-center"}`}>
                 {children}
             </div>
 

@@ -4,6 +4,7 @@ export function filterUsers(
     query = "",
     role = "",
     branch = "",
+    status = "",
   } = {}
 ) {
 
@@ -34,10 +35,16 @@ export function filterUsers(
       String(user.branchId) === String(branch);
 
 
+    const matchesStatus =
+      !status ||
+      user.status === status;
+
+
     return (
       matchesQuery &&
       matchesRole &&
-      matchesBranch
+      matchesBranch &&
+      matchesStatus
     );
 
   });

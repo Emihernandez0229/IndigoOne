@@ -119,4 +119,15 @@ export const statusStyles = {
     className: "bg-success/10 text-success",
   },
 
+  // Trabajos de laboratorio (Indigo)
+  warranty: {
+    label: "Garantía",
+    className: "bg-purple-100 text-purple-600",
+  },
+
+  loss: {
+    label: "Merma",
+    className: "bg-error/10 text-error",
+  },
+
 };

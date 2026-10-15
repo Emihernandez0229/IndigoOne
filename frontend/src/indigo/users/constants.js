@@ -52,10 +52,53 @@ export const USER_ROLE_LABELS =
   );
 
 
-// Modulo "Personal": solo lista al personal que pertenece a una sucursal,
-// por lo que no aplica filtrar por Super usuario ni Dueño Indigo.
+// Modulo "Personal" (Dueño): solo lista al personal que pertenece a una
+// sucursal, por lo que no aplica filtrar por Super usuario ni Dueño Indigo.
 export const INDIGO_PERSONAL_ROLES = INDIGO_USER_ROLES.filter(
   (role) =>
     role.value !== ROLES.INDIGO_SUPER_USUARIO &&
     role.value !== ROLES.INDIGO_DUENO
 );
+
+
+// Modulo "Empleados" (Gerente/Subgerente): el roster que administran nunca
+// incluye al Gerente de sucursal (ni a si mismos), solo a quienes le
+// reportan - por eso tambien se usa para las opciones de "Puesto / Rol"
+// al crear o editar un empleado.
+export const EMPLOYEE_ROLES = INDIGO_USER_ROLES.filter(
+  (role) =>
+    role.value === ROLES.INDIGO_SUBGERENTE ||
+    role.value === ROLES.INDIGO_EMPLEADO_VENTAS ||
+    role.value === ROLES.INDIGO_EMPLEADO_LABORATORIO
+);
+
+
+// El Subgerente no puede dar de alta, editar ni filtrar por "Subgerente"
+// (no administra a su propio puesto) - el Gerente si conserva esa opcion.
+export function getEmployeeRoleOptions(viewerRole) {
+  if (viewerRole === ROLES.INDIGO_SUBGERENTE) {
+    return EMPLOYEE_ROLES.filter((role) => role.value !== ROLES.INDIGO_SUBGERENTE);
+  }
+  return EMPLOYEE_ROLES;
+}
+
+
+// Modulo "Personal" (Super usuario): puede dar de alta/editar cualquier
+// rol - incluido Dueño - en cualquier sucursal. Nunca otro Super usuario.
+export const SUPERUSER_PERSONAL_ROLES = INDIGO_USER_ROLES.filter(
+  (role) => role.value !== ROLES.INDIGO_SUPER_USUARIO
+);
+
+const ROLE_USERNAME_PREFIX = {
+  [ROLES.INDIGO_DUENO]: "DUE",
+  [ROLES.INDIGO_GERENTE_SUCURSAL]: "GTE",
+  [ROLES.INDIGO_SUBGERENTE]: "SUB",
+  [ROLES.INDIGO_EMPLEADO_VENTAS]: "VTA",
+  [ROLES.INDIGO_EMPLEADO_LABORATORIO]: "LAB",
+};
+
+export function generatePersonalUsername(role, existingUsers = []) {
+  const prefix = ROLE_USERNAME_PREFIX[role] ?? "USR";
+  const sameRoleCount = existingUsers.filter((u) => u.role === role).length;
+  return `${prefix}-${String(sameRoleCount + 1).padStart(5, "0")}`;
+}

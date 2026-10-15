@@ -54,10 +54,9 @@ export default function InventoryDetailPage() {
     return siblings.reduce(
       (acc, row) => ({
         available: acc.available + Number(row.stockAvailable ?? 0),
-        reserved: acc.reserved + Number(row.stockReserved ?? 0),
-        min: acc.min + Number(row.stockMin ?? 0),
+        value: acc.value + Number(row.stockAvailable ?? 0) * Number(row.cost ?? 0),
       }),
-      { available: 0, reserved: 0, min: 0 }
+      { available: 0, value: 0 }
     );
   }, [siblings]);
 
@@ -83,7 +82,7 @@ export default function InventoryDetailPage() {
     );
   }
 
-  const photos = Array.isArray(item.photos) ? item.photos : [];
+  const photos = (Array.isArray(item.photos) ? item.photos : []).slice(0, 2);
   const status = getStockStatus(item);
 
 
@@ -107,62 +106,37 @@ export default function InventoryDetailPage() {
           {/* FOTOS */}
           <div className="rounded-2xl border border-gray-200 bg-surface p-4">
             {photos.length > 0 ? (
-              <div className="space-y-3">
-
-                <div className="relative">
-                  <img
-                    src={photos[activePhoto]}
-                    alt={`${item.model} ${activePhoto + 1}`}
-                    className="aspect-square w-full rounded-xl object-cover"
-                  />
-
-                  {photos.length > 1 && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setActivePhoto((i) => (i - 1 + photos.length) % photos.length)}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition hover:bg-black/70"
-                        aria-label="Foto anterior"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActivePhoto((i) => (i + 1) % photos.length)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition hover:bg-black/70"
-                        aria-label="Siguiente foto"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </button>
-                    </>
-                  )}
-                </div>
+              <div className="relative">
+                <img
+                  src={photos[activePhoto]}
+                  alt={`${item.model} ${activePhoto + 1}`}
+                  className="aspect-[16/9] w-full rounded-xl object-cover"
+                />
 
                 {photos.length > 1 && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {photos.map((src, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => setActivePhoto(index)}
-                        className={`aspect-square overflow-hidden rounded-lg border-2 transition ${
-                          index === activePhoto ? "border-indigo-primary" : "border-transparent"
-                        }`}
-                      >
-                        <img
-                          src={src}
-                          alt={`${item.model} ${index + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setActivePhoto((i) => (i - 1 + photos.length) % photos.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white transition hover:bg-black/70"
+                      aria-label="Foto anterior"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePhoto((i) => (i + 1) % photos.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white transition hover:bg-black/70"
+                      aria-label="Siguiente foto"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </>
                 )}
-
               </div>
             ) : (
-              <div className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-xl bg-background text-text-secondary">
-                <ImageOff className="h-10 w-10" />
+              <div className="flex aspect-[16/9] w-full flex-col items-center justify-center gap-2 rounded-xl bg-background text-text-secondary">
+                <ImageOff className="h-8 w-8" />
                 <span className="text-sm">Sin fotos</span>
               </div>
             )}
@@ -177,16 +151,14 @@ export default function InventoryDetailPage() {
             </div>
 
             <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <Field label="Nombre del producto" value={item.model} />
               <Field label="Código" value={item.code} />
-              <Field label="Modelo" value={item.model} />
               <Field label="Tipo" value={labelFrom(PRODUCT_TYPES, item.type)} />
               <Field label="Material" value={item.material} />
               <Field label="Color" value={item.color} />
               <Field label="Género" value={labelFrom(GENDERS, item.gender)} />
               <Field label="Medidas" value={item.measurements} />
-              <Field label="Sucursal" value={item.branchName} />
               <Field label="Stock disponible" value={item.stockAvailable} />
-              <Field label="Stock mínimo" value={item.stockMin} />
               <Field label="Costo" value={currency(item.cost)} />
             </dl>
 
@@ -213,8 +185,6 @@ export default function InventoryDetailPage() {
                   <tr className="border-b border-gray-100 text-left text-xs font-medium uppercase tracking-wide text-text-secondary">
                     <th className="pb-3 pr-4">Sucursal</th>
                     <th className="pb-3 pr-4">Stock disponible</th>
-                    <th className="pb-3 pr-4">Stock reservado</th>
-                    <th className="pb-3 pr-4">Stock mínimo</th>
                     <th className="pb-3">Estado</th>
                   </tr>
                 </thead>
@@ -242,8 +212,6 @@ export default function InventoryDetailPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 pr-4 text-text-secondary">{row.stockReserved ?? 0}</td>
-                        <td className="py-3 pr-4 text-text-secondary opacity-60">{row.stockMin}</td>
                         <td className="py-3">
                           <StatusBadge status={rowStatus} />
                         </td>
@@ -260,12 +228,8 @@ export default function InventoryDetailPage() {
                 <p className="text-xl font-bold text-text-primary">{totals.available}</p>
               </div>
               <div>
-                <p className="text-xs text-text-secondary">Total reservado</p>
-                <p className="text-xl font-bold text-text-primary">{totals.reserved}</p>
-              </div>
-              <div>
-                <p className="text-xs text-text-secondary">Stock global mín.</p>
-                <p className="text-xl font-bold text-text-secondary opacity-60">{totals.min}</p>
+                <p className="text-xs text-text-secondary">Valor total</p>
+                <p className="text-xl font-bold text-text-primary">{currency(totals.value)}</p>
               </div>
             </div>
 

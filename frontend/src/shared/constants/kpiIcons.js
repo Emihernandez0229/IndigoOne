@@ -14,6 +14,10 @@ import {
     XCircle,
     DollarSign,
     MapPin,
+    Clock,
+    Settings,
+    ShieldCheck,
+    Percent,
 } from "lucide-react";
 
 
@@ -56,5 +60,13 @@ export const kpiIcons = {
     canceled: XCircle,
 
     cities: MapPin,
+
+    pendingClock: Clock,
+
+    processingGear: Settings,
+
+    warranty: ShieldCheck,
+
+    rate: Percent,
 
 };

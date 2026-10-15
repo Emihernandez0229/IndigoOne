@@ -3,10 +3,11 @@ import {
   Building2,
   Users,
   UserRound,
-  ShoppingCart,
   FlaskConical,
   FileText,
   Glasses,
+  AlertTriangle,
+  ClipboardList,
 } from "lucide-react";
 
 
@@ -51,16 +52,16 @@ export const indigoNavigation = [
   },
 
   {
-    label: "Ventas",
-    path: "/indigo/ventas",
-    icon: ShoppingCart,
-    permission: "sales.view",
-  },
-
-  {
     label: "Laboratorio",
     path: "/indigo/laboratorio",
     icon: FlaskConical,
+    permission: "laboratory.job.view",
+  },
+
+  {
+    label: "Mermas",
+    path: "/indigo/mermas",
+    icon: AlertTriangle,
     permission: "laboratory.job.view",
   },
 
@@ -76,6 +77,13 @@ export const indigoNavigation = [
     path: "/indigo/reportes",
     icon: FileText,
     permission: "reports.branch",
+  },
+
+  {
+    label: "Bitácora",
+    path: "/indigo/bitacora",
+    icon: ClipboardList,
+    permission: "bitacora.view",
   },
 
 ];
