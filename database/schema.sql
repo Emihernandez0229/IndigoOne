@@ -132,9 +132,10 @@ CREATE TABLE clientes_finales (
 );
 
 
-CREATE TABLE expedientes (
+CREATE TABLE consultas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cliente_final_id UUID NOT NULL REFERENCES clientes_finales(id),
+    sucursal_id UUID NOT NULL REFERENCES sucursales(id),
     fecha_examen DATE NOT NULL,
     od_esfera NUMERIC(4,2), od_cilindro NUMERIC(4,2), od_eje INTEGER, od_adicion NUMERIC(4,2),
     oi_esfera NUMERIC(4,2), oi_cilindro NUMERIC(4,2), oi_eje INTEGER, oi_adicion NUMERIC(4,2),
@@ -195,7 +196,7 @@ CREATE TABLE ordenes_laboratorio (
     folio VARCHAR(30) UNIQUE NOT NULL,
     sucursal_id UUID NOT NULL REFERENCES sucursales(id),
     cliente_final_id UUID NOT NULL REFERENCES clientes_finales(id),
-    expediente_id UUID REFERENCES expedientes(id),
+    expediente_id UUID REFERENCES consultas(id),
     venta_id UUID REFERENCES ventas(id),
     item_id UUID REFERENCES inventario_items(id),
     estado VARCHAR(30) NOT NULL DEFAULT 'pendiente'
@@ -227,7 +228,7 @@ CREATE INDEX idx_optica_usuarios_optica ON optica_usuarios(optica_id);
 CREATE INDEX idx_optica_usuarios_sucursal ON optica_usuarios(sucursal_id);
 CREATE INDEX idx_sucursal_gerentes_usuario ON sucursal_gerentes(optica_usuario_id);
 CREATE INDEX idx_clientes_finales_sucursal ON clientes_finales(sucursal_id);
-CREATE INDEX idx_expedientes_cliente ON expedientes(cliente_final_id);
+
 CREATE INDEX idx_ventas_sucursal ON ventas(sucursal_id);
 CREATE INDEX idx_citas_sucursal ON citas(sucursal_id);
 CREATE INDEX idx_citas_fecha ON citas(fecha_hora);
@@ -235,3 +236,8 @@ CREATE INDEX idx_ordenes_lab_sucursal ON ordenes_laboratorio(sucursal_id);
 CREATE INDEX idx_ordenes_lab_estado ON ordenes_laboratorio(estado);
 CREATE INDEX idx_ordenes_historial_orden ON ordenes_historial(orden_id);
 CREATE INDEX idx_inventario_existencias_item ON inventario_existencias(item_id);
+
+CREATE INDEX idx_consultas_sucursal_fecha ON consultas (sucursal_id, fecha_examen);
+CREATE INDEX idx_consultas_cliente ON consultas (cliente_final_id, fecha_examen);
+
+CREATE INDEX idx_productos_servicios_sucursal ON productos_servicios (sucursal_id);
