@@ -1,5 +1,9 @@
 require('dotenv').config();
-const { Pool } = require('pg');
+const pg = require('pg');
+const { Pool } = pg;
+
+
+pg.types.setTypeParser(pg.types.builtins.DATE, v => v);
 
 const pool = new Pool({
   host: process.env.DB_HOST,
