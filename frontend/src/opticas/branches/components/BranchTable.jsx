@@ -25,16 +25,14 @@ export default function BranchTable({
       label: "Sucursal"
     },
     {
-      key: "address",
-      label: "Dirección"
+      key: "municipality",
+      label: "Municipio",
+      render: (row) => row.municipality || "—",
     },
     {
       key: "manager",
-      label: "Responsable"
-    },
-    {
-      key: "phone",
-      label: "Teléfono"
+      label: "Responsable",
+      render: (row) => row.manager || "Sin asignar",
     },
     {
       key: "products",
@@ -122,6 +120,7 @@ export default function BranchTable({
       columns={columns}
       data={branches}
       emptyMessage="No hay sucursales que coincidan con la busqueda"
+      pageSize={10}
     />
   );
 

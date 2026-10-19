@@ -64,14 +64,14 @@ export default function PatientDetailPage() {
 
   if (!patient) {
     return (
-      <PageContainer title="Paciente" description="">
+      <PageContainer title="Cliente" description="">
         <EmptyState
-          title="No encontramos este paciente"
+          title="No encontramos este cliente"
           description="Puede que ya lo hayan quitado del registro."
         />
         <div className="mt-4">
           <Link to="/opticas/pacientes" className="text-sm font-medium text-indigo-primary">
-            ← Volver a pacientes
+            ← Volver a clientes
           </Link>
         </div>
       </PageContainer>

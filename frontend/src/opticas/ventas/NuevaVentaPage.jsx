@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
-import { X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 
 import PageContainer from "../../shared/layouts/PageContainer";
 import Button from "../../shared/components/Button";
@@ -16,6 +16,20 @@ import RecetaFormModal from "../laboratorio/components/RecetaFormModal";
 import useVentas from "./hooks/useVentas";
 import PaymentModal from "./components/PaymentModal";
 import { IVA_RATE } from "./constants";
+
+
+// Codigo/modelo de producto: letras, numeros, espacios y guion (ej. "OPT-001").
+function onlyProductCode(value) {
+  return value.replace(/[^a-zA-Z0-9\s-]/g, "");
+}
+
+// Busqueda de paciente: por nombre (letras, hasta 50) o telefono (solo
+// digitos, hasta 10) - se detecta segun lo que ya se escribio.
+function onlyPatientSearch(value) {
+  const clean = value.replace(/[^a-zA-ZÀ-ÖØ-öø-ÿÑñ0-9\s]/g, "");
+  const isNumeric = /^\d+$/.test(clean.trim());
+  return isNumeric ? clean.slice(0, 10) : clean.slice(0, 50);
+}
 
 
 const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -34,12 +48,21 @@ const formatFullDate = (date) => {
 export default function NuevaVentaPage() {
 
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const { isOwner, branches, selectedBranch, setSelectedBranch } = useBranchScope({
+  const { branches, selectedBranch, setSelectedBranch } = useBranchScope({
     listBranches,
     ownerRoles: [ROLES.OPTICA_DUENO],
     alwaysLoad: true,
   });
+
+  // La sucursal ya se eligió en la lista de Ventas - no se vuelve a
+  // preguntar aquí, solo se hereda la que venía seleccionada.
+  const incomingBranchId = location.state?.branchId;
+  useEffect(() => {
+    if (incomingBranchId) setSelectedBranch(incomingBranchId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingBranchId]);
 
   const branchName = branches.find((b) => b.id === selectedBranch)?.name ?? "";
 
@@ -207,23 +230,18 @@ export default function NuevaVentaPage() {
       description={
         <span className="flex flex-wrap items-center gap-2">
           {formatFullDate(new Date())}
-          {isOwner ? (
-            <>
-              <span>·</span>
-              <select
-                value={selectedBranch}
-                onChange={(e) => setSelectedBranch(e.target.value)}
-                className="rounded-lg border border-gray-200 bg-surface px-2 py-1 text-sm text-text-primary outline-none focus:border-indigo-primary"
-              >
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-            </>
-          ) : (
-            branchName && <span>· {branchName}</span>
-          )}
+          {branchName && <span>· {branchName}</span>}
         </span>
+      }
+      actions={
+        <Button
+          variant="outline"
+          className="inline-flex items-center gap-2 py-2.5 text-sm"
+          onClick={() => navigate("/opticas/ventas")}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver
+        </Button>
       }
     >
 
@@ -254,7 +272,7 @@ export default function NuevaVentaPage() {
               <div className="relative">
                 <input
                   value={patientQuery}
-                  onChange={(e) => setPatientQuery(e.target.value)}
+                  onChange={(e) => setPatientQuery(onlyPatientSearch(e.target.value))}
                   placeholder="Buscar por nombre o teléfono..."
                   disabled={!selectedBranch}
                   className="w-full rounded-xl border border-gray-200 bg-surface px-4 py-3 text-text-primary outline-none transition focus:border-indigo-primary focus:ring-2 focus:ring-indigo-light disabled:opacity-50"
@@ -289,7 +307,7 @@ export default function NuevaVentaPage() {
               <input
                 ref={productSearchRef}
                 value={productQuery}
-                onChange={(e) => setProductQuery(e.target.value)}
+                onChange={(e) => setProductQuery(onlyProductCode(e.target.value))}
                 placeholder="Buscar por código o modelo..."
                 disabled={!selectedBranch}
                 className="w-full rounded-xl border border-gray-200 bg-surface px-4 py-3 text-text-primary outline-none transition focus:border-indigo-primary focus:ring-2 focus:ring-indigo-light disabled:opacity-50"

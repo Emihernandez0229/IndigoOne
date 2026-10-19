@@ -171,18 +171,32 @@ export function getHomePathForRole(role) {
 // (la lista de todas) se cambia por "Mi sucursal" (detalle de la propia).
 const BRANCH_SCOPED_ROLES = [ROLES.INDIGO_GERENTE_SUCURSAL, ROLES.INDIGO_SUBGERENTE];
 
+// Mismo criterio para el Jefe de sucursal de Ópticas - a diferencia de
+// Indigo, aqui "Sucursales" y "Mi sucursal" viven en la misma ruta
+// (BranchesPage.jsx ya despacha segun el rol), asi que solo cambia la
+// etiqueta, no el path.
+const OPTICA_BRANCH_SCOPED_ROLES = [ROLES.OPTICA_ENCARGADO];
+
 export function getNavigationForRole(role) {
 
   const base = ROLE_CONFIG[role]?.navigation ?? [];
 
-  if (!BRANCH_SCOPED_ROLES.includes(role)) {
-    return base;
+  if (BRANCH_SCOPED_ROLES.includes(role)) {
+    return base.map((item) =>
+      item.path === "/indigo/sucursales"
+        ? { ...item, label: "Mi sucursal", path: "/indigo/mi-sucursal" }
+        : item
+    );
   }
 
-  return base.map((item) =>
-    item.path === "/indigo/sucursales"
-      ? { ...item, label: "Mi sucursal", path: "/indigo/mi-sucursal" }
-      : item
-  );
+  if (OPTICA_BRANCH_SCOPED_ROLES.includes(role)) {
+    return base.map((item) =>
+      item.path === "/opticas/sucursales"
+        ? { ...item, label: "Mi sucursal" }
+        : item
+    );
+  }
+
+  return base;
 
 }

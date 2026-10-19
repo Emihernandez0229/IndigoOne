@@ -5,84 +5,29 @@ export async function listUsers() {
   );
 }
 
-export async function getUserFormOptions(
-  userId = null
-) {
-  const query =
-    userId
-      ? `?usuario_id=${userId}`
-      : "";
-
-  return httpClient.get(
-    `/api/opticas/usuarios/opciones-formulario${query}`
-  );
+// Módulo "Personal" (Dueño): da de alta cualquier rol de personal (jefe de
+// sucursal o ventas) en cualquier sucursal de la óptica.
+export async function createPersonal(payload) {
+  return httpClient.post("/api/opticas/usuarios/personal", {
+    nombre: payload.name,
+    usuario: payload.username,
+    telefono: payload.phone,
+    correo: payload.email,
+    rol: payload.role,
+    sucursal_id: payload.branchId || null,
+    requiere_cambio_password: payload.passwordChangeRequired,
+  });
 }
 
-
-export async function createUser(
-  payload
-) {
-  switch (payload.role) {
-
-    case "OPTICA_BRANCH_MANAGER":
-      return httpClient.post("/api/opticas/usuarios/gerentes",
-        {
-          nombre:
-            payload.name,
-          sucursal_id:
-            payload.newBranch
-              ? null
-              : payload.branchId || null,
-          nueva_sucursal_nombre:
-            payload.newBranch
-              ? payload.newBranchName
-              : null,
-        }
-      );
-
-    case "OPTICA_SALES":
-      return httpClient.post("/api/opticas/usuarios/empleados",
-        {
-          nombre:
-            payload.name,
-          sucursal_id:
-            payload.branchId || null,
-        }
-      );
-
-
-    default:
-
-      throw new Error(
-        "Rol de usuario no válido."
-      );
-
-  }
-
-}
-
-export async function updateUser(
-  id,
-  payload
-) {
-
-  return httpClient.put(`/api/opticas/usuarios/${id}`,
-    {
-      rol:
-        payload.role,
-
-      sucursal_id:
-        payload.newBranch
-          ? null
-          : payload.branchId || null,
-
-      nueva_sucursal_nombre:
-        payload.newBranch
-          ? payload.newBranchName
-          : null,
-    }
-  );
-
+export async function updatePersonal(id, payload) {
+  return httpClient.put(`/api/opticas/usuarios/${id}`, {
+    nombre: payload.name,
+    usuario: payload.username,
+    telefono: payload.phone,
+    correo: payload.email,
+    rol: payload.role,
+    sucursal_id: payload.branchId ?? null,
+  });
 }
 
 export async function deactivateUser(

@@ -11,7 +11,7 @@ function mapInfo(raw) {
     responsableSanitario: raw.responsable_sanitario ?? raw.responsableSanitario ?? "",
     telefono: raw.telefono ?? "",
     correo: raw.correo ?? "",
-    sitioWeb: raw.sitio_web ?? raw.sitioWeb ?? "",
+    correoFiscal: raw.correo_fiscal ?? raw.correoFiscal ?? "",
 
     calle: raw.calle ?? "",
     numeroExterior: raw.numero_exterior ?? raw.numeroExterior ?? "",
@@ -22,17 +22,11 @@ function mapInfo(raw) {
     estadoDireccion: raw.estado_direccion ?? raw.estadoDireccion ?? "",
     pais: raw.pais ?? "",
 
-    moneda: raw.moneda ?? "MXN",
     regimenFiscal: raw.regimen_fiscal ?? raw.regimenFiscal ?? "",
-    impuestoPredeterminado: String(raw.impuesto_predeterminado ?? raw.impuestoPredeterminado ?? "16"),
-    folioInicialVentas: raw.folio_inicial_ventas ?? raw.folioInicialVentas ?? "",
-    serieDocumentos: raw.serie_documentos ?? raw.serieDocumentos ?? "",
-    textoDocumentos: raw.texto_documentos ?? raw.textoDocumentos ?? "",
 
     colorPrincipal: raw.color_principal ?? raw.colorPrincipal ?? "#1E3AAB",
     colorSecundario: raw.color_secundario ?? raw.colorSecundario ?? "#60DAFA",
     eslogan: raw.eslogan ?? "",
-    pieDocumentos: raw.pie_documentos ?? raw.pieDocumentos ?? "",
   };
 }
 
@@ -52,7 +46,7 @@ export async function updateOpticaInfo(payload) {
     responsableSanitario: payload.responsableSanitario,
     telefono: payload.telefono,
     correo: payload.correo,
-    sitioWeb: payload.sitioWeb,
+    correoFiscal: payload.correoFiscal,
 
     calle: payload.calle,
     numeroExterior: payload.numeroExterior,
@@ -63,17 +57,11 @@ export async function updateOpticaInfo(payload) {
     estadoDireccion: payload.estadoDireccion,
     pais: payload.pais,
 
-    moneda: payload.moneda,
     regimenFiscal: payload.regimenFiscal,
-    impuestoPredeterminado: payload.impuestoPredeterminado,
-    folioInicialVentas: payload.folioInicialVentas,
-    serieDocumentos: payload.serieDocumentos,
-    textoDocumentos: payload.textoDocumentos,
 
     colorPrincipal: payload.colorPrincipal,
     colorSecundario: payload.colorSecundario,
     eslogan: payload.eslogan,
-    pieDocumentos: payload.pieDocumentos,
   });
   return mapInfo(info);
 }

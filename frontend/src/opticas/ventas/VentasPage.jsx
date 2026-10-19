@@ -12,9 +12,7 @@ import SelectFilter from "../../shared/filters/SelectFilter";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
 import EmptyState from "../../shared/components/EmptyState";
-import ConfirmDialog from "../../shared/components/ConfirmDialog";
 import Can from "../../shared/security/Can";
-import usePermissions from "../../shared/hooks/usePermissions";
 import useBranchScope from "../../shared/hooks/useBranchScope";
 import { ROLES } from "../../shared/security/roles";
 
@@ -29,8 +27,6 @@ import VentaTable from "./components/VentaTable";
 export default function VentasPage() {
 
   const navigate = useNavigate();
-  const { can } = usePermissions();
-  const canManage = can("optica.sales.manage");
 
   const { isOwner, branches, selectedBranch, setSelectedBranch, loadingBranches } = useBranchScope({
     listBranches,
@@ -38,12 +34,11 @@ export default function VentasPage() {
   });
 
   const { patients } = usePatients(selectedBranch);
-  const { ventas, loading, error, cancel } = useVentas(selectedBranch);
+  const { ventas, loading, error } = useVentas(selectedBranch);
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [date, setDate] = useState("");
-  const [ventaToCancel, setVentaToCancel] = useState(null);
 
 
   const patientsById = useMemo(() => {
@@ -64,27 +59,30 @@ export default function VentasPage() {
 
   const kpis = useMemo(() => {
     const activeSales = ventas.filter((v) => v.status === "completada");
-    const today = new Date().toISOString().slice(0, 10);
+
+    const now = new Date();
+    const salesThisMonth = activeSales.filter((v) => {
+      if (!v.createdAt) return false;
+      const created = new Date(v.createdAt);
+      return created.getFullYear() === now.getFullYear() && created.getMonth() === now.getMonth();
+    });
+
+    const today = now.toISOString().slice(0, 10);
     const salesToday = activeSales.filter((v) => (v.createdAt ?? "").slice(0, 10) === today);
 
     return [
       {
-        id: "total", type: "sales", title: "Total",
+        id: "total", type: "sales", title: "Ventas totales", color: "blue",
         value: String(ventas.length), description: "Ventas registradas",
       },
       {
-        id: "revenue", type: "revenue", title: "Ingresos",
-        value: `$${activeSales.reduce((sum, v) => sum + v.total, 0).toLocaleString("es-MX")}`,
-        description: "Ventas completadas",
+        id: "month", type: "revenue", title: "Ventas del mes", color: "green",
+        value: `$${salesThisMonth.reduce((sum, v) => sum + v.total, 0).toLocaleString("es-MX")}`,
+        description: "Completadas este mes",
       },
       {
-        id: "today", type: "appointments", title: "Ventas de hoy",
+        id: "today", type: "appointments", title: "Ventas de hoy", color: "orange",
         value: String(salesToday.length), description: "Registradas hoy",
-      },
-      {
-        id: "canceled", type: "canceled", title: "Canceladas",
-        value: String(ventas.filter((v) => v.status === "cancelada").length),
-        description: "Ventas anuladas",
       },
     ];
   }, [ventas]);
@@ -101,7 +99,7 @@ export default function VentasPage() {
         <Can permission="optica.sales.create">
           <Button
             className="inline-flex items-center gap-2 py-2.5 text-sm"
-            onClick={() => navigate("/opticas/ventas/nueva")}
+            onClick={() => navigate("/opticas/ventas/nueva", { state: { branchId: selectedBranch } })}
           >
             <Plus className="h-4 w-4" />
             Nueva venta
@@ -162,26 +160,11 @@ export default function VentasPage() {
         ) : (
           <VentaTable
             ventas={filtered}
-            canCancel={canManage}
             onView={(venta) => navigate(`/opticas/ventas/${venta.id}`)}
-            onCancel={(venta) => setVentaToCancel(venta)}
           />
         )}
 
       </div>
-
-      <ConfirmDialog
-        open={Boolean(ventaToCancel)}
-        title="Cancelar venta"
-        description={
-          ventaToCancel &&
-          `¿Seguro que quieres cancelar esta venta por ${ventaToCancel.total ? `$${ventaToCancel.total.toLocaleString("es-MX")}` : ""}? Se repondrá el stock de los productos vendidos.`
-        }
-        confirmLabel="Cancelar venta"
-        variant="danger"
-        onConfirm={() => cancel(ventaToCancel.id)}
-        onClose={() => setVentaToCancel(null)}
-      />
 
     </PageContainer>
 

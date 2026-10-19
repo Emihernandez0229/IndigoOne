@@ -65,9 +65,3 @@ export async function createVenta(payload) {
   });
   return mapVenta(venta);
 }
-
-
-export async function cancelVenta(id) {
-  const { venta } = await httpClient.patch(`/api/opticas/ventas/${id}/cancelar`);
-  return mapVenta(venta);
-}

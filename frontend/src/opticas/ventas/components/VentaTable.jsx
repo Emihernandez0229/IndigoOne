@@ -1,4 +1,4 @@
-import { Eye, Ban } from "lucide-react";
+import { Eye } from "lucide-react";
 import DataTable from "../../../shared/components/DataTable";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import IconButton from "../../../shared/components/IconButton";
@@ -26,9 +26,7 @@ const summarizeItems = (items = []) => {
 
 export default function VentaTable({
   ventas = [],
-  canCancel = false,
   onView,
-  onCancel,
 }) {
 
   const columns = [
@@ -53,15 +51,6 @@ export default function VentaTable({
       render: (row) => (
         <div className="flex items-center gap-1">
           <IconButton icon={Eye} label="Ver" onClick={() => onView(row)} />
-
-          {canCancel && row.status === "completada" && (
-            <IconButton
-              icon={Ban}
-              label="Cancelar venta"
-              variant="danger"
-              onClick={() => onCancel(row)}
-            />
-          )}
         </div>
       ),
     },

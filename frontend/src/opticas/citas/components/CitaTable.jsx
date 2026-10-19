@@ -44,11 +44,10 @@ export default function CitaTable({
         <div className="flex items-center gap-1">
           <IconButton icon={Eye} label="Ver" onClick={() => onView(row)} />
 
-          {canEdit && (
+          {canEdit && EDITABLE_STATUSES.includes(row.status) && (
             <IconButton
               icon={Pencil}
               label="Editar"
-              disabled={!EDITABLE_STATUSES.includes(row.status)}
               onClick={() => onEdit(row)}
             />
           )}

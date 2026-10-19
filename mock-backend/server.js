@@ -696,14 +696,31 @@ let indigoInventario = [
 ];
 
 let opticaSucursales = [
-  { id: "osuc-1", displayId: 1, name: "Optica Centro", address: "Calle 5 #100", phone: "9611112222", manager: "Marta", managerId: "u-oenc-1", staff: 2, products: 5, status: "active" },
-  { id: "osuc-2", displayId: 2, name: "Optica Norte", address: "Av. Norte 300", phone: "9613334444", manager: null, managerId: null, staff: 0, products: 0, status: "active" },
+  {
+    id: "osuc-1", displayId: 1, name: "Optica Centro",
+    image: "", address: "Calle 5 #100", phone: "9611112222",
+    country: "México", state: "Chiapas", municipality: "Tapachula",
+    manager: "Marta", managerId: "u-oenc-1", managerPhone: "9611112223",
+    staff: 2, products: 5, customers: 34, labJobs: 6, status: "active",
+    staffList: [
+      { name: "Marta", role: "Jefe de sucursal" },
+      { name: "Luis", role: "Empleado" },
+    ],
+  },
+  {
+    id: "osuc-2", displayId: 2, name: "Optica Norte",
+    image: "", address: "Av. Norte 300", phone: "9613334444",
+    country: "México", state: "Ciudad de México", municipality: "Cuauhtémoc",
+    manager: null, managerId: null, managerPhone: "",
+    staff: 0, products: 0, customers: 0, labJobs: 0, status: "active",
+    staffList: [],
+  },
 ];
 
 let opticaUsuarios = [
-  { id: "u-odue-1", displayId: 1, name: "Sofia", username: "OPTDUENO1", role: "optica:dueno", branchId: null, branchName: "Sin sucursal", status: "active" },
-  { id: "u-oenc-1", displayId: 2, name: "Marta", username: "OPTGTE1", role: "optica:encargado", branchId: "osuc-1", branchName: "Optica Centro", status: "active" },
-  { id: "u-oemp-1", displayId: 3, name: "Luis", username: "OPTEMP1", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active" },
+  { id: "u-odue-1", displayId: 1, name: "Sofia", username: "OPTDUENO1", role: "optica:dueno", branchId: null, branchName: "Sin sucursal", status: "active", phone: "", email: "sofia@optica.mx" },
+  { id: "u-oenc-1", displayId: 2, name: "Marta", username: "OPTGTE1", role: "optica:encargado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611112223", email: "marta@optica.mx" },
+  { id: "u-oemp-1", displayId: 3, name: "Luis", username: "OPTEMP1", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114444", email: "luis@optica.mx" },
 ];
 
 let opticaInventario = [
@@ -1180,29 +1197,129 @@ registrarCrud("/api/indigo/inventario", () => indigoInventario, {
 
 // ---- Ópticas ----
 
+// Igual que crearGerenteParaSucursal (Indigo): si en el form de sucursal se
+// escribe un nombre en "nuevo jefe de sucursal", se da de alta ese usuario
+// de verdad en opticaUsuarios, para que tambien aparezca en el modulo de
+// Usuarios - no solo como texto suelto en la sucursal.
+function crearEncargadoParaSucursal(nombre, branchId, branchName) {
+  const id = newId();
+  opticaUsuarios.unshift({
+    id, displayId: opticaUsuarios.length + 1,
+    name: nombre, username: "NEW" + Math.floor(Math.random() * 10000),
+    role: "optica:encargado", branchId, branchName,
+    status: "active", phone: "",
+  });
+  return id;
+}
+
 registrarCrud("/api/opticas/sucursales", () => opticaSucursales, {
-  crear: (body) => ({
-    id: newId(), displayId: opticaSucursales.length + 1,
-    name: body.nombre, address: body.direccion || null, phone: body.telefono || null,
-    manager: body.nuevo_gerente_nombre || null, managerId: body.gerente_optica_usuario_id || null,
-    staff: 0, products: 0, status: "active",
-  }),
-  actualizar: (body) => ({
-    name: body.nombre, address: body.direccion || null, phone: body.telefono || null,
-  }),
+  crear: (body) => {
+    const id = newId();
+    const nombreSucursal = body.nombre;
+
+    let managerId = body.gerente_optica_usuario_id || null;
+    let managerName = null;
+
+    if (body.nuevo_gerente_nombre) {
+      managerId = crearEncargadoParaSucursal(body.nuevo_gerente_nombre, id, nombreSucursal);
+      managerName = body.nuevo_gerente_nombre;
+    } else if (managerId) {
+      managerName = opticaUsuarios.find((u) => u.id === managerId)?.name || null;
+    }
+
+    return {
+      id, displayId: opticaSucursales.length + 1,
+      name: nombreSucursal, image: body.imagen || "", address: "", phone: "",
+      country: body.pais || "", state: body.estado || "", municipality: body.municipio || "",
+      manager: managerName, managerId, managerPhone: "",
+      staff: managerId ? 1 : 0, products: 0, customers: 0, labJobs: 0, status: "active",
+      staffList: managerId ? [{ name: managerName, role: "Jefe de sucursal" }] : [],
+    };
+  },
+  // El PUT lo usan dos formularios distintos (edicion completa del Dueño, y
+  // la edicion acotada de "Mi sucursal" del Encargado), cada uno manda solo
+  // sus propios campos - por eso el patch se arma condicional, nunca
+  // pisando con `undefined` lo que el otro formulario no mando.
+  actualizar: (body, existingRow) => {
+    const patch = {};
+
+    if (body.nombre !== undefined) patch.name = body.nombre;
+    if (body.pais !== undefined) patch.country = body.pais;
+    if (body.estado !== undefined) patch.state = body.estado;
+    if (body.municipio !== undefined) patch.municipality = body.municipio;
+
+    if (body.nuevo_gerente_nombre) {
+      patch.managerId = crearEncargadoParaSucursal(body.nuevo_gerente_nombre, existingRow.id, body.nombre || existingRow.name);
+      patch.manager = body.nuevo_gerente_nombre;
+    } else if (body.gerente_optica_usuario_id !== undefined) {
+      patch.managerId = body.gerente_optica_usuario_id || null;
+      patch.manager = body.manager ?? null;
+    }
+
+    if (body.direccion !== undefined) patch.address = body.direccion;
+    if (body.telefono !== undefined) patch.phone = body.telefono;
+
+    return patch;
+  },
 });
 
 app.get("/api/opticas/sucursales/gerentes-disponibles", (req, res) => {
-  res.json([{ id: "u-oenc-2", nombre: "Ana" }]);
+  const currentManagerId = req.query.gerente_actual_id;
+  const asignados = new Set(opticaSucursales.map((s) => s.managerId).filter(Boolean));
+  const disponibles = opticaUsuarios.filter(
+    (u) => u.role === "optica:encargado" &&
+      (!asignados.has(u.id) || u.id === currentManagerId)
+  );
+  res.json(disponibles.map((u) => ({ id: u.id, nombre: u.name })));
 });
 
 registrarCrud("/api/opticas/usuarios", () => opticaUsuarios, {
-  crear: (body) => ({
+  crear: (body) => {
+    const branch = opticaSucursales.find((s) => s.id === body.sucursal_id);
+    return {
+      id: newId(), displayId: opticaUsuarios.length + 1,
+      name: body.nombre, username: body.usuario || "NEW" + Math.floor(Math.random() * 10000),
+      role: body.rol || "optica:empleado", branchId: body.sucursal_id || null,
+      branchName: branch?.name || "Sin asignar",
+      status: "active", phone: body.telefono || "", email: body.correo || "",
+      password_pendiente_cambio: Boolean(body.requiere_cambio_password),
+    };
+  },
+  // Igual que /api/indigo/usuarios: el Dueño edita nombre, usuario, telefono,
+  // correo, puesto y puede reasignar la sucursal - el patch se arma
+  // condicional para no pisar con `undefined` lo que no se mando.
+  actualizar: (body) => {
+    const patch = {};
+    if (body.nombre !== undefined) patch.name = body.nombre;
+    if (body.usuario !== undefined) patch.username = body.usuario;
+    if (body.telefono !== undefined) patch.phone = body.telefono;
+    if (body.correo !== undefined) patch.email = body.correo;
+    if (body.rol !== undefined) patch.role = body.rol;
+    if (body.sucursal_id !== undefined) {
+      const branch = opticaSucursales.find((s) => s.id === body.sucursal_id);
+      patch.branchId = body.sucursal_id || null;
+      patch.branchName = branch?.name ?? "Sin sucursal";
+    }
+    return patch;
+  },
+});
+
+// Modulo "Personal" (Dueño): da de alta cualquier rol de personal
+// (encargado o ventas) en cualquier sucursal de la óptica.
+app.post("/api/opticas/usuarios/personal", (req, res) => {
+  const body = req.body;
+  const branch = opticaSucursales.find((s) => s.id === body.sucursal_id);
+
+  const item = {
     id: newId(), displayId: opticaUsuarios.length + 1,
-    name: body.nombre, username: "NEW" + Math.floor(Math.random() * 10000),
-    role: "optica:empleado", branchId: body.sucursal_id || null,
-    branchName: "Optica Centro", status: "active",
-  }),
+    name: body.nombre, username: body.usuario,
+    role: body.rol, branchId: body.sucursal_id || null,
+    branchName: branch?.name || "Sin asignar",
+    status: "active", phone: body.telefono || "", email: body.correo || "",
+    password_pendiente_cambio: Boolean(body.requiere_cambio_password),
+  };
+  opticaUsuarios.unshift(item);
+  res.status(201).json(item);
 });
 
 app.get("/api/opticas/usuarios/opciones-formulario", (req, res) => {
@@ -1265,15 +1382,30 @@ let opticaPacientes = [
 // en { ok, paciente } / { ok, pacientes }. Los endpoints /deactivate y
 // /activate NO existen en el backend real todavía (ver aviso al final).
 
+// Agrega sucursal_nombre (lookup) a lo que ya trae cada registro, para que
+// el frontend nunca tenga que resolverlo aparte - mismo criterio que
+// indigoLaboratorio/branchName.
+function withBranchName(paciente) {
+  const branch = opticaSucursales.find((s) => s.id === paciente.sucursal_id);
+  return { ...paciente, sucursal_nombre: branch?.name ?? null };
+}
+
+// Módulo "Clientes" del Dueño: todos los pacientes de la óptica, de todas
+// las sucursales a la vez - sin necesidad de elegir una primero. El
+// Encargado/Empleado siguen usando /sucursal/:sucursalId (una a la vez).
+app.get("/api/opticas/pacientes", (req, res) => {
+  res.json({ ok: true, pacientes: opticaPacientes.map(withBranchName) });
+});
+
 app.get("/api/opticas/pacientes/sucursal/:sucursalId", (req, res) => {
-  const pacientes = opticaPacientes.filter((p) => p.sucursal_id === req.params.sucursalId);
+  const pacientes = opticaPacientes.filter((p) => p.sucursal_id === req.params.sucursalId).map(withBranchName);
   res.json({ ok: true, pacientes });
 });
 
 app.get("/api/opticas/pacientes/:id", (req, res) => {
   const paciente = opticaPacientes.find((p) => p.id === req.params.id);
   if (!paciente) return res.status(404).json({ error: "Paciente no encontrado" });
-  res.json({ ok: true, paciente });
+  res.json({ ok: true, paciente: withBranchName(paciente) });
 });
 
 app.post("/api/opticas/pacientes", (req, res) => {
@@ -1290,7 +1422,7 @@ app.post("/api/opticas/pacientes", (req, res) => {
     active: true,
   };
   opticaPacientes.unshift(paciente);
-  res.status(201).json({ ok: true, paciente });
+  res.status(201).json({ ok: true, paciente: withBranchName(paciente) });
 });
 
 app.patch("/api/opticas/pacientes/:id", (req, res) => {
@@ -1305,7 +1437,7 @@ app.patch("/api/opticas/pacientes/:id", (req, res) => {
     fecha_nacimiento: body.fechaNacimiento !== undefined ? body.fechaNacimiento : opticaPacientes[idx].fecha_nacimiento,
     updated_at: new Date().toISOString(),
   };
-  res.json({ ok: true, paciente: opticaPacientes[idx] });
+  res.json({ ok: true, paciente: withBranchName(opticaPacientes[idx]) });
 });
 
 // NO existen todavía en el backend real (propuesta de contrato):
@@ -1313,14 +1445,14 @@ app.patch("/api/opticas/pacientes/:id/deactivate", (req, res) => {
   const idx = opticaPacientes.findIndex((p) => p.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Paciente no encontrado" });
   opticaPacientes[idx] = { ...opticaPacientes[idx], active: false };
-  res.json({ ok: true, paciente: opticaPacientes[idx] });
+  res.json({ ok: true, paciente: withBranchName(opticaPacientes[idx]) });
 });
 
 app.patch("/api/opticas/pacientes/:id/activate", (req, res) => {
   const idx = opticaPacientes.findIndex((p) => p.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Paciente no encontrado" });
   opticaPacientes[idx] = { ...opticaPacientes[idx], active: true };
-  res.json({ ok: true, paciente: opticaPacientes[idx] });
+  res.json({ ok: true, paciente: withBranchName(opticaPacientes[idx]) });
 });
 
 function daysFromNow(days, hour = 10) {
@@ -1586,7 +1718,7 @@ let opticaInfo = {
   responsable_sanitario: "Dra. Marta Sánchez",
   telefono: "9611234567",
   correo: "contacto@opticavision.mx",
-  sitio_web: "www.opticavision.mx",
+  correo_fiscal: "fiscal@opticavision.mx",
   calle: "Av. Central",
   numero_exterior: "123",
   numero_interior: "",
@@ -1595,16 +1727,10 @@ let opticaInfo = {
   municipio: "Tapachula",
   estado_direccion: "Chiapas",
   pais: "México",
-  moneda: "MXN",
   regimen_fiscal: "general_personas_morales",
-  impuesto_predeterminado: "16",
-  folio_inicial_ventas: "000001",
-  serie_documentos: "VTA",
-  texto_documentos: "Gracias por su compra.",
   color_principal: "#1E3AAB",
   color_secundario: "#60DAFA",
   eslogan: "Cuidando tu visión desde 1998",
-  pie_documentos: "Gracias por su preferencia.",
 };
 
 app.get("/api/opticas/informacion", (req, res) => {
@@ -1621,7 +1747,7 @@ app.put("/api/opticas/informacion", (req, res) => {
     responsable_sanitario: body.responsableSanitario,
     telefono: body.telefono,
     correo: body.correo,
-    sitio_web: body.sitioWeb,
+    correo_fiscal: body.correoFiscal,
     calle: body.calle,
     numero_exterior: body.numeroExterior,
     numero_interior: body.numeroInterior,
@@ -1630,16 +1756,10 @@ app.put("/api/opticas/informacion", (req, res) => {
     municipio: body.municipio,
     estado_direccion: body.estadoDireccion,
     pais: body.pais,
-    moneda: body.moneda,
     regimen_fiscal: body.regimenFiscal,
-    impuesto_predeterminado: body.impuestoPredeterminado,
-    folio_inicial_ventas: body.folioInicialVentas,
-    serie_documentos: body.serieDocumentos,
-    texto_documentos: body.textoDocumentos,
     color_principal: body.colorPrincipal,
     color_secundario: body.colorSecundario,
     eslogan: body.eslogan,
-    pie_documentos: body.pieDocumentos,
   };
   res.json({ ok: true, info: opticaInfo });
 });

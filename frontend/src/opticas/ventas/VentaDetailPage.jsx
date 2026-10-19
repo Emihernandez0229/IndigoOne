@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 
-import { ArrowLeft, Ban } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import PageContainer from "../../shared/layouts/PageContainer";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
@@ -9,10 +9,8 @@ import ErrorState from "../../shared/components/ErrorState";
 import EmptyState from "../../shared/components/EmptyState";
 import StatusBadge from "../../shared/components/StatusBadge";
 import Button from "../../shared/components/Button";
-import ConfirmDialog from "../../shared/components/ConfirmDialog";
-import Can from "../../shared/security/Can";
 
-import { getVenta, cancelVenta } from "./services/ventaService";
+import { getVenta } from "./services/ventaService";
 import { getPatient } from "../pacientes/services/patientService";
 import { PAYMENT_METHODS } from "./constants";
 
@@ -39,7 +37,6 @@ export default function VentaDetailPage() {
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [confirmCancel, setConfirmCancel] = useState(false);
 
 
   const loadVenta = async () => {
@@ -66,12 +63,6 @@ export default function VentaDetailPage() {
     loadVenta();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
-
-
-  const handleCancel = async () => {
-    const updated = await cancelVenta(id);
-    setVenta((prev) => ({ ...prev, ...updated }));
-  };
 
 
   if (loading) return <LoadingSpinner />;
@@ -101,18 +92,6 @@ export default function VentaDetailPage() {
       description={patient?.name ?? "Público general"}
       actions={
         <div className="flex items-center gap-2">
-          {venta.status === "completada" && (
-            <Can permission="optica.sales.manage">
-              <Button
-                variant="danger"
-                className="inline-flex items-center gap-2 py-2.5 text-sm"
-                onClick={() => setConfirmCancel(true)}
-              >
-                <Ban className="h-4 w-4" />
-                Cancelar venta
-              </Button>
-            </Can>
-          )}
           <Button
             variant="outline"
             className="inline-flex items-center gap-2 py-2.5 text-sm"
@@ -195,16 +174,6 @@ export default function VentaDetailPage() {
         </div>
 
       </div>
-
-      <ConfirmDialog
-        open={confirmCancel}
-        title="Cancelar venta"
-        description={`¿Seguro que quieres cancelar esta venta por ${currency(venta.total)}? Se repondrá el stock de los productos vendidos.`}
-        confirmLabel="Cancelar venta"
-        variant="danger"
-        onConfirm={handleCancel}
-        onClose={() => setConfirmCancel(false)}
-      />
 
     </PageContainer>
 

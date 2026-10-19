@@ -297,7 +297,6 @@ export const PERMISSIONS = {
     "optica.patient.view",
     "optica.patient.create",
     "optica.patient.update",
-    "optica.patient.deactivate",
 
     "optica.appointment.manage",
 

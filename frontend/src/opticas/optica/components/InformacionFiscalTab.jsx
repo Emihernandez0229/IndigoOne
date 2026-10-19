@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
-import { isValidPostalCode } from "../../../shared/utils/validators";
-import { MEXICAN_STATES, COUNTRIES } from "../constants";
+import { isValidEmail, isValidPostalCode, isValidRFC } from "../../../shared/utils/validators";
+import { onlyLetters, onlyDigits, rfcInput } from "../../../shared/utils/textInput";
+import { MEXICAN_STATES, COUNTRIES, TAX_REGIMES } from "../constants";
 
 
-export default function DomicilioFiscalTab({ info, canManage, onSave }) {
+const RFC_MAX = 13;
+const ADDRESS_MAX = 50;
+const COLONIA_MAX = 20;
+const NUMERO_MAX = 5;
+
+const regimeLabel = (value) => TAX_REGIMES.find((r) => r.value === value)?.label ?? value;
+
+
+export default function InformacionFiscalTab({ info, canManage, onSave, onCancel }) {
 
   const [form, setForm] = useState(info);
   const [errors, setErrors] = useState({});
@@ -16,7 +25,14 @@ export default function DomicilioFiscalTab({ info, canManage, onSave }) {
   if (!canManage) {
     return (
       <div className="rounded-2xl border border-gray-200 bg-surface p-6">
-        <p className="mb-4 text-sm text-text-secondary">Dirección legal y fiscal de la empresa.</p>
+        <p className="mb-4 text-sm text-text-secondary">Datos fiscales de la empresa, para facturación.</p>
+        <dl className="grid gap-4 sm:grid-cols-2">
+          <Field label="RFC" value={info.rfc} />
+          <Field label="Régimen fiscal" value={regimeLabel(info.regimenFiscal)} />
+          <Field label="Correo fiscal" value={info.correoFiscal} />
+        </dl>
+
+        <p className="mb-4 mt-6 border-t border-gray-100 pt-4 text-sm font-medium text-text-primary">Domicilio fiscal</p>
         <dl className="grid gap-4 sm:grid-cols-2">
           <Field label="Calle" value={info.calle} />
           <Field label="Número exterior" value={info.numeroExterior} />
@@ -31,8 +47,10 @@ export default function DomicilioFiscalTab({ info, canManage, onSave }) {
     );
   }
 
-  const set = (field) => (event) => {
-    setForm((prev) => ({ ...prev, [field]: event.target.value }));
+  const set = (field, transform) => (event) => {
+    const raw = event.target.value;
+    const value = transform ? transform(raw) : raw;
+    setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
@@ -40,6 +58,11 @@ export default function DomicilioFiscalTab({ info, canManage, onSave }) {
     event.preventDefault();
 
     const nextErrors = {};
+    if (!String(form.rfc ?? "").trim()) nextErrors.rfc = "El RFC es obligatorio.";
+    else if (!isValidRFC(form.rfc)) nextErrors.rfc = "El RFC no tiene un formato válido.";
+    if (!form.regimenFiscal) nextErrors.regimenFiscal = "Selecciona un régimen fiscal.";
+    if (form.correoFiscal && !isValidEmail(form.correoFiscal)) nextErrors.correoFiscal = "El correo no es válido.";
+
     if (!String(form.calle ?? "").trim()) nextErrors.calle = "La calle es obligatoria.";
     if (!String(form.numeroExterior ?? "").trim()) nextErrors.numeroExterior = "El número exterior es obligatorio.";
     if (!String(form.colonia ?? "").trim()) nextErrors.colonia = "La colonia es obligatoria.";
@@ -64,19 +87,36 @@ export default function DomicilioFiscalTab({ info, canManage, onSave }) {
   return (
     <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-surface p-6">
 
-      <p className="mb-4 text-sm text-text-secondary">Dirección legal y fiscal de la empresa.</p>
+      <p className="mb-4 text-sm text-text-secondary">Datos fiscales de la empresa, para facturación.</p>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Input label="RFC *" value={form.rfc ?? ""} onChange={set("rfc", (v) => rfcInput(v, RFC_MAX))} error={errors.rfc} />
+
+        <div className="w-full">
+          <label htmlFor="fiscal-regimen" className="mb-2 block text-sm font-medium text-text-primary">Régimen fiscal *</label>
+          <select id="fiscal-regimen" value={form.regimenFiscal ?? ""} onChange={set("regimenFiscal")} className={selectClass}>
+            <option value="">Selecciona...</option>
+            {TAX_REGIMES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
+          {errors.regimenFiscal && <p className="mt-1.5 text-sm text-error">{errors.regimenFiscal}</p>}
+        </div>
+
+        <Input label="Correo fiscal" type="email" value={form.correoFiscal ?? ""} onChange={set("correoFiscal")} error={errors.correoFiscal} />
+      </div>
+
+      <p className="mb-4 mt-6 border-t border-gray-100 pt-4 text-sm font-medium text-text-primary">Domicilio fiscal</p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="sm:col-span-2">
-          <Input label="Calle *" value={form.calle ?? ""} onChange={set("calle")} error={errors.calle} />
+          <Input label="Calle *" value={form.calle ?? ""} onChange={set("calle", (v) => onlyLetters(v, ADDRESS_MAX))} error={errors.calle} />
         </div>
-        <Input label="Número exterior *" value={form.numeroExterior ?? ""} onChange={set("numeroExterior")} error={errors.numeroExterior} />
+        <Input label="Número exterior *" value={form.numeroExterior ?? ""} onChange={set("numeroExterior", (v) => v.slice(0, NUMERO_MAX))} error={errors.numeroExterior} />
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
-        <Input label="Número interior" value={form.numeroInterior ?? ""} onChange={set("numeroInterior")} />
-        <Input label="Colonia *" value={form.colonia ?? ""} onChange={set("colonia")} error={errors.colonia} />
-        <Input label="Código postal *" value={form.codigoPostal ?? ""} onChange={set("codigoPostal")} error={errors.codigoPostal} placeholder="5 dígitos" />
+        <Input label="Número interior" value={form.numeroInterior ?? ""} onChange={set("numeroInterior", (v) => v.slice(0, NUMERO_MAX))} />
+        <Input label="Colonia *" value={form.colonia ?? ""} onChange={set("colonia", (v) => onlyLetters(v, COLONIA_MAX))} error={errors.colonia} />
+        <Input label="Código postal *" value={form.codigoPostal ?? ""} onChange={set("codigoPostal", (v) => onlyDigits(v, 5))} error={errors.codigoPostal} placeholder="5 dígitos" />
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
@@ -102,7 +142,7 @@ export default function DomicilioFiscalTab({ info, canManage, onSave }) {
       </div>
 
       <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
-        <Button type="button" variant="outline" onClick={() => setForm(info)}>Cancelar</Button>
+        <Button type="button" variant="outline" onClick={() => { setForm(info); onCancel?.(); }}>Cancelar</Button>
         <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</Button>
       </div>
 

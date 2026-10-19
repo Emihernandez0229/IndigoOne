@@ -41,7 +41,7 @@ export const opticaNavigation = [
   },
 
   {
-    label: "Usuarios",
+    label: "Personal",
     path: "/opticas/usuarios",
     icon: UserCog,
     permission: "optica.user.view",

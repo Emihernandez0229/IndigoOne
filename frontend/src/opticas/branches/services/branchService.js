@@ -6,8 +6,10 @@ export async function createBranch(payload) {
   return httpClient.post("/api/opticas/sucursales",
     {
       nombre: payload.name,
-      direccion: payload.address,
-      telefono: payload.phone,
+      imagen: payload.image || null,
+      pais: payload.country,
+      estado: payload.state,
+      municipio: payload.municipality,
 
       gerente_optica_usuario_id:
         payload.managerMode === "existing"
@@ -31,8 +33,9 @@ export async function updateBranch(
   return httpClient.put(`/api/opticas/sucursales/${id}`,
     {
       nombre: payload.name,
-      direccion: payload.address,
-      telefono: payload.phone,
+      pais: payload.country,
+      estado: payload.state,
+      municipio: payload.municipality,
 
       gerente_optica_usuario_id:
         payload.managerMode === "existing"
@@ -43,6 +46,18 @@ export async function updateBranch(
         payload.managerMode === "new"
           ? payload.manager
           : null,
+    }
+  );
+}
+
+
+// Edicion acotada que usa el Encargado desde "Mi sucursal": solo direccion
+// y telefono - nunca nombre, responsable ni ubicacion (eso es del Dueño).
+export async function updateBranchContact(id, payload) {
+  return httpClient.put(`/api/opticas/sucursales/${id}`,
+    {
+      direccion: payload.address,
+      telefono: payload.phone,
     }
   );
 }

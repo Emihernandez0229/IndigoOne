@@ -1,28 +1,33 @@
 import { useEffect, useState } from "react";
+import { Pencil } from "lucide-react";
 
 import PageContainer from "../../shared/layouts/PageContainer";
 import TabBar from "../../shared/components/TabBar";
+import Button from "../../shared/components/Button";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
 import usePermissions from "../../shared/hooks/usePermissions";
 
 import { getOpticaInfo, updateOpticaInfo } from "./services/opticaService";
-import PerfilTab from "./components/PerfilTab";
+import OpticaBanner from "./components/OpticaBanner";
 import InformacionGeneralTab from "./components/InformacionGeneralTab";
-import DomicilioFiscalTab from "./components/DomicilioFiscalTab";
-import ConfiguracionComercialTab from "./components/ConfiguracionComercialTab";
-import IdentidadMarcaTab from "./components/IdentidadMarcaTab";
+import InformacionFiscalTab from "./components/InformacionFiscalTab";
+import IdentidadVisualTab from "./components/IdentidadVisualTab";
 
 
 const TABS = [
-  { value: "perfil", label: "Perfil" },
   { value: "general", label: "Información general" },
-  { value: "fiscal", label: "Domicilio fiscal" },
-  { value: "comercial", label: "Configuración comercial" },
-  { value: "marca", label: "Identidad de marca" },
+  { value: "fiscal", label: "Información fiscal" },
+  { value: "visual", label: "Identidad visual" },
 ];
 
 
+/**
+ * "Mi óptica" - el Dueño puede consultar y actualizar, el Jefe de sucursal
+ * solo consultar (cada pestaña ya respeta `canManage`), y el Empleado no
+ * tiene este módulo en absoluto (sin el permiso "optica.settings.view" no
+ * aparece ni en el menú).
+ */
 export default function OpticaPage() {
 
   const { can } = usePermissions();
@@ -31,7 +36,8 @@ export default function OpticaPage() {
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [tab, setTab] = useState("perfil");
+  const [tab, setTab] = useState("general");
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -55,7 +61,10 @@ export default function OpticaPage() {
   const handleSave = async (payload) => {
     const updated = await updateOpticaInfo(payload);
     setInfo(updated);
+    setEditMode(false);
   };
+
+  const handleCancelEdit = () => setEditMode(false);
 
 
   if (loading) return <LoadingSpinner />;
@@ -63,17 +72,31 @@ export default function OpticaPage() {
 
   return (
 
-    <PageContainer title="Óptica" description="Información de la empresa.">
+    <PageContainer
+      title="Mi óptica"
+      description="Administra la información general de tu empresa."
+      actions={
+        canManage && !editMode && (
+          <Button
+            className="inline-flex items-center gap-2 py-2.5 text-sm"
+            onClick={() => setEditMode(true)}
+          >
+            <Pencil className="h-4 w-4" />
+            Editar información
+          </Button>
+        )
+      }
+    >
 
       <div className="space-y-6">
 
+        <OpticaBanner info={info} />
+
         <TabBar tabs={TABS} active={tab} onChange={setTab} />
 
-        {tab === "perfil" && <PerfilTab info={info} />}
-        {tab === "general" && <InformacionGeneralTab info={info} canManage={canManage} onSave={handleSave} />}
-        {tab === "fiscal" && <DomicilioFiscalTab info={info} canManage={canManage} onSave={handleSave} />}
-        {tab === "comercial" && <ConfiguracionComercialTab info={info} canManage={canManage} onSave={handleSave} />}
-        {tab === "marca" && <IdentidadMarcaTab info={info} canManage={canManage} onSave={handleSave} />}
+        {tab === "general" && <InformacionGeneralTab info={info} canManage={canManage && editMode} onSave={handleSave} onCancel={handleCancelEdit} />}
+        {tab === "fiscal" && <InformacionFiscalTab info={info} canManage={canManage && editMode} onSave={handleSave} onCancel={handleCancelEdit} />}
+        {tab === "visual" && <IdentidadVisualTab info={info} canManage={canManage && editMode} onSave={handleSave} onCancel={handleCancelEdit} />}
 
       </div>
 

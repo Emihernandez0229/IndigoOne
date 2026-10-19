@@ -176,7 +176,7 @@ export default function CitaDetailPage() {
         key={`edit-${cita.id}-${editOpen}`}
         open={editOpen}
         mode="edit"
-        cita={cita}
+        cita={{ ...cita, patientName: patient?.name }}
         patients={[]}
         onClose={() => setEditOpen(false)}
         onSubmit={handleEditSubmit}

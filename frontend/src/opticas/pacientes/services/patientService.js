@@ -26,6 +26,14 @@ export async function listPatients(branchId) {
 }
 
 
+// Módulo "Clientes" del Dueño: todos los pacientes de la óptica, de todas
+// las sucursales a la vez - sin necesidad de elegir una primero.
+export async function listAllPatients() {
+  const { pacientes } = await httpClient.get("/api/opticas/pacientes");
+  return (pacientes ?? []).map(mapPatient);
+}
+
+
 export async function getPatient(id) {
   const { paciente } = await httpClient.get(`/api/opticas/pacientes/${id}`);
   return mapPatient(paciente);

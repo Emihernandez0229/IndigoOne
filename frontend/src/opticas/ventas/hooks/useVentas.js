@@ -1,5 +1,5 @@
-import { useCrudResource, prepend, mergeById } from "../../../shared/hooks/useCrudResource";
-import { listVentas, createVenta, cancelVenta } from "../services/ventaService";
+import { useCrudResource, prepend } from "../../../shared/hooks/useCrudResource";
+import { listVentas, createVenta } from "../services/ventaService";
 
 
 export default function useVentas(branchId) {
@@ -10,7 +10,6 @@ export default function useVentas(branchId) {
     numbered: true,
     mutations: {
       create: { fn: createVenta, apply: prepend },
-      cancel: { fn: cancelVenta, apply: mergeById },
     },
   });
 
