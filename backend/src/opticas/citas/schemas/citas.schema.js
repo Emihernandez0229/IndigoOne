@@ -8,75 +8,111 @@ const estadosCita = [
     'no_asistio'
 ];
 
-const uuidSchema = z.string().uuid();
 
-const fechaHoraSchema = z.coerce.date()
-    .refine(
-        fecha => fecha > new Date(),
-        {
-            message: 'La cita debe programarse para una fecha y hora futuras.'
-        }
-    );
+
+
 
 const crearCitaSchema = z.object({
-    sucursalId: uuidSchema,
-    clienteId: uuidSchema,
-    fechaHora: fechaHoraSchema,
-    motivo: z.string()
-        .trim()
-        .min(1, 'El motivo de la cita es obligatorio.'),
-    creadoPor: uuidSchema
+    clienteId: z.uuid({
+        error: 'El ID de la sucursal debe tener un formato UUID válido'}
+    ),
+    fechaHora: z.coerce
+        .date({ invalid_type_error: 'La fecha y hora no son válidas.' })
+        .refine((fecha) => fecha.getTime() > Date.now(), {
+            message: 'La fecha y hora de la cita deben ser futuras.',
+        })
+        // Normaliza sin mutar: elimina segundos y milisegundos
+        .transform((fecha) => {
+            const normalizada = new Date(fecha);
+            normalizada.setSeconds(0, 0);
+            return normalizada;
+        }),
+    motivo: z.string().trim().min(1, 'El motivo es obligatorio.').max(255),
 });
 
-const obtenerCitasPorDiaSchema = z.object({
-    sucursalId: uuidSchema,
-    fecha: z.coerce.date({
-        message: 'La fecha proporcionada no es válida.'
+
+const listarCitasSchema = z.object({
+    sucursalId: z.uuid({error: 'El ID de la sucursal debe de tener un formato UUID válido.'}).optional(),
+    clienteId: z.uuid({error: 'El ID del cliente debe tener un formato UUID válido.'}).optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    offset: z.coerce.number().int().min(0).default(0),
+    estado:z.string()
+            .transform(
+                (valor) => valor.split(',').map(
+                    (e) => e.trim()
+                )
+            )
+            .pipe(z.array(z.enum(estadosCita,{ error: 'Estado inválido'})))
+            .optional(),
+
+    desde: z.iso.datetime({ offset: true, error: 'desde debe ser fecha ISO 8601 con zona horaria.' }).optional(),
+    hasta: z.iso.datetime({ offset: true, error: 'hasta debe ser fecha ISO 8601 con zona horaria.' }).optional(),
+}).refine(
+    (datos) => !datos.desde || !datos.hasta || new Date(datos.desde) < new Date(datos.hasta),
+    { message: '"desde" debe ser anterior a "hasta".', path: ['desde'] }
+)
+
+const  obtenerCitaPorIdSchema = z.object({
+    citaId: z.uuid({
+        error: 'El ID de la cita debe de tener un formado UUID válido.'
     })
 });
 
-const obtenerCitasPorEstadoSchema = z.object({
-    sucursalId: uuidSchema,
-    estado: z.enum(estadosCita)
-});
 
-const obtenerCitaPorIdSchema = z.object({
-    sucursalId: uuidSchema,
-    citaId: uuidSchema
-});
 
-const obtenerCitasPorClienteSchema = z.object({
-    sucursalId: uuidSchema,
-    clienteId: uuidSchema
-});
 
-const actualizarCitaSchema = z.object({
-    citaId: uuidSchema,
-    sucursalId: uuidSchema,
-    fechaHora: fechaHoraSchema.optional(),
-    motivo: z.string()
-        .trim()
-        .min(1, 'El motivo de la cita no puede estar vacío.')
-        .optional()
+const actualizarCitaParamsSchema = z.object({
+    citaId: z.uuid({
+        error: 'El ID de la cita debe de tener un formado UUID válido.'
+    }),
+})
+
+
+const actualizarCitaBodySchema = z.object({
+    fechaHora: z.coerce
+            .date({error:'La fecha y hora no son válidas.'})
+            .refine(
+                (fecha) => fecha.getTime() > Date.now(),{
+                    error:'La fecha y hora de la cita deben ser futuras.'
+                }
+            )
+            .transform(
+                (fecha) => {
+                    const normalizada = new Date(fecha);
+                    normalizada.setSeconds(0,0);
+                    return normalizada;
+                }
+            )
+            .optional(),
+    motivo: z.string().trim().min(1,'El motivo no puede estar vacío.').max(255).optional()
 }).refine(
-    data => data.fechaHora !== undefined || data.motivo !== undefined,
-    {
-        message: 'Debe proporcionar al menos un dato para actualizar la cita.'
-    }
+    (datos) => datos.fechaHora !== undefined || datos.motivo !== undefined,
+    {error: 'Debes indicar al menos un campo a actulizar(fecha Hora o motivo).'}
 );
 
-const actualizarEstadoCitaSchema = z.object({
-    citaId: uuidSchema,
-    sucursalId: uuidSchema,
-    nuevoEstado: z.enum(estadosCita)
+
+const actualizarEstadoParamsSchema = z.object({
+
+    citaId: z.uuid({
+        error: 'El ID de la cita debe tener un formato UUID válido.'
+    })
+})
+
+const actualizarEstadoBodySchema = z.object({
+    estado: z.enum(['programada', 'confirmada', 'atendida', 'cancelada', 'no_asistio'], {
+        error: 'Estado inválido.',
+    }),
 });
+
+
+
 
 module.exports = {
     crearCitaSchema,
-    obtenerCitasPorDiaSchema,
-    obtenerCitasPorEstadoSchema,
+    listarCitasSchema,
     obtenerCitaPorIdSchema,
-    obtenerCitasPorClienteSchema,
-    actualizarCitaSchema,
-    actualizarEstadoCitaSchema
-};
+    actualizarCitaParamsSchema,
+    actualizarCitaBodySchema,
+    actualizarEstadoParamsSchema,
+    actualizarEstadoBodySchema
+}
