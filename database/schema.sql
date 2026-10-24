@@ -77,6 +77,49 @@ CREATE TABLE opticas (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+
+
+CREATE TABLE optica_configuracion (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    optica_id UUID NOT NULL UNIQUE REFERENCES opticas(id),    
+    --  Informacion de la empresa
+    nombre_comercial VARCHAR(150),
+    responsable_sanitario VARCHAR(150),
+    razon_social VARCHAR(150),
+    telefono VARCHAR(20),
+    correo VARCHAR(254),
+    -- Domicilio fiscal
+    calle VARCHAR(150),
+    numero_exterior VARCHAR(20),
+    numero_interior VARCHAR(20),
+    colonia VARCHAR(100),
+    codigo_postal VARCHAR(10),
+    municipio VARCHAR(100),
+    estado_direccion VARCHAR(100),
+    pais VARCHAR(100) NOT NULL DEFAULT 'México',
+    -- Configuración comercial y fiscal
+    rfc VARCHAR(13),
+    regimen_fiscal VARCHAR(10),
+    correo_fiscal VARCHAR(254),
+    -- Identidad visual
+    logo_url TEXT,
+    color_principal CHAR(7) NOT NULL DEFAULT '#1E3AAB',
+    color_secundario CHAR(7) NOT NULL DEFAULT '#60DAFA',
+    eslogan VARCHAR(200),
+    -- Auditoría
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    -- Restricciones
+    CONSTRAINT chk_optica_configuracion_color_principal
+        CHECK (color_principal ~ '^#[0-9A-Fa-f]{6}$'),
+
+    CONSTRAINT chk_optica_configuracion_color_secundario
+        CHECK (color_secundario ~ '^#[0-9A-Fa-f]{6}$')
+);
+
+
+
+
 CREATE TABLE sucursales (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     optica_id UUID NOT NULL REFERENCES opticas(id),
@@ -146,17 +189,95 @@ CREATE TABLE consultas (
 );
 
 
-CREATE TABLE productos_servicios (
+-- CREATE TABLE productos_servicios (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     sucursal_id UUID NOT NULL REFERENCES sucursales(id),
+--     tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('producto', 'servicio')),
+--     nombre VARCHAR(150) NOT NULL,
+--     precio NUMERIC(10,2) NOT NULL,
+--     inventario_item_id UUID REFERENCES inventario_items(id),
+--     stock_local INTEGER,
+--     activo BOOLEAN DEFAULT TRUE,
+--     created_at TIMESTAMPTZ DEFAULT now()
+-- );
+
+
+-- Categorías fijas (globales, solo lectura desde la API)
+CREATE TABLE categorias_productos (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE categorias_servicios (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE
+);
+
+
+-- Inser de categorias para tablas ocupar en productos y servicios
+INSERT INTO categorias_productos (nombre) VALUES
+ ('Armazones'),('Lentes oftálmicos'),('Lentes de contacto'),('Soluciones'),
+ ('Estuches'),('Paños'),('Cadenas'),('Accesorios'),('Otros');
+INSERT INTO categorias_servicios (nombre) VALUES
+ ('Consulta'),('Ajustes'),('Reparaciones'), ('Otros');
+
+
+
+-- Tabla de productos y servicios
+CREATE TABLE productos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    sucursal_id UUID NOT NULL REFERENCES sucursales(id),
-    tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('producto', 'servicio')),
+    optica_id UUID NOT NULL REFERENCES opticas(id),
     nombre VARCHAR(150) NOT NULL,
-    precio NUMERIC(10,2) NOT NULL,
-    inventario_item_id UUID REFERENCES inventario_items(id),
-    stock_local INTEGER,
-    activo BOOLEAN DEFAULT TRUE,
+    sku VARCHAR(50),
+    marca VARCHAR(100),
+    categoria_id INTEGER NOT NULL REFERENCES categorias_productos(id),
+    descripcion TEXT,
+    precio_venta NUMERIC(10,2) NOT NULL CHECK (precio_venta >= 0),
+    stock_minimo INTEGER NOT NULL DEFAULT 0 CHECK (stock_minimo >= 0),
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    creado_por UUID REFERENCES optica_usuarios(id),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+
+CREATE TABLE servicios (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    optica_id UUID NOT NULL REFERENCES opticas(id),
+    nombre VARCHAR(150) NOT NULL,
+    categoria_id INTEGER NOT NULL REFERENCES categorias_servicios(id),
+    codigo VARCHAR(50),
+    descripcion TEXT,
+    precio NUMERIC(10,2) NOT NULL CHECK (precio >= 0),
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    creado_por UUID REFERENCES optica_usuarios(id),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+
+CREATE TABLE stock (
+    producto_id UUID NOT NULL REFERENCES productos(id),
+    sucursal_id UUID NOT NULL REFERENCES sucursales(id),
+    cantidad INTEGER NOT NULL DEFAULT 0 CHECK (cantidad >= 0),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    PRIMARY KEY (producto_id, sucursal_id)
+);
+
+
+CREATE TABLE stock_movimientos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    producto_id UUID NOT NULL REFERENCES productos(id),
+    sucursal_id UUID NOT NULL REFERENCES sucursales(id),
+    tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('entrada', 'salida', 'ajuste')),
+    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+    cantidad_anterior INTEGER NOT NULL,
+    cantidad_nueva INTEGER NOT NULL,
+    motivo VARCHAR(200),
+    realizado_por UUID NOT NULL REFERENCES optica_usuarios(id),
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
 
 CREATE TABLE ventas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -219,6 +340,7 @@ CREATE TABLE ordenes_historial (
 );
 
 
+
 CREATE INDEX idx_credenciales_referencia ON credenciales(referencia_id);
 CREATE INDEX idx_indigo_usuarios_sucursal ON indigo_usuarios(sucursal_id);
 CREATE INDEX idx_sucursales_optica ON sucursales(optica_id);
@@ -241,3 +363,24 @@ CREATE INDEX idx_consultas_sucursal_fecha ON consultas (sucursal_id, fecha_exame
 CREATE INDEX idx_consultas_cliente ON consultas (cliente_final_id, fecha_examen);
 
 CREATE INDEX idx_productos_servicios_sucursal ON productos_servicios (sucursal_id);
+
+CREATE UNIQUE INDEX uq_productos_optica_sku
+    ON productos (optica_id, sku) WHERE sku IS NOT NULL;
+
+CREATE INDEX idx_productos_optica ON productos (optica_id, activo);
+
+CREATE UNIQUE INDEX uq_servicios_optica_codigo
+    ON servicios (optica_id, codigo) WHERE codigo IS NOT NULL;
+CREATE INDEX idx_servicios_optica ON servicios (optica_id, activo);
+
+CREATE INDEX idx_stock_sucursal ON stock (sucursal_id);
+
+
+CREATE INDEX idx_stock_mov_producto_sucursal
+    ON stock_movimientos (producto_id, sucursal_id, created_at DESC);
+
+CREATE INDEX idx_productos_categoria ON productos (optica_id, categoria_id);
+CREATE INDEX idx_servicios_categoria ON servicios (optica_id, categoria_id);
+
+CREATE UNIQUE INDEX uq_citas_sucursal_fecha_hora_activa
+  ON citas (sucursal_id, fecha_hora) WHERE estado IN ('programada', 'confirmada');
