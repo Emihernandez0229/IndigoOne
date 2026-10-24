@@ -20,6 +20,7 @@ const DASHBOARD_BY_ROLE = {
   [ROLES.INDIGO_SUPER_USUARIO]: OwnerDashboard,
   [ROLES.INDIGO_DUENO]: OwnerDashboard,
   [ROLES.INDIGO_GERENTE_SUCURSAL]: BranchManagerDashboard,
+  [ROLES.INDIGO_SUBGERENTE]: BranchManagerDashboard,
   [ROLES.INDIGO_EMPLEADO_VENTAS]: SalesDashboard,
   [ROLES.INDIGO_EMPLEADO_LABORATORIO]: LaboratoryDashboard,
 };

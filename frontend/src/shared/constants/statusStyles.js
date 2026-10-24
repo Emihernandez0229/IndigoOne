@@ -50,4 +50,95 @@ export const statusStyles = {
     className: "bg-gray-200 text-text-secondary",
   },
 
+  // Estado de inventario (armazones)
+  available: {
+    label: "Disponible",
+    className: "bg-success/10 text-success",
+  },
+
+  low_stock: {
+    label: "Bajo stock",
+    className: "bg-warning/10 text-warning",
+  },
+
+  out_of_stock: {
+    label: "Agotado",
+    className: "bg-error/10 text-error",
+  },
+
+  // Estado de citas
+  programada: {
+    label: "Programada",
+    className: "bg-warning/10 text-warning",
+  },
+
+  confirmada: {
+    label: "Confirmada",
+    className: "bg-indigo-light text-indigo-primary",
+  },
+
+  atendida: {
+    label: "Atendida",
+    className: "bg-success/10 text-success",
+  },
+
+  cancelada: {
+    label: "Cancelada",
+    className: "bg-error/10 text-error",
+  },
+
+  no_asistio: {
+    label: "No asistió",
+    className: "bg-gray-200 text-text-secondary",
+  },
+
+  // Estado de ordenes de laboratorio
+  pendiente: {
+    label: "Pendiente",
+    className: "bg-warning/10 text-warning",
+  },
+
+  en_proceso: {
+    label: "En proceso",
+    className: "bg-indigo-light text-indigo-primary",
+  },
+
+  listo: {
+    label: "Listo",
+    className: "bg-success/10 text-success",
+  },
+
+  entregado: {
+    label: "Entregado",
+    className: "bg-success/10 text-success",
+  },
+
+  // Estado de ventas (Opticas)
+  completada: {
+    label: "Completada",
+    className: "bg-success/10 text-success",
+  },
+
+  // Pagos de ventas (Opticas) - separado del estado del trabajo
+  liquidada: {
+    label: "Liquidada",
+    className: "bg-success/10 text-success",
+  },
+
+  en_adeudo: {
+    label: "En adeudo",
+    className: "bg-warning/10 text-warning",
+  },
+
+  // Trabajos de laboratorio (Indigo)
+  warranty: {
+    label: "Garantía",
+    className: "bg-purple-100 text-purple-600",
+  },
+
+  loss: {
+    label: "Merma",
+    className: "bg-error/10 text-error",
+  },
+
 };

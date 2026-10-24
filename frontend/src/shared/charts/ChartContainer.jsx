@@ -3,12 +3,16 @@ export default function ChartContainer({
     subtitle,
     children,
     action,
+    align = "center",
 }) {
 
 
     return (
         <section
             className="
+                flex
+                h-full
+                flex-col
                 rounded-2xl
                 border
                 border-gray-200
@@ -87,7 +91,9 @@ export default function ChartContainer({
 
 
 
-            {children}
+            <div className={`flex flex-1 flex-col ${align === "start" ? "justify-start" : "justify-center"}`}>
+                {children}
+            </div>
 
 
 

@@ -30,6 +30,7 @@ export const ROLES = {
   INDIGO_SUPER_USUARIO: "indigo:super_usuario",
   INDIGO_DUENO: "indigo:dueno",
   INDIGO_GERENTE_SUCURSAL: "indigo:gerente_sucursal",
+  INDIGO_SUBGERENTE: "indigo:subgerente",
   INDIGO_EMPLEADO_VENTAS: "indigo:empleado_ventas",
   INDIGO_EMPLEADO_LABORATORIO: "indigo:empleado_laboratorio",
   // OPTICAS

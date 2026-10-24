@@ -594,9 +594,41 @@ async function actualizarSucursal(
     telefono,
     gerenteIndigoUsuarioId,
     nuevoGerenteNombre,
-    creadoPorId
+    creadoPorId,
+    creadorRol,
+    creadorSucursalId
   }
 ) {
+
+  // El gerente solo puede editar direccion y telefono de su propia
+  // sucursal - no puede renombrarla ni reasignar al gerente.
+  const esGerente = creadorRol === 'gerente_sucursal';
+
+  if (esGerente) {
+    if (sucursalId !== creadorSucursalId) {
+      const err = new Error('Solo puedes editar tu propia sucursal');
+      err.status = 403;
+      throw err;
+    }
+
+    gerenteIndigoUsuarioId = null;
+    nuevoGerenteNombre = null;
+
+    // No puede renombrar la sucursal, se conserva el nombre actual.
+    const { rows } = await pool.query(
+      `SELECT nombre FROM indigo_sucursales WHERE id = $1`,
+      [sucursalId]
+    );
+
+    if (!rows[0]) {
+      const err = new Error('Sucursal no encontrada');
+      err.status = 404;
+      throw err;
+    }
+
+    nombre = rows[0].nombre;
+  }
+
   const client = await pool.connect();
 
   try {
@@ -799,11 +831,42 @@ async function darDeBaja(sucursalId) {
   return resultado;
 }
 
+
+async function darDeAlta(sucursalId) {
+  const { rows } = await pool.query(
+    `
+      UPDATE indigo_sucursales
+      SET activo = TRUE
+      WHERE id = $1
+      RETURNING
+        id,
+        nombre,
+        direccion,
+        telefono,
+        activo
+    `,
+    [sucursalId]
+  );
+
+  if (!rows[0]) {
+    const err = new Error('Sucursal no encontrada');
+    err.status = 404;
+    throw err;
+  }
+
+  const resultado = await obtenerSucursalParaFront(
+    sucursalId
+  );
+
+  return resultado;
+}
+
 module.exports = {
   crearSucursal,
   listarGerentesDisponibles,
   asignarGerente,
   listarSucursales,
   actualizarSucursal,
-  darDeBaja
+  darDeBaja,
+  darDeAlta
 };

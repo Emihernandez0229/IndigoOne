@@ -68,7 +68,10 @@ export default function Modal({
       <div
 
         className={`
+          flex
+          max-h-[90vh]
           w-full
+          flex-col
           rounded-2xl
           bg-surface
           shadow-xl
@@ -83,6 +86,7 @@ export default function Modal({
 
           className="
             flex
+            shrink-0
             items-center
             justify-between
             border-b
@@ -152,6 +156,7 @@ export default function Modal({
         <div
 
           className="
+            overflow-y-auto
             p-6
           "
 

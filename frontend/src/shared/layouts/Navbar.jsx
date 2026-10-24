@@ -1,8 +1,13 @@
 // ICONOS DEL NAVBAR
 
+import { useEffect, useRef, useState } from "react";
+
+import { useNavigate } from "react-router-dom";
+
 import {
   Bell,
   MapPin,
+  LogOut,
 } from "lucide-react"
 
 import {
@@ -15,7 +20,13 @@ import { getRoleConfig } from "../security/roleConfig";
 
 export default function Navbar() {
 
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+
+  const navigate = useNavigate();
+
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const menuRef = useRef(null);
 
   const roleLabel =
     getRoleConfig(user?.role)?.label ?? user?.role ?? "Rol";
@@ -27,6 +38,30 @@ export default function Navbar() {
       .slice(0, 2)
       .join("")
       .toUpperCase();
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
+
+  const handleLogout = () => {
+    setMenuOpen(false);
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <header
@@ -160,67 +195,117 @@ export default function Navbar() {
 
         {/* PERFIL DEL USUARIO */}
 
-        <button
-          type="button"
-          className="
-            flex
-            items-center
-            gap-3
-            rounded-xl
-            p-1
-            pr-2
-            transition
-            hover:bg-background
-          "
-        >
-          {/* AVATAR */}
+        <div className="relative" ref={menuRef}>
 
-          <div
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
             className="
               flex
-              h-10
-              w-10
               items-center
-              justify-center
-              rounded-full
-              bg-indigo-primary
-              text-sm
-              font-semibold
-              text-white
+              gap-3
+              rounded-xl
+              p-1
+              pr-2
+              transition
+              hover:bg-background
             "
           >
-            {initials}
-          </div>
+            {/* AVATAR */}
 
-          {/* NOMBRE Y ROL */}
-
-          <div
-            className="
-              hidden
-              text-left
-              sm:block
-            "
-          >
-            <p
+            <div
               className="
+                flex
+                h-10
+                w-10
+                items-center
+                justify-center
+                rounded-full
+                bg-indigo-primary
                 text-sm
                 font-semibold
-                text-text-primary
+                text-white
               "
             >
-              {user?.name ?? "Usuario"}
-            </p>
+              {initials}
+            </div>
 
-            <p
+            {/* NOMBRE Y ROL */}
+
+            <div
               className="
-                text-xs
-                text-text-secondary
+                hidden
+                text-left
+                sm:block
               "
             >
-              {roleLabel}
-            </p>
-          </div>
-        </button>
+              <p
+                className="
+                  text-sm
+                  font-semibold
+                  text-text-primary
+                "
+              >
+                {user?.name ?? "Usuario"}
+              </p>
+
+              <p
+                className="
+                  text-xs
+                  text-text-secondary
+                "
+              >
+                {roleLabel}
+              </p>
+            </div>
+          </button>
+
+          {/* MENU DESPLEGABLE */}
+
+          {menuOpen && (
+
+            <div
+              className="
+                absolute
+                right-0
+                top-full
+                z-20
+                mt-2
+                w-48
+                overflow-hidden
+                rounded-xl
+                border
+                border-gray-200
+                bg-surface
+                shadow-lg
+              "
+            >
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="
+                  flex
+                  w-full
+                  items-center
+                  gap-2
+                  px-4
+                  py-3
+                  text-left
+                  text-sm
+                  font-medium
+                  text-error
+                  transition
+                  hover:bg-background
+                "
+              >
+                <LogOut className="h-4 w-4" />
+                Cerrar sesión
+              </button>
+            </div>
+
+          )}
+
+        </div>
       </div>
     </header>
   )

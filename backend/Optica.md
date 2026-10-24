@@ -132,14 +132,14 @@ Dueño
 El dueño puede:
 
 * Administrar la información de la óptica.
-* Crear y administrar sucursales.
-* Crear y administrar usuarios.
-* Asignar empleados y gerentes a sucursales.
+* Crear y administrar sucursales.CHECK---------------------------------------
+* Crear y administrar usuarios.CHECK----------------------------------------------
+* Asignar empleados y gerentes a sucursales. CHECK--------------------------------
 * Consultar las operaciones de todas las sucursales.
-* Consultar clientes.
-* Administrar citas.
-* Consultar y administrar ventas.
-* Consultar órdenes de laboratorio.
+* Consultar clientes.CHECK---------------------------------------------
+* Administrar citas.-----------------------------------------
+* Consultar y administrar ventas.------------------------------------
+* Consultar órdenes de laboratorio.---------------------------------------------
 * Administrar productos y servicios.
 * Consultar y administrar inventario.
 * Consultar reportes generales de la óptica.
@@ -176,11 +176,11 @@ Un gerente de la Sucursal Centro no puede administrar directamente la informaci�
 El gerente puede:
 
 * Consultar información de su sucursal.
-* Administrar empleados de su sucursal.
-* Consultar clientes de su sucursal.
-* Administrar citas de su sucursal.
-* Administrar ventas de su sucursal.
-* Gestionar órdenes de laboratorio relacionadas con su sucursal.
+* Administrar empleados de su sucursal.-------------------------------------------
+* Consultar clientes de su sucursal.----------------------------
+* Administrar citas de su sucursal.-------------------------------------
+* Administrar ventas de su sucursal.-------------------------------------------------
+* Gestionar órdenes de laboratorio relacionadas con su sucursal.------------------
 * Consultar y administrar el inventario de su sucursal.
 * Consultar productos y servicios disponibles.
 * Consultar reportes correspondientes a su sucursal.
@@ -700,3 +700,14 @@ como:
 ```
 
 De esta forma, **las sucursales son opcionales**, el dueño siempre pertenece directamente a la óptica y los roles de gerente y empleado están asociados a una sucursal específica.
+
+
+
+
+
+
+
+
+OPTDUENO1	Dueño Óptica
+OPTGTE1	Jefe de sucursal Óptica
+OPTEMP1	Ventas Óptica

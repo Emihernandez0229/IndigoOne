@@ -2,9 +2,12 @@ import {
   LayoutDashboard,
   Building2,
   Users,
-  ShoppingCart,
+  UserRound,
   FlaskConical,
   FileText,
+  Glasses,
+  AlertTriangle,
+  ClipboardList,
 } from "lucide-react";
 
 
@@ -35,17 +38,17 @@ export const indigoNavigation = [
   },
 
   {
-    label: "Usuarios",
+    label: "Personal",
     path: "/indigo/usuarios",
     icon: Users,
     permission: "user.view",
   },
 
   {
-    label: "Ventas",
-    path: "/indigo/ventas",
-    icon: ShoppingCart,
-    permission: "sales.view",
+    label: "Clientes",
+    path: "/indigo/clientes",
+    icon: UserRound,
+    permission: "client.view",
   },
 
   {
@@ -56,10 +59,31 @@ export const indigoNavigation = [
   },
 
   {
+    label: "Mermas",
+    path: "/indigo/mermas",
+    icon: AlertTriangle,
+    permission: "laboratory.job.view",
+  },
+
+  {
+    label: "Inventario",
+    path: "/indigo/inventario",
+    icon: Glasses,
+    permission: "inventory.view",
+  },
+
+  {
     label: "Reportes",
     path: "/indigo/reportes",
     icon: FileText,
     permission: "reports.branch",
+  },
+
+  {
+    label: "Bitácora",
+    path: "/indigo/bitacora",
+    icon: ClipboardList,
+    permission: "bitacora.view",
   },
 
 ];

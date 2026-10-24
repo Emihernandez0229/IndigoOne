@@ -589,6 +589,40 @@ async function darDeBajaUsuario(
 }
 
 
+async function darDeAltaUsuario(
+  req,
+  res,
+  next
+) {
+
+  try {
+
+    const resultado =
+      await usuariosService.darDeAltaUsuario({
+        usuarioId:
+          req.params.id,
+
+        creadorRol:
+          req.user.rol,
+
+        creadorSucursalId:
+          req.user.sucursal_id,
+      });
+
+
+    res.json(
+      resultado
+    );
+
+  } catch (err) {
+
+    next(err);
+
+  }
+
+}
+
+
 module.exports = {
   obtenerUsuarios,
   obtenerOpcionesFormulario,
@@ -599,5 +633,6 @@ module.exports = {
   crearEmpleado,
   actualizarUsuario,
   darDeBajaUsuario,
+  darDeAltaUsuario,
 };
 
