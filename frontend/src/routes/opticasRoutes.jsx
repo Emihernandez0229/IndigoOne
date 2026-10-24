@@ -11,7 +11,6 @@ import CitasPage from "../opticas/citas/CitasPage";
 import CitaDetailPage from "../opticas/citas/CitaDetailPage";
 import VentasPage from "../opticas/ventas/VentasPage";
 import NuevaVentaPage from "../opticas/ventas/NuevaVentaPage";
-import VentaDetailPage from "../opticas/ventas/VentaDetailPage";
 import LaboratorioPage from "../opticas/laboratorio/LaboratorioPage";
 import LaboratorioDetailPage from "../opticas/laboratorio/LaboratorioDetailPage";
 import OpticaPage from "../opticas/optica/OpticaPage";
@@ -54,7 +53,6 @@ export default function OpticasRoutes() {
       <Route element={<ProtectedRoute permission="optica.sales.view" />}>
         <Route path="ventas" element={<VentasPage />} />
         <Route path="ventas/nueva" element={<NuevaVentaPage />} />
-        <Route path="ventas/:id" element={<VentaDetailPage />} />
       </Route>
 
       <Route element={<ProtectedRoute permission="optica.lab.view" />}>

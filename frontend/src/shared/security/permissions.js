@@ -256,8 +256,10 @@ export const PERMISSIONS = {
   [ROLES.OPTICA_ENCARGADO]: [
     "optica.settings.view",
 
+    // No crea productos/servicios nuevos (eso es del Dueño) - solo
+    // administra el stock y el alta/baja de los que ya existen, en su
+    // propia sucursal.
     "optica.catalog.view",
-    "optica.catalog.create",
     "optica.catalog.update",
     "optica.catalog.deactivate",
 

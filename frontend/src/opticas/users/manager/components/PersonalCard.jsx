@@ -1,8 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, Pencil, MoreVertical, Ban, RotateCcw } from "lucide-react";
+import { Eye, Pencil, MoreVertical, Ban, RotateCcw, Glasses } from "lucide-react";
 
 import StatusBadge from "../../../../shared/components/StatusBadge";
 import { USER_ROLE_LABELS } from "../../constants";
+
+
+// Decoracion sutil para la tarjeta - mismo espiritu que
+// OpticaCardDecoration, pero mas chica y discreta (la tarjeta es
+// pequeña, no una seccion completa de "Mi óptica").
+function PersonalCardDecoration() {
+  return (
+    <Glasses strokeWidth={1} className="pointer-events-none absolute -bottom-4 -right-4 h-20 w-20 text-indigo-light/60" />
+  );
+}
 
 
 export default function PersonalCard({ user, branchName, canDeactivate = true, onView, onEdit, onDeactivate, onActivate }) {
@@ -22,9 +32,11 @@ export default function PersonalCard({ user, branchName, canDeactivate = true, o
   }, [menuOpen]);
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-surface p-5">
+    <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-5">
 
-      <div className="flex items-start justify-between gap-2">
+      <PersonalCardDecoration />
+
+      <div className="relative flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-light text-base font-bold text-indigo-primary">
             {(user.name || "?").charAt(0).toUpperCase()}
@@ -73,7 +85,7 @@ export default function PersonalCard({ user, branchName, canDeactivate = true, o
         )}
       </div>
 
-      <dl className="mt-4 space-y-2 text-sm">
+      <dl className="relative mt-4 space-y-2 text-sm">
         <div className="flex items-center justify-between">
           <dt className="text-text-secondary">Rol</dt>
           <dd className="font-medium text-text-primary">{USER_ROLE_LABELS[user.role] ?? user.role}</dd>
@@ -88,7 +100,7 @@ export default function PersonalCard({ user, branchName, canDeactivate = true, o
         </div>
       </dl>
 
-      <div className="mt-4 flex items-center gap-4 border-t border-gray-100 pt-4 text-sm font-medium">
+      <div className="relative mt-4 flex items-center gap-4 border-t border-gray-100 pt-4 text-sm font-medium">
         <button type="button" onClick={onView} className="flex items-center gap-1.5 text-indigo-primary hover:underline">
           <Eye className="h-4 w-4" />
           Ver detalles

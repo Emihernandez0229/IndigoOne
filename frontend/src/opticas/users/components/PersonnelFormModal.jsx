@@ -96,7 +96,6 @@ export default function PersonnelFormModal({
       ["phone", !isValidPhone(form.phone), "El teléfono debe tener exactamente 10 dígitos."],
       ["email", form.email && !isValidEmail(form.email), "Escribe un correo electrónico válido."],
       ["role", !form.role, "Selecciona un puesto."],
-      ["branchId", !branchLocked && !form.branchId, "Selecciona una sucursal."],
     ]);
     if (!isValid) return;
 
@@ -172,7 +171,7 @@ export default function PersonnelFormModal({
                 {errors.role && <p className="mt-1.5 text-sm text-error">{errors.role}</p>}
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-text-primary">Sucursal {!branchLocked ? "*" : ""}</label>
+                <label className="mb-2 block text-sm font-medium text-text-primary">Sucursal</label>
                 {branchLocked ? (
                   <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-background px-4 py-3 text-text-secondary">
                     <Building2 className="h-4 w-4" />
@@ -180,13 +179,10 @@ export default function PersonnelFormModal({
                     <Lock className="ml-auto h-3.5 w-3.5" />
                   </div>
                 ) : (
-                  <>
-                    <select value={form.branchId} onChange={set("branchId")} className={selectClass}>
-                      <option value="">Selecciona una sucursal...</option>
-                      {branches?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
-                    {errors.branchId && <p className="mt-1.5 text-sm text-error">{errors.branchId}</p>}
-                  </>
+                  <select value={form.branchId} onChange={set("branchId")} className={selectClass}>
+                    <option value="">Sin sucursal</option>
+                    {branches?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
                 )}
               </div>
             </div>

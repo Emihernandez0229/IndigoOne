@@ -83,7 +83,7 @@ export const opticaNavigation = [
   },
 
   {
-    label: "Inventario",
+    label: "Catálogo Índigo",
     path: "/opticas/inventario",
     icon: Glasses,
     permission: "optica.inventory.view",

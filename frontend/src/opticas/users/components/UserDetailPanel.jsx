@@ -24,7 +24,7 @@ function Field({ label, value }) {
 }
 
 
-export default function UserDetailPanel({ user, branch, canDeactivate = false, onDeactivate, onActivate }) {
+export default function UserDetailPanel({ user, canDeactivate = false, onDeactivate, onActivate }) {
 
   if (!user) return null;
 
@@ -61,10 +61,6 @@ export default function UserDetailPanel({ user, branch, canDeactivate = false, o
           <div className="col-span-2">
             <Field label="Sucursal" value={user.branchName} />
           </div>
-          <Field label="País" value={branch?.country} />
-          <Field label="Estado" value={branch?.state} />
-          <Field label="Municipio" value={branch?.municipality} />
-          <div />
           <div className="col-span-2">
             <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">Estado de la cuenta</dt>
             <dd className="mt-1"><StatusBadge status={user.status} label={user.status === "active" ? "Activo" : "Inactivo"} /></dd>

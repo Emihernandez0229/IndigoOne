@@ -76,9 +76,7 @@ export default function BranchDetailPanel({ branch }) {
               <div className="col-span-2">
                 <Field label="Dirección" value={branch.address} />
               </div>
-              <Field label="País" value={branch.country} />
-              <Field label="Estado" value={branch.state} />
-              <Field label="Municipio" value={branch.municipality} />
+              <Field label="Teléfono" value={branch.phone} />
             </dl>
           </div>
 

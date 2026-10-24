@@ -100,7 +100,9 @@ export default function ReportesPage() {
     [ventas, ventasEmpleado, isEmployee, period]
   );
 
-  const ventasCompletadas = ventasEnPeriodo.filter((v) => v.status === "completada");
+  // Para ingresos cuenta el pago (liquidada), no el estado del trabajo -
+  // son independientes.
+  const ventasCompletadas = ventasEnPeriodo.filter((v) => v.paymentStatus === "liquidada");
   const totalVentas = ventasCompletadas.reduce((sum, v) => sum + v.total, 0);
   const ticketPromedio = ventasCompletadas.length > 0 ? totalVentas / ventasCompletadas.length : 0;
 

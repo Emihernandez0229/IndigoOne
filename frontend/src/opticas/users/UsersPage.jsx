@@ -69,17 +69,6 @@ function UsersList() {
   );
 
   const viewingUser = personalUsers.find((user) => user.id === viewingUserId) ?? null;
-  const viewingBranch = branches.find((b) => b.id === viewingUser?.branchId) ?? null;
-
-  const branchOptions = useMemo(() => {
-    const map = new Map();
-    personalUsers.forEach((user) => {
-      if (user.branchId != null && !map.has(user.branchId)) {
-        map.set(user.branchId, { value: user.branchId, label: user.branchName });
-      }
-    });
-    return [...map.values()];
-  }, [personalUsers]);
 
   const filtered = useMemo(
     () => filterUsers(personalUsers, { query, role, branch }),
@@ -165,8 +154,7 @@ function UsersList() {
               label="Sucursal"
               value={branch}
               onChange={setBranch}
-              placeholder="Todas las sucursales"
-              options={branchOptions}
+              options={[{ value: "", label: "Todas las sucursales" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
             />
           </FilterBar>
 
@@ -188,7 +176,6 @@ function UsersList() {
         >
           <UserDetailPanel
             user={viewingUser}
-            branch={viewingBranch}
             canDeactivate={can("optica.user.deactivate")}
             onDeactivate={(user) => setConfirmAction({ type: "deactivate", user })}
             onActivate={(user) => setConfirmAction({ type: "activate", user })}
@@ -210,6 +197,7 @@ function UsersList() {
         open={Boolean(editingUser)}
         user={editingUser}
         branches={branches}
+        allowUsernameEdit={false}
         onClose={() => setEditingUser(null)}
         onSubmit={handleEdit}
       />

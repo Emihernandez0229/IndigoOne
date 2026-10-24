@@ -7,6 +7,9 @@ import Button from "../../shared/components/Button";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
 import usePermissions from "../../shared/hooks/usePermissions";
+import { useAuth } from "../../shared/context/AuthContext";
+import { ROLES } from "../../shared/security/roles";
+import { useOpticaBrandTheme } from "../../shared/context/OpticaBrandThemeContext";
 
 import { getOpticaInfo, updateOpticaInfo } from "./services/opticaService";
 import OpticaBanner from "./components/OpticaBanner";
@@ -15,7 +18,7 @@ import InformacionFiscalTab from "./components/InformacionFiscalTab";
 import IdentidadVisualTab from "./components/IdentidadVisualTab";
 
 
-const TABS = [
+const ALL_TABS = [
   { value: "general", label: "Información general" },
   { value: "fiscal", label: "Información fiscal" },
   { value: "visual", label: "Identidad visual" },
@@ -24,14 +27,20 @@ const TABS = [
 
 /**
  * "Mi óptica" - el Dueño puede consultar y actualizar, el Jefe de sucursal
- * solo consultar (cada pestaña ya respeta `canManage`), y el Empleado no
- * tiene este módulo en absoluto (sin el permiso "optica.settings.view" no
- * aparece ni en el menú).
+ * solo consultar (cada pestaña ya respeta `canManage`) y no ve "Información
+ * fiscal" (no le corresponde), y el Empleado no tiene este módulo en
+ * absoluto (sin el permiso "optica.settings.view" no aparece ni en el menú).
  */
 export default function OpticaPage() {
 
   const { can } = usePermissions();
   const canManage = can("optica.settings.manage");
+  const { user: currentUser } = useAuth();
+  const { applyColors } = useOpticaBrandTheme();
+
+  const TABS = currentUser?.role === ROLES.OPTICA_ENCARGADO
+    ? ALL_TABS.filter((tab) => tab.value !== "fiscal")
+    : ALL_TABS;
 
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -61,6 +70,7 @@ export default function OpticaPage() {
   const handleSave = async (payload) => {
     const updated = await updateOpticaInfo(payload);
     setInfo(updated);
+    applyColors({ colorPrincipal: updated.colorPrincipal, colorSecundario: updated.colorSecundario });
     setEditMode(false);
   };
 
@@ -96,7 +106,7 @@ export default function OpticaPage() {
 
         {tab === "general" && <InformacionGeneralTab info={info} canManage={canManage && editMode} onSave={handleSave} onCancel={handleCancelEdit} />}
         {tab === "fiscal" && <InformacionFiscalTab info={info} canManage={canManage && editMode} onSave={handleSave} onCancel={handleCancelEdit} />}
-        {tab === "visual" && <IdentidadVisualTab info={info} canManage={canManage && editMode} onSave={handleSave} onCancel={handleCancelEdit} />}
+        {tab === "visual" && <IdentidadVisualTab info={info} canManage={canManage} onSave={handleSave} />}
 
       </div>
 

@@ -178,7 +178,6 @@ export default function PatientFormModal({
       ["name", !name, "El nombre es obligatorio."],
       ["phone", !isValidPhone(form.phone), "El teléfono debe tener exactamente 10 dígitos."],
       ["email", email && !isValidEmail(email), "El correo no es válido."],
-      ["branchId", !isBranchScoped && !isEdit && !form.branchId, "Selecciona una sucursal."],
     ]);
     if (!isValid) return;
 
@@ -227,7 +226,7 @@ export default function PatientFormModal({
               {!isBranchScoped && (
                 <div>
                   <label htmlFor="patient-branch" className="mb-2 block text-sm font-medium text-text-primary">
-                    Sucursal {!isEdit ? "*" : ""}
+                    Sucursal
                   </label>
 
                   {isEdit ? (
@@ -235,27 +234,22 @@ export default function PatientFormModal({
                       {patient?.branchName || "Sin asignar"}
                     </div>
                   ) : (
-                    <>
-                      <select
-                        id="patient-branch"
-                        value={form.branchId}
-                        onChange={set("branchId")}
-                        disabled={loadingBranches}
-                        className={selectClass}
-                      >
-                        <option value="">
-                          {loadingBranches ? "Cargando..." : "Selecciona..."}
+                    <select
+                      id="patient-branch"
+                      value={form.branchId}
+                      onChange={set("branchId")}
+                      disabled={loadingBranches}
+                      className={selectClass}
+                    >
+                      <option value="">
+                        {loadingBranches ? "Cargando..." : "Sin sucursal"}
+                      </option>
+                      {branches.map((branch) => (
+                        <option key={branch.id} value={branch.id}>
+                          {branch.name}
                         </option>
-                        {branches.map((branch) => (
-                          <option key={branch.id} value={branch.id}>
-                            {branch.name}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.branchId && (
-                        <p className="mt-1.5 text-sm text-error">{errors.branchId}</p>
-                      )}
-                    </>
+                      ))}
+                    </select>
                   )}
                 </div>
               )}

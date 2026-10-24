@@ -113,7 +113,6 @@ export default function ManagerPersonalPage() {
         >
           <UserDetailPanel
             user={viewingUser}
-            branch={myBranch}
             canDeactivate
             onDeactivate={(user) => setConfirmAction({ type: "deactivate", user })}
             onActivate={(user) => setConfirmAction({ type: "activate", user })}
@@ -140,6 +139,7 @@ export default function ManagerPersonalPage() {
         branch={myBranch}
         roleOptions={MANAGER_PERSONAL_ROLES}
         title="Editar personal"
+        allowUsernameEdit={false}
         onClose={() => setEditingUser(null)}
         onSubmit={handleEdit}
       />

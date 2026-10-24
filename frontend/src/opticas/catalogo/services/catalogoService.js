@@ -7,16 +7,17 @@ function mapProducto(raw) {
     id: raw.id,
     displayId: raw.display_id ?? raw.displayId,
     code: raw.codigo ?? raw.code ?? "",
-    barcode: raw.codigo_barras ?? raw.barcode ?? "",
     name: raw.nombre ?? raw.name ?? "",
     category: raw.categoria ?? raw.category ?? "",
     brand: raw.marca ?? raw.brand ?? "",
     description: raw.descripcion ?? raw.description ?? "",
     salePrice: Number(raw.precio_venta ?? raw.salePrice ?? 0),
-    cost: Number(raw.costo ?? raw.cost ?? 0),
-    tax: Number(raw.impuesto ?? raw.tax ?? 0),
-    unit: raw.unidad_medida ?? raw.unit ?? "pieza",
+    stockMin: Number(raw.stock_minimo ?? raw.stockMin ?? 0),
+    imageUrl: raw.imagen_url ?? raw.imageUrl ?? "",
     active: raw.active ?? raw.estado !== "inactive",
+    stockPorSucursal: Array.isArray(raw.stock_por_sucursal)
+      ? raw.stock_por_sucursal.map((row) => ({ branchId: row.sucursal_id, stock: Number(row.stock ?? 0), active: row.active ?? true }))
+      : [],
   };
 }
 
@@ -30,8 +31,6 @@ function mapServicio(raw) {
     category: raw.categoria ?? raw.category ?? "",
     description: raw.descripcion ?? raw.description ?? "",
     price: Number(raw.precio ?? raw.price ?? 0),
-    tax: Number(raw.impuesto ?? raw.tax ?? 0),
-    duration: Number(raw.duracion_estimada ?? raw.duration ?? 0),
     active: raw.active ?? raw.estado !== "inactive",
   };
 }
@@ -45,15 +44,13 @@ export async function listProductos() {
 export async function createProducto(payload) {
   const created = await httpClient.post("/api/opticas/productos", {
     codigo: payload.code,
-    codigo_barras: payload.barcode || null,
     nombre: payload.name,
     categoria: payload.category,
     marca: payload.brand,
     descripcion: payload.description,
     precio_venta: payload.salePrice,
-    costo: payload.cost,
-    impuesto: payload.tax,
-    unidad_medida: payload.unit,
+    stock_minimo: payload.stockMin,
+    imagen_url: payload.imageUrl || "",
   });
   return mapProducto(created);
 }
@@ -61,15 +58,13 @@ export async function createProducto(payload) {
 export async function updateProducto(id, payload) {
   const updated = await httpClient.put(`/api/opticas/productos/${id}`, {
     codigo: payload.code,
-    codigo_barras: payload.barcode || null,
     nombre: payload.name,
     categoria: payload.category,
     marca: payload.brand,
     descripcion: payload.description,
     precio_venta: payload.salePrice,
-    costo: payload.cost,
-    impuesto: payload.tax,
-    unidad_medida: payload.unit,
+    stock_minimo: payload.stockMin,
+    imagen_url: payload.imageUrl || "",
   });
   return mapProducto(updated);
 }
@@ -80,6 +75,24 @@ export async function deactivateProducto(id) {
 
 export async function activateProducto(id) {
   return mapProducto(await httpClient.patch(`/api/opticas/productos/${id}/activate`));
+}
+
+// Para el Jefe de sucursal: alta/baja y movimientos de stock que solo
+// afectan a SU sucursal, sin tocar el producto global.
+export async function deactivateProductoBranch(id, branchId) {
+  return mapProducto(await httpClient.patch(`/api/opticas/productos/${id}/sucursal/${branchId}/baja`));
+}
+
+export async function activateProductoBranch(id, branchId) {
+  return mapProducto(await httpClient.patch(`/api/opticas/productos/${id}/sucursal/${branchId}/alta`));
+}
+
+export async function registerProductoMovimiento(id, branchId, payload) {
+  return mapProducto(await httpClient.patch(`/api/opticas/productos/${id}/sucursal/${branchId}/movimiento`, {
+    tipo: payload.tipo,
+    cantidad: payload.cantidad,
+    motivo: payload.motivo,
+  }));
 }
 
 
@@ -95,8 +108,6 @@ export async function createServicio(payload) {
     categoria: payload.category,
     descripcion: payload.description,
     precio: payload.price,
-    impuesto: payload.tax,
-    duracion_estimada: payload.duration,
   });
   return mapServicio(created);
 }
@@ -108,8 +119,6 @@ export async function updateServicio(id, payload) {
     categoria: payload.category,
     descripcion: payload.description,
     precio: payload.price,
-    impuesto: payload.tax,
-    duracion_estimada: payload.duration,
   });
   return mapServicio(updated);
 }

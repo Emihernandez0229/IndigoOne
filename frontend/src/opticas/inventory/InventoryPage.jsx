@@ -1,211 +1,223 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import { Plus } from "lucide-react";
+import { Search, ImageOff } from "lucide-react";
 
 import PageContainer from "../../shared/layouts/PageContainer";
-import KpiRow from "../../shared/components/KpiRow";
 import Button from "../../shared/components/Button";
-import SearchInput from "../../shared/components/SearchInput";
-import FilterBar from "../../shared/filters/FilterBar";
-import SelectFilter from "../../shared/filters/SelectFilter";
+import StatusBadge from "../../shared/components/StatusBadge";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
-import ConfirmDialog from "../../shared/components/ConfirmDialog";
-import Can from "../../shared/security/Can";
-import usePermissions from "../../shared/hooks/usePermissions";
+import EmptyState from "../../shared/components/EmptyState";
 
 import useInventory from "./hooks/useInventory";
 import { filterInventory } from "./filterInventory";
 import { getStockStatus } from "./stockStatus";
-import InventoryTable from "./components/InventoryTable";
-import InventoryFormModal from "./components/InventoryFormModal";
-import { PRODUCT_TYPES, ALL_MATERIALS, MATERIALS_BY_TYPE, INVENTORY_STATUSES } from "./constants";
+import { PRODUCT_TYPES, LENS_TREATMENTS } from "./constants";
 
 
+const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
+
+
+/**
+ * El Dueño y el Jefe de sucursal no administran su propio inventario aquí:
+ * consultan el catálogo de Indigo (su proveedor) para ver qué productos hay
+ * y cuánto hay disponible - de solo lectura, sin alta/edición/baja ni
+ * "agregar al pedido", solo "Ver más" por producto.
+ */
 export default function InventoryPage() {
 
   const navigate = useNavigate();
-  const { can } = usePermissions();
-  const { items, loading, error, create, update, deactivate, activate } = useInventory();
+  const { items, loading, error } = useInventory();
 
-  const [query, setQuery] = useState("");
+  const activeItems = useMemo(() => items.filter((i) => i.active), [items]);
+
+  const categories = useMemo(() => {
+    return PRODUCT_TYPES
+      .map((c) => ({ ...c, count: activeItems.filter((i) => i.type === c.value).length }))
+      .filter((c) => c.count > 0);
+  }, [activeItems]);
+
   const [type, setType] = useState("");
-  const [material, setMaterial] = useState("");
-  const [status, setStatus] = useState("");
-  const [branch, setBranch] = useState("");
-  const [modal, setModal] = useState({ open: false, mode: "create", item: null });
-  const [itemToDeactivate, setItemToDeactivate] = useState(null);
+  const [query, setQuery] = useState("");
 
+  const activeType = categories.some((c) => c.value === type) ? type : (categories[0]?.value ?? "");
 
-  const materialOptions = type ? (MATERIALS_BY_TYPE[type] ?? []) : ALL_MATERIALS;
-
-  const handleTypeChange = (value) => {
-    setType(value);
-    const allowed = value ? MATERIALS_BY_TYPE[value] ?? [] : null;
-    if (allowed && material && !allowed.some((option) => option.value === material)) {
-      setMaterial("");
-    }
-  };
-
-
-  const branchOptions = useMemo(() => {
-    const map = new Map();
-    items.forEach((item) => {
-      if (item.branchId != null && !map.has(item.branchId)) {
-        map.set(item.branchId, { value: item.branchId, label: item.branchName });
-      }
-    });
-    return [...map.values()];
-  }, [items]);
-
-
-  const filtered = useMemo(
-    () => filterInventory(items, { query, type, material, status, branch }),
-    [items, query, type, material, status, branch]
+  const scoped = useMemo(
+    () => activeItems.filter((i) => i.type === activeType),
+    [activeItems, activeType]
   );
 
+  const filtered = useMemo(() => filterInventory(scoped, { query }), [scoped, query]);
 
-  const kpis = useMemo(() => {
-    const active = items.filter((item) => item.active);
-    const statuses = active.map(getStockStatus);
-
-    return [
-      {
-        id: "total", type: "frames", title: "Total",
-        value: String(items.length), description: "Productos registrados",
-      },
-      {
-        id: "available", type: "available", title: "Disponibles",
-        value: String(statuses.filter((s) => s === "available").length),
-        description: "Con stock suficiente",
-      },
-      {
-        id: "lowStock", type: "lowStock", title: "Bajo stock",
-        value: String(statuses.filter((s) => s === "low_stock").length),
-        description: "Cerca del mínimo",
-      },
-      {
-        id: "outOfStock", type: "outOfStock", title: "Agotados",
-        value: String(statuses.filter((s) => s === "out_of_stock").length),
-        description: "Sin unidades",
-      },
-    ];
-  }, [items]);
-
-
-  const closeModal = () => setModal((m) => ({ ...m, open: false }));
-
-  const handleSubmit = async (payload) => {
-    if (modal.mode === "edit" && modal.item) {
-      await update(modal.item.id, payload);
-    } else {
-      await create(payload);
-    }
-  };
-
+  const handleView = (item) => navigate(`/opticas/inventario/${item.id}`);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState />;
 
-
   return (
 
     <PageContainer
-      title="Inventario"
-      description="Productos disponibles en tu alcance."
-      actions={
-        <Can permission="optica.inventory.manage">
-          <Button
-            className="inline-flex items-center gap-2 py-2.5 text-sm"
-            onClick={() => setModal({ open: true, mode: "create", item: null })}
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo producto
-          </Button>
-        </Can>
-      }
+      title="Catálogo Indigo"
+      description="Consulta lo que Indigo tiene disponible."
     >
 
       <div className="space-y-6">
 
-        <KpiRow items={kpis} />
+        {categories.length === 0 ? (
+          <EmptyState
+            title="Sin productos disponibles"
+            description="Indigo todavía no tiene productos publicados en el catálogo."
+          />
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {categories.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setType(c.value)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                    activeType === c.value
+                      ? "bg-indigo-primary text-white"
+                      : "border border-gray-200 bg-surface text-text-secondary hover:border-indigo-primary"
+                  }`}
+                >
+                  {c.label} {c.count}
+                </button>
+              ))}
+            </div>
 
-        <FilterBar>
-          <SearchInput
-            className="w-full sm:max-w-xs"
-            value={query}
-            onChange={setQuery}
-            placeholder="Buscar por código o modelo"
-          />
-          <SelectFilter
-            label="Tipo"
-            value={type}
-            onChange={handleTypeChange}
-            placeholder="Todos los tipos"
-            options={PRODUCT_TYPES}
-          />
-          <SelectFilter
-            label="Material"
-            value={material}
-            onChange={setMaterial}
-            placeholder="Todos los materiales"
-            options={materialOptions}
-          />
-          <SelectFilter
-            label="Estado"
-            value={status}
-            onChange={setStatus}
-            placeholder="Todos los estados"
-            options={INVENTORY_STATUSES}
-          />
-          {branchOptions.length > 1 && (
-            <SelectFilter
-              label="Sucursal"
-              value={branch}
-              onChange={setBranch}
-              placeholder="Todas las sucursales"
-              options={branchOptions}
-            />
-          )}
-        </FilterBar>
-
-        <InventoryTable
-          items={filtered}
-          canEdit={can("optica.inventory.manage")}
-          canDeactivate={can("optica.inventory.manage")}
-          onView={(item) => navigate(`/opticas/inventario/${item.id}`)}
-          onEdit={(item) => setModal({ open: true, mode: "edit", item })}
-          onDeactivate={(item) => setItemToDeactivate(item)}
-          onActivate={(item) => activate(item.id)}
-        />
+            {activeType === "micas" ? (
+              <MicasView items={filtered} query={query} onQueryChange={setQuery} onView={handleView} />
+            ) : (
+              <CatalogGrid items={filtered} query={query} onQueryChange={setQuery} onView={handleView} />
+            )}
+          </>
+        )}
 
       </div>
-
-      <InventoryFormModal
-        key={`${modal.mode}-${modal.item?.id ?? "new"}-${modal.open}`}
-        open={modal.open}
-        mode={modal.mode}
-        item={modal.item}
-        onClose={closeModal}
-        onSubmit={handleSubmit}
-      />
-
-      <ConfirmDialog
-        open={Boolean(itemToDeactivate)}
-        title="Dar de baja producto"
-        description={
-          itemToDeactivate &&
-          `¿Seguro que quieres dar de baja "${itemToDeactivate.model}" (${itemToDeactivate.code})? Podrás volver a activarlo después.`
-        }
-        confirmLabel="Dar de baja"
-        variant="danger"
-        onConfirm={() => deactivate(itemToDeactivate.id)}
-        onClose={() => setItemToDeactivate(null)}
-      />
 
     </PageContainer>
 
   );
 
+}
+
+
+function SearchBar({ query, onQueryChange }) {
+  return (
+    <div className="relative max-w-sm">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
+      <input
+        value={query}
+        onChange={(event) => onQueryChange(event.target.value)}
+        placeholder="Nombre, modelo o código..."
+        className="w-full rounded-xl border border-gray-200 bg-surface py-3 pl-9 pr-4 text-text-primary outline-none transition focus:border-indigo-primary focus:ring-2 focus:ring-indigo-light"
+      />
+    </div>
+  );
+}
+
+
+function CatalogGrid({ items, query, onQueryChange, onView }) {
+  return (
+    <div className="space-y-4">
+
+      <SearchBar query={query} onQueryChange={onQueryChange} />
+
+      <p className="text-sm font-semibold text-indigo-primary">
+        {items.length} producto{items.length === 1 ? "" : "s"}
+      </p>
+
+      {items.length === 0 ? (
+        <EmptyState title="Sin resultados" description="No encontramos productos que coincidan con la búsqueda." />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {items.map((item) => (
+            <ProductCard key={item.id} item={item} onView={onView} />
+          ))}
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+
+function ProductCard({ item, onView }) {
+
+  const status = getStockStatus(item);
+  const photo = item.photos?.[0];
+
+  return (
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-surface">
+
+      <div className="flex h-36 items-center justify-center bg-background">
+        {photo ? (
+          <img src={photo} alt={item.model} className="h-full w-full object-cover" />
+        ) : (
+          <ImageOff className="h-8 w-8 text-text-secondary" />
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3 p-4">
+
+        <div>
+          <p className="text-xs text-text-secondary">{item.code}</p>
+          <p className="font-bold text-text-primary">{item.model}</p>
+          <p className="text-xs text-text-secondary">
+            {[item.material, item.measurements].filter(Boolean).join(" · ") || "—"}
+          </p>
+        </div>
+
+        <div className="mt-auto flex items-end justify-between gap-2">
+          <p className="text-lg font-bold text-text-primary">{currency(item.cost)}</p>
+          <StatusBadge status={status} />
+        </div>
+
+        <Button className="w-full justify-center" onClick={() => onView(item)}>Ver más</Button>
+
+      </div>
+
+    </div>
+  );
+}
+
+
+function MicasView({ items, query, onQueryChange, onView }) {
+  return (
+    <div className="space-y-4">
+
+      <SearchBar query={query} onQueryChange={onQueryChange} />
+
+      <div className="rounded-2xl border border-gray-200 bg-surface p-5">
+        <p className="mb-3 text-sm font-bold text-text-primary">Tratamientos disponibles</p>
+        <div className="flex flex-wrap gap-2">
+          {LENS_TREATMENTS.map((treatment) => (
+            <span
+              key={treatment}
+              className="rounded-full border border-indigo-light bg-indigo-light/40 px-3 py-1.5 text-xs font-medium text-indigo-primary"
+            >
+              {treatment}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <p className="text-sm font-semibold text-indigo-primary">
+        {items.length} producto{items.length === 1 ? "" : "s"}
+      </p>
+
+      {items.length === 0 ? (
+        <EmptyState title="Sin micas disponibles" description="No encontramos micas que coincidan con la búsqueda." />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {items.map((item) => (
+            <ProductCard key={item.id} item={item} onView={onView} />
+          ))}
+        </div>
+      )}
+
+    </div>
+  );
 }

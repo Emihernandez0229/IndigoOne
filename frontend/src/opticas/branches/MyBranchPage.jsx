@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  Building2, Pencil, MapPin, Globe, Flag, User, Phone, Home,
+  Building2, Pencil, MapPin, User, Phone, Home,
   Users, UserRound, Package, Clock, Settings, CheckCircle2, BarChart3,
 } from "lucide-react";
 
@@ -19,6 +19,7 @@ import useUsers from "../users/hooks/useUsers";
 import usePatients from "../pacientes/hooks/usePatients";
 import useLaboratorio from "../laboratorio/hooks/useLaboratorio";
 import MyBranchEditModal from "./components/MyBranchEditModal";
+import { OpticaCardDecoration } from "../optica/components/OpticaCardParts";
 
 
 function SectionTitle({ icon: Icon, children }) {
@@ -123,13 +124,18 @@ export default function MyBranchPage() {
 
         <div className="grid gap-6 lg:grid-cols-3">
 
-          <div className="rounded-2xl border border-gray-200 bg-surface p-6 lg:col-span-2">
-            <StatusBadge status={myBranch.status} label={myBranch.status === "active" ? "Sucursal activa" : "Sucursal inactiva"} />
-            <h2 className="mt-3 text-2xl font-bold text-text-primary">{myBranch.name}</h2>
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-text-secondary">
-              <MapPin className="h-4 w-4" />
-              {[myBranch.municipality, myBranch.state].filter(Boolean).join(", ")}
-            </p>
+          <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6 lg:col-span-2">
+            <OpticaCardDecoration />
+            <div className="relative">
+              <StatusBadge status={myBranch.status} label={myBranch.status === "active" ? "Sucursal activa" : "Sucursal inactiva"} />
+              <h2 className="mt-3 text-2xl font-bold text-text-primary">{myBranch.name}</h2>
+              {myBranch.address && (
+                <p className="mt-1 flex items-center gap-1.5 text-sm text-text-secondary">
+                  <MapPin className="h-4 w-4" />
+                  {myBranch.address}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="rounded-2xl border border-indigo-light bg-indigo-light/40 p-6">
@@ -163,11 +169,8 @@ export default function MyBranchPage() {
             <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
               <Field icon={Building2} label="Nombre de la sucursal" value={myBranch.name} />
               <Field icon={Home} label="Dirección" value={myBranch.address} />
-              <Field icon={Globe} label="País" value={myBranch.country} />
               <Field icon={Phone} label="Teléfono" value={myBranch.phone} />
-              <Field icon={Flag} label="Estado" value={myBranch.state} />
               <Field icon={User} label="Responsable (Jefe de sucursal)" value={myBranch.manager ? `${myBranch.manager}${myBranch.managerPhone ? " · " + myBranch.managerPhone : ""}` : null} />
-              <Field icon={MapPin} label="Municipio" value={myBranch.municipality} />
             </dl>
           </div>
 
@@ -183,11 +186,12 @@ export default function MyBranchPage() {
 
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-surface p-6">
-          <div className="mb-4">
+        <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6">
+          <OpticaCardDecoration />
+          <div className="relative mb-4">
             <SectionTitle icon={BarChart3}>Operación de la sucursal</SectionTitle>
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+          <div className="relative grid grid-cols-2 gap-4 sm:grid-cols-5">
             <MiniKpi icon={UserRound} label="Clientes" color="green" value={patients.length} />
             <MiniKpi icon={Package} label="Productos" color="blue" value={myBranch.products ?? 0} />
             <MiniKpi icon={Clock} label="Trabajos pendientes" color="orange" value={pending} />

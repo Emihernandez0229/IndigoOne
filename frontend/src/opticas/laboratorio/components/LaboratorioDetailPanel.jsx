@@ -4,6 +4,11 @@ import { Link } from "react-router-dom";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import Button from "../../../shared/components/Button";
 import { STATUS_TRANSITIONS } from "../constants";
+import { LAB_WORK_SUBTYPES } from "../../ventas/constants";
+
+
+const subtypeLabel = (value) =>
+  LAB_WORK_SUBTYPES.find((option) => option.value === value)?.label ?? value;
 
 
 function SectionTitle({ icon: Icon, children }) {
@@ -69,12 +74,17 @@ export default function LaboratorioDetailPanel({ order, patient, canManage = fal
           <div className="col-span-2">
             <Field label="Producto" value={order.items.map((item) => item.model || item.code).join(", ")} />
           </div>
+          {order.workSubtype && (
+            <div className="col-span-2">
+              <Field label="Tipo de trabajo solicitado" value={subtypeLabel(order.workSubtype)} />
+            </div>
+          )}
           <Field label="Fecha" value={formatDateTime(order.createdAt)} />
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">Venta relacionada</dt>
             <dd className="mt-1 text-sm font-bold text-text-primary">
               {order.saleId ? (
-                <Link to={`/opticas/ventas/${order.saleId}`} className="inline-flex items-center gap-1 text-indigo-primary hover:underline">
+                <Link to="/opticas/ventas" state={{ viewVentaId: order.saleId }} className="inline-flex items-center gap-1 text-indigo-primary hover:underline">
                   <Eye className="h-3.5 w-3.5" />
                   Ver venta
                 </Link>

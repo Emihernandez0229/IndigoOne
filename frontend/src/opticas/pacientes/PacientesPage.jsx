@@ -41,6 +41,7 @@ export default function PacientesPage() {
   const { isOwner, branches, selectedBranch, setSelectedBranch, loadingBranches } = useBranchScope({
     listBranches,
     ownerRoles: [ROLES.OPTICA_DUENO],
+    autoSelectFirst: false,
   });
 
   const {
@@ -57,7 +58,7 @@ export default function PacientesPage() {
   const [status, setStatus] = useState("");
   const [modal, setModal] = useState({ open: false, mode: "create", patient: null });
   const [viewingPatientId, setViewingPatientId] = useState(null);
-  const [patientToDeactivate, setPatientToDeactivate] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
 
   const filtered = useMemo(
@@ -154,8 +155,7 @@ export default function PacientesPage() {
                 label="Sucursal"
                 value={selectedBranch}
                 onChange={setSelectedBranch}
-                placeholder="Todas las sucursales"
-                options={branches.map((b) => ({ value: b.id, label: b.name }))}
+                options={[{ value: "", label: "Todas las sucursales" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
               />
             )}
             <SelectFilter
@@ -183,8 +183,8 @@ export default function PacientesPage() {
               canDeactivate={can("optica.patient.deactivate")}
               onView={(patient) => setViewingPatientId(patient.id)}
               onEdit={(patient) => setModal({ open: true, mode: "edit", patient })}
-              onDeactivate={(patient) => setPatientToDeactivate(patient)}
-              onActivate={(patient) => activate(patient.id)}
+              onDeactivate={(patient) => setConfirmAction({ type: "deactivate", patient })}
+              onActivate={(patient) => setConfirmAction({ type: "activate", patient })}
             />
           )}
 
@@ -210,16 +210,22 @@ export default function PacientesPage() {
       />
 
       <ConfirmDialog
-        open={Boolean(patientToDeactivate)}
-        title="Dar de baja cliente"
+        open={Boolean(confirmAction)}
+        title={confirmAction?.type === "activate" ? "Dar de alta cliente" : "Dar de baja cliente"}
         description={
-          patientToDeactivate &&
-          `¿Seguro que quieres dar de baja a "${patientToDeactivate.name}"? Podrás volver a activarlo después.`
+          confirmAction &&
+          (confirmAction.type === "activate"
+            ? `¿Seguro que quieres dar de alta a "${confirmAction.patient.name}"?`
+            : `¿Seguro que quieres dar de baja a "${confirmAction.patient.name}"? Podrás volver a activarlo después.`)
         }
-        confirmLabel="Dar de baja"
-        variant="danger"
-        onConfirm={() => deactivate(patientToDeactivate.id)}
-        onClose={() => setPatientToDeactivate(null)}
+        confirmLabel={confirmAction?.type === "activate" ? "Dar de alta" : "Dar de baja"}
+        variant={confirmAction?.type === "activate" ? "primary" : "danger"}
+        onConfirm={() =>
+          confirmAction.type === "activate"
+            ? activate(confirmAction.patient.id)
+            : deactivate(confirmAction.patient.id)
+        }
+        onClose={() => setConfirmAction(null)}
       />
 
     </PageContainer>

@@ -25,11 +25,6 @@ export default function BranchTable({
       label: "Sucursal"
     },
     {
-      key: "municipality",
-      label: "Municipio",
-      render: (row) => row.municipality || "—",
-    },
-    {
       key: "manager",
       label: "Responsable",
       render: (row) => row.manager || "Sin asignar",

@@ -7,10 +7,11 @@ import {
 } from "../services/citaService";
 
 
+// branchId === "" significa "Todas las sucursales" - sigue habilitado,
+// solo cambia el filtro que manda listCitas.
 export default function useCitas(branchId) {
   const { data: citas, ...rest } = useCrudResource({
     list: () => listCitas(branchId),
-    enabled: Boolean(branchId),
     deps: [branchId],
     numbered: true,
     mutations: {

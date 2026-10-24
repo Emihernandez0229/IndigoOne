@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { Landmark, IdCard, FileText, Mail, MapPin, Hash, Globe } from "lucide-react";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
 import { isValidEmail, isValidPostalCode, isValidRFC } from "../../../shared/utils/validators";
 import { onlyLetters, onlyDigits, rfcInput } from "../../../shared/utils/textInput";
 import { MEXICAN_STATES, COUNTRIES, TAX_REGIMES } from "../constants";
+import { OpticaCardHeader, OpticaFieldChip, OpticaCardDecoration } from "./OpticaCardParts";
 
 
 const RFC_MAX = 13;
@@ -24,25 +26,40 @@ export default function InformacionFiscalTab({ info, canManage, onSave, onCancel
 
   if (!canManage) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-surface p-6">
-        <p className="mb-4 text-sm text-text-secondary">Datos fiscales de la empresa, para facturación.</p>
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <Field label="RFC" value={info.rfc} />
-          <Field label="Régimen fiscal" value={regimeLabel(info.regimenFiscal)} />
-          <Field label="Correo fiscal" value={info.correoFiscal} />
-        </dl>
+      <div className="space-y-6">
 
-        <p className="mb-4 mt-6 border-t border-gray-100 pt-4 text-sm font-medium text-text-primary">Domicilio fiscal</p>
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <Field label="Calle" value={info.calle} />
-          <Field label="Número exterior" value={info.numeroExterior} />
-          <Field label="Número interior" value={info.numeroInterior} />
-          <Field label="Colonia" value={info.colonia} />
-          <Field label="Código postal" value={info.codigoPostal} />
-          <Field label="Municipio / Alcaldía" value={info.municipio} />
-          <Field label="Estado" value={info.estadoDireccion} />
-          <Field label="País" value={info.pais} />
-        </dl>
+        <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6">
+          <OpticaCardDecoration />
+          <OpticaCardHeader icon={Landmark} title="Información fiscal" description="Datos fiscales de la empresa, para facturación." tone="purple" />
+          <div className="relative grid gap-5 sm:grid-cols-2 sm:gap-x-8">
+            <div className="space-y-5 sm:border-r sm:border-gray-100 sm:pr-8">
+              <OpticaFieldChip icon={IdCard} label="RFC" value={info.rfc} tone="blue" />
+              <OpticaFieldChip icon={Mail} label="Correo fiscal" value={info.correoFiscal} tone="rose" />
+            </div>
+            <div className="space-y-5">
+              <OpticaFieldChip icon={FileText} label="Régimen fiscal" value={regimeLabel(info.regimenFiscal)} tone="amber" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-surface p-6">
+          <OpticaCardHeader icon={MapPin} title="Domicilio fiscal" description="Dirección registrada para la facturación." tone="teal" />
+          <div className="grid gap-5 sm:grid-cols-2 sm:gap-x-8">
+            <div className="space-y-5 sm:border-r sm:border-gray-100 sm:pr-8">
+              <OpticaFieldChip icon={MapPin} label="Calle" value={info.calle} tone="teal" />
+              <OpticaFieldChip icon={Hash} label="Número interior" value={info.numeroInterior} optional tone="orange" />
+              <OpticaFieldChip icon={Hash} label="Código postal" value={info.codigoPostal} tone="orange" />
+              <OpticaFieldChip icon={MapPin} label="Estado" value={info.estadoDireccion} tone="emerald" />
+            </div>
+            <div className="space-y-5">
+              <OpticaFieldChip icon={Hash} label="Número exterior" value={info.numeroExterior} tone="orange" />
+              <OpticaFieldChip icon={MapPin} label="Colonia" value={info.colonia} tone="teal" />
+              <OpticaFieldChip icon={MapPin} label="Municipio / Alcaldía" value={info.municipio} tone="emerald" />
+              <OpticaFieldChip icon={Globe} label="País" value={info.pais} tone="sky" />
+            </div>
+          </div>
+        </div>
+
       </div>
     );
   }
@@ -85,11 +102,11 @@ export default function InformacionFiscalTab({ info, canManage, onSave, onCancel
 
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-surface p-6">
+    <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6">
+      <OpticaCardDecoration />
+      <OpticaCardHeader icon={Landmark} title="Información fiscal" description="Datos fiscales de la empresa, para facturación." />
 
-      <p className="mb-4 text-sm text-text-secondary">Datos fiscales de la empresa, para facturación.</p>
-
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="relative grid gap-4 sm:grid-cols-2">
         <Input label="RFC *" value={form.rfc ?? ""} onChange={set("rfc", (v) => rfcInput(v, RFC_MAX))} error={errors.rfc} />
 
         <div className="w-full">
@@ -104,22 +121,22 @@ export default function InformacionFiscalTab({ info, canManage, onSave, onCancel
         <Input label="Correo fiscal" type="email" value={form.correoFiscal ?? ""} onChange={set("correoFiscal")} error={errors.correoFiscal} />
       </div>
 
-      <p className="mb-4 mt-6 border-t border-gray-100 pt-4 text-sm font-medium text-text-primary">Domicilio fiscal</p>
+      <p className="relative mb-4 mt-6 border-t border-gray-100 pt-4 text-sm font-medium text-text-primary">Domicilio fiscal</p>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="relative grid gap-4 sm:grid-cols-3">
         <div className="sm:col-span-2">
           <Input label="Calle *" value={form.calle ?? ""} onChange={set("calle", (v) => onlyLetters(v, ADDRESS_MAX))} error={errors.calle} />
         </div>
         <Input label="Número exterior *" value={form.numeroExterior ?? ""} onChange={set("numeroExterior", (v) => v.slice(0, NUMERO_MAX))} error={errors.numeroExterior} />
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+      <div className="relative mt-4 grid gap-4 sm:grid-cols-3">
         <Input label="Número interior" value={form.numeroInterior ?? ""} onChange={set("numeroInterior", (v) => v.slice(0, NUMERO_MAX))} />
         <Input label="Colonia *" value={form.colonia ?? ""} onChange={set("colonia", (v) => onlyLetters(v, COLONIA_MAX))} error={errors.colonia} />
         <Input label="Código postal *" value={form.codigoPostal ?? ""} onChange={set("codigoPostal", (v) => onlyDigits(v, 5))} error={errors.codigoPostal} placeholder="5 dígitos" />
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+      <div className="relative mt-4 grid gap-4 sm:grid-cols-3">
         <Input label="Municipio / Alcaldía *" value={form.municipio ?? ""} onChange={set("municipio")} error={errors.municipio} />
 
         <div className="w-full">
@@ -141,7 +158,7 @@ export default function InformacionFiscalTab({ info, canManage, onSave, onCancel
         </div>
       </div>
 
-      <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+      <div className="relative mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
         <Button type="button" variant="outline" onClick={() => { setForm(info); onCancel?.(); }}>Cancelar</Button>
         <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</Button>
       </div>
@@ -149,16 +166,6 @@ export default function InformacionFiscalTab({ info, canManage, onSave, onCancel
     </form>
   );
 
-}
-
-
-function Field({ label, value }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</dt>
-      <dd className="mt-1 text-sm text-text-primary">{value || "—"}</dd>
-    </div>
-  );
 }
 
 

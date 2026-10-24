@@ -7,9 +7,9 @@ import Button from "../../../shared/components/Button";
 import { useAuth } from "../../../shared/context/AuthContext";
 import { ROLES } from "../../../shared/security/roles";
 import { useFormValidation } from "../../../shared/hooks/useFormValidation";
-import { onlyLetters } from "../../../shared/utils/textInput";
 import { listBranches } from "../../branches/services/branchService";
-import { listPatients } from "../../pacientes/services/patientService";
+import { listPatients, listAllPatients } from "../../pacientes/services/patientService";
+import { alphanumericSpaces, textWithSpecialChars } from "../../../shared/utils/textInput";
 
 
 const REASON_MAX = 200;
@@ -81,9 +81,9 @@ const selectClass = `
 
 
 /**
- * Busca un paciente por nombre en vez de elegirlo de una lista larga -
- * igual de utilidad que un <select>, pero escalable cuando hay muchos
- * pacientes registrados.
+ * Busca un paciente por nombre o teléfono en vez de elegirlo de una lista
+ * larga - igual de utilidad que un <select>, pero escalable cuando hay
+ * muchos pacientes registrados.
  */
 function PatientSearchField({ patients, value, onSelect, disabled, error }) {
 
@@ -96,7 +96,9 @@ function PatientSearchField({ patients, value, onSelect, disabled, error }) {
   useEffect(() => () => clearTimeout(closeTimeout.current), []);
 
   const term = query.trim().toLowerCase();
-  const matches = term ? patients.filter((p) => p.name.toLowerCase().includes(term)) : patients;
+  const matches = term
+    ? patients.filter((p) => p.name.toLowerCase().includes(term) || (p.phone ?? "").includes(term))
+    : patients;
 
   return (
     <div className="relative w-full">
@@ -111,9 +113,9 @@ function PatientSearchField({ patients, value, onSelect, disabled, error }) {
           type="text"
           value={query}
           disabled={disabled}
-          placeholder={disabled ? "Selecciona primero una sucursal" : "Buscar paciente por nombre..."}
+          placeholder={disabled ? "Selecciona primero una sucursal" : "Buscar paciente por nombre o teléfono..."}
           onChange={(event) => {
-            setQuery(onlyLetters(event.target.value));
+            setQuery(alphanumericSpaces(event.target.value, 50));
             setOpen(true);
             if (value) onSelect("");
           }}
@@ -143,6 +145,7 @@ function PatientSearchField({ patients, value, onSelect, disabled, error }) {
                 className="block w-full px-4 py-2.5 text-left text-sm text-text-primary transition hover:bg-background"
               >
                 {patient.name}
+                {patient.phone && <span className="ml-2 text-xs text-text-secondary">{patient.phone}</span>}
               </button>
             ))
           )}
@@ -224,14 +227,16 @@ export default function CitaFormModal({
   }, [open, isOwner]);
 
 
+  // Sin sucursal elegida (o "Sin sucursal" explicito) se buscan pacientes
+  // de todas las sucursales, en vez de dejar la busqueda bloqueada.
   useEffect(() => {
-    if (!open || !isOwner || !form.branchId) {
+    if (!open || !isOwner) {
       return;
     }
     let active = true;
     (async () => {
       try {
-        const data = await listPatients(form.branchId);
+        const data = form.branchId ? await listPatients(form.branchId) : await listAllPatients();
         if (active) setBranchPatients(data);
       } catch (error) {
         console.error("Error al cargar pacientes:", error);
@@ -276,7 +281,6 @@ export default function CitaFormModal({
         : null;
 
     const isValid = validate([
-      ["branchId", isOwner && !form.branchId, "Selecciona una sucursal."],
       ["patientId", !isEdit && !form.patientId, "Selecciona un paciente."],
       ["dateTime", Boolean(dateTimeInvalid),
         dateTimeInvalid === "required" ? "Selecciona fecha y hora." : "La cita debe ser en una fecha futura."],
@@ -316,15 +320,14 @@ export default function CitaFormModal({
               {isOwner && !isEdit && (
                 <div className="sm:col-span-2">
                   <label htmlFor="cita-branch" className="mb-2 block text-sm font-medium text-text-primary">
-                    Sucursal *
+                    Sucursal
                   </label>
                   <select id="cita-branch" value={form.branchId} onChange={handleBranchChange} className={selectClass}>
-                    <option value="">Selecciona...</option>
+                    <option value="">Sin sucursal</option>
                     {branches.map((branch) => (
                       <option key={branch.id} value={branch.id}>{branch.name}</option>
                     ))}
                   </select>
-                  {errors.branchId && <p className="mt-1.5 text-sm text-error">{errors.branchId}</p>}
                 </div>
               )}
 
@@ -334,7 +337,6 @@ export default function CitaFormModal({
                     patients={patientOptions}
                     value={form.patientId}
                     onSelect={(id) => setForm((prev) => ({ ...prev, patientId: id }))}
-                    disabled={isOwner && !form.branchId}
                     error={errors.patientId}
                   />
                 </div>
@@ -355,7 +357,7 @@ export default function CitaFormModal({
                 <textarea
                   id="cita-reason"
                   value={form.reason}
-                  onChange={set("reason", (v) => v.slice(0, REASON_MAX))}
+                  onChange={set("reason", (v) => textWithSpecialChars(v, REASON_MAX))}
                   rows={3}
                   maxLength={REASON_MAX}
                   className={`${selectClass} resize-none`}

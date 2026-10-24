@@ -61,6 +61,7 @@ export default function DataTable({
   data = [],
   emptyMessage = "No existen registros.",
   headerBorderColor,
+  headerTextClassName = "text-text-secondary",
   pageSize,
   rowClassName,
 }) {
@@ -101,7 +102,7 @@ export default function DataTable({
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-secondary"
+                  className={`px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide ${headerTextClassName}`}
                 >
                   {column.label}
                 </th>

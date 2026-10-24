@@ -23,6 +23,7 @@ export default function LaboratorioTable({ orders = [], onView }) {
   const columns = [
     { key: "displayId", label: "ID" },
     { key: "patientName", label: "Paciente", render: (row) => row.patientName || "—" },
+    { key: "branchName", label: "Sucursal", render: (row) => row.branchName || "—" },
     { key: "items", label: "Producto", render: (row) => summarizeItems(row.items) },
     { key: "createdAt", label: "Fecha", render: (row) => formatDate(row.createdAt) },
     {
@@ -46,6 +47,7 @@ export default function LaboratorioTable({ orders = [], onView }) {
       columns={columns}
       data={orders}
       emptyMessage="No hay órdenes de laboratorio que coincidan con la búsqueda."
+      pageSize={10}
     />
   );
 

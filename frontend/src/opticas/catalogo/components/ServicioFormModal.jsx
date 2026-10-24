@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
-import { SERVICE_CATEGORIES, DEFAULT_TAX_RATE } from "../constants";
+import { onlyLetters, onlyDigits, alphanumericDash } from "../../../shared/utils/textInput";
+import { SERVICE_CATEGORIES } from "../constants";
 
+
+const CODE_MAX = 10;
+const NAME_MAX = 40;
+const DESCRIPTION_MAX = 100;
 
 const EMPTY = {
-  code: "", name: "", category: "", description: "", price: "", tax: String(DEFAULT_TAX_RATE), duration: "",
+  code: "", name: "", category: "", description: "", price: "",
 };
 
 function crearForm(servicio) {
@@ -18,8 +23,6 @@ function crearForm(servicio) {
     category: servicio.category ?? "",
     description: servicio.description ?? "",
     price: servicio.price ?? "",
-    tax: servicio.tax ?? DEFAULT_TAX_RATE,
-    duration: servicio.duration ?? "",
   };
 }
 
@@ -38,8 +41,10 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
     setErrors({});
   }, [open, servicio]);
 
-  const set = (field) => (event) => {
-    setForm((prev) => ({ ...prev, [field]: event.target.value }));
+  const set = (field, transform) => (event) => {
+    const raw = event.target.value;
+    const value = transform ? transform(raw) : raw;
+    setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
@@ -50,7 +55,7 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
     const code = String(form.code ?? "").trim();
     const name = String(form.name ?? "").trim();
 
-    if (!code) nextErrors.code = "El código es obligatorio.";
+    if (!code) nextErrors.code = "El SKU es obligatorio.";
     if (!name) nextErrors.name = "El nombre es obligatorio.";
     if (!form.category) nextErrors.category = "Selecciona una categoría.";
     if (form.price === "" || Number(form.price) < 0) nextErrors.price = "Indica el precio.";
@@ -66,8 +71,6 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
         category: form.category,
         description: String(form.description ?? "").trim(),
         price: Number(form.price),
-        tax: Number(form.tax) || 0,
-        duration: form.duration ? Number(form.duration) : 0,
       });
       onClose();
     } finally {
@@ -82,13 +85,21 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
       <form onSubmit={handleSubmit} className="space-y-4">
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Código" value={form.code} onChange={set("code")} error={errors.code} />
-          <Input label="Nombre" value={form.name} onChange={set("name")} error={errors.name} />
+          <Input label="SKU" value={form.code} onChange={set("code", (v) => alphanumericDash(v, CODE_MAX))} error={errors.code} />
+          <Input label="Nombre" value={form.name} onChange={set("name", (v) => onlyLetters(v, NAME_MAX))} error={errors.name} />
         </div>
 
         <div className="w-full">
           <label htmlFor="serv-desc" className="mb-2 block text-sm font-medium text-text-primary">Descripción</label>
-          <textarea id="serv-desc" value={form.description} onChange={set("description")} rows={2} className={`${selectClass} resize-none`} />
+          <textarea
+            id="serv-desc"
+            value={form.description}
+            onChange={set("description", (v) => v.slice(0, DESCRIPTION_MAX))}
+            rows={2}
+            maxLength={DESCRIPTION_MAX}
+            className={`${selectClass} resize-none`}
+          />
+          <p className="mt-1 text-right text-xs text-text-secondary">{form.description.length}/{DESCRIPTION_MAX}</p>
         </div>
 
         <div className="w-full">
@@ -100,11 +111,7 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
           {errors.category && <p className="mt-1.5 text-sm text-error">{errors.category}</p>}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Input label="Precio" type="number" min="0" step="0.01" value={form.price} onChange={set("price")} error={errors.price} />
-          <Input label="Impuesto (%)" type="number" min="0" step="0.01" value={form.tax} onChange={set("tax")} />
-          <Input label="Duración estimada (min)" type="number" min="0" value={form.duration} onChange={set("duration")} />
-        </div>
+        <Input label="Precio" value={form.price} onChange={set("price", (v) => onlyDigits(v))} error={errors.price} />
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

@@ -18,7 +18,7 @@ function mapCita(raw) {
 
 export async function listCitas(branchId) {
   const { data } = await httpClient.get(
-    `/api/opticas/citas?sucursalId=${branchId}`
+    `/api/opticas/citas?sucursalId=${branchId ?? ""}`
   );
   return (data ?? []).map(mapCita);
 }

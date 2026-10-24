@@ -10,7 +10,6 @@ import FilterBar from "../../shared/filters/FilterBar";
 import SelectFilter from "../../shared/filters/SelectFilter";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
-import EmptyState from "../../shared/components/EmptyState";
 import ConfirmDialog from "../../shared/components/ConfirmDialog";
 import SidePanel from "../../shared/components/SidePanel";
 import Can from "../../shared/security/Can";
@@ -35,9 +34,11 @@ export default function CitasPage() {
   const { isOwner, branches, selectedBranch, setSelectedBranch, loadingBranches } = useBranchScope({
     listBranches,
     ownerRoles: [ROLES.OPTICA_DUENO],
+    alwaysLoad: true,
+    autoSelectFirst: false,
   });
 
-  const { patients } = usePatients(selectedBranch);
+  const { patients } = usePatients(selectedBranch, { scopeToAll: !selectedBranch });
   const { citas, loading, error, create, update, changeStatus } = useCitas(selectedBranch);
 
   const [query, setQuery] = useState("");
@@ -54,9 +55,19 @@ export default function CitasPage() {
     return map;
   }, [patients]);
 
+  const branchesById = useMemo(() => {
+    const map = new Map();
+    branches.forEach((branch) => map.set(branch.id, branch.name));
+    return map;
+  }, [branches]);
+
   const citasWithPatient = useMemo(
-    () => citas.map((cita) => ({ ...cita, patientName: patientsById.get(cita.patientId) })),
-    [citas, patientsById]
+    () => citas.map((cita) => ({
+      ...cita,
+      patientName: patientsById.get(cita.patientId),
+      branchName: branchesById.get(cita.branchId) ?? "",
+    })),
+    [citas, patientsById, branchesById]
   );
 
   const filtered = useMemo(
@@ -122,7 +133,6 @@ export default function CitasPage() {
           <Button
             className="inline-flex items-center gap-2 py-2.5 text-sm"
             onClick={() => setModal({ open: true, mode: "create", cita: null })}
-            disabled={!selectedBranch}
           >
             <Plus className="h-4 w-4" />
             Nueva cita
@@ -167,18 +177,12 @@ export default function CitasPage() {
                 label="Sucursal"
                 value={selectedBranch}
                 onChange={setSelectedBranch}
-                placeholder="Selecciona una sucursal"
-                options={branches.map((b) => ({ value: b.id, label: b.name }))}
+                options={[{ value: "", label: "Todas las sucursales" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
               />
             )}
           </FilterBar>
 
-          {!selectedBranch ? (
-            <EmptyState
-              title="Selecciona una sucursal"
-              description="Elige una sucursal para ver sus citas."
-            />
-          ) : loading ? (
+          {loading ? (
             <LoadingSpinner />
           ) : error ? (
             <ErrorState />

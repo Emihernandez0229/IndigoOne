@@ -7,9 +7,6 @@ export async function createBranch(payload) {
     {
       nombre: payload.name,
       imagen: payload.image || null,
-      pais: payload.country,
-      estado: payload.state,
-      municipio: payload.municipality,
 
       gerente_optica_usuario_id:
         payload.managerMode === "existing"
@@ -33,9 +30,6 @@ export async function updateBranch(
   return httpClient.put(`/api/opticas/sucursales/${id}`,
     {
       nombre: payload.name,
-      pais: payload.country,
-      estado: payload.state,
-      municipio: payload.municipality,
 
       gerente_optica_usuario_id:
         payload.managerMode === "existing"

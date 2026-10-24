@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
-import { COUNTRIES, getStatesForCountry, getMunicipalitiesForState } from "../../../shared/constants/locations";
 import { onlyLetters } from "../../../shared/utils/textInput";
 import { listAvailableManagers } from "../services/branchService";
 import { useFormValidation } from "../../../shared/hooks/useFormValidation";
@@ -16,9 +15,6 @@ const EMPTY = {
   managerId: "",
   manager: "",
   managerMode: "existing",
-  country: "México",
-  state: "",
-  municipality: "",
 };
 
 
@@ -33,9 +29,6 @@ function crearFormDesdeSucursal(branch) {
     name: branch.name ?? "",
     managerId: branch.managerId ?? "",
     manager: branch.manager ?? "",
-    country: branch.country || "México",
-    state: branch.state ?? "",
-    municipality: branch.municipality ?? "",
   };
 }
 
@@ -56,7 +49,7 @@ export default function BranchFormModal({
 }) {
 
   const [form, setForm] = useState(() => crearFormDesdeSucursal(branch));
-  const { errors, validate, clearError, clearErrors, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [managers, setManagers] = useState([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
@@ -67,9 +60,6 @@ export default function BranchFormModal({
     create: "Nueva sucursal",
     edit: "Editar sucursal",
   };
-
-  const stateOptions = getStatesForCountry(form.country);
-  const municipalityOptions = getMunicipalitiesForState(form.country, form.state);
 
 
   useEffect(() => {
@@ -114,20 +104,6 @@ export default function BranchFormModal({
   };
 
 
-  const handleCountryChange = (event) => {
-    const value = event.target.value;
-    setForm((prev) => ({ ...prev, country: value, state: "", municipality: "" }));
-    clearErrors(["country", "state", "municipality"]);
-  };
-
-
-  const handleStateChange = (event) => {
-    const value = event.target.value;
-    setForm((prev) => ({ ...prev, state: value, municipality: "" }));
-    clearErrors(["state", "municipality"]);
-  };
-
-
   const handleManagerChange = (event) => {
     const value = event.target.value;
     const selected = managers.find((manager) => manager.id === value);
@@ -163,9 +139,6 @@ export default function BranchFormModal({
       ["name", !name, "El nombre es obligatorio."],
       ["managerId", form.managerMode === "new" ? !newManagerName : !form.managerId,
         form.managerMode === "new" ? "Escribe el nombre del nuevo jefe de sucursal." : "Selecciona un jefe de sucursal disponible."],
-      ["country", !form.country, "Selecciona un país."],
-      ["state", !form.state, "Selecciona un estado."],
-      ["municipality", !form.municipality, "Selecciona un municipio."],
     ]);
     if (!isValid) return;
 
@@ -176,9 +149,6 @@ export default function BranchFormModal({
         managerId: form.managerId,
         manager: form.managerMode === "new" ? newManagerName : form.manager,
         managerMode: form.managerMode,
-        country: form.country,
-        state: form.state,
-        municipality: form.municipality,
       });
       onClose();
     } finally {
@@ -254,42 +224,6 @@ export default function BranchFormModal({
               )}
             </>
           )}
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-
-          <div className="w-full">
-            <label htmlFor="opt-branch-country" className="mb-2 block text-sm font-medium text-text-primary">País</label>
-            <select id="opt-branch-country" value={form.country ?? ""} onChange={handleCountryChange} className={selectClass}>
-              {COUNTRIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
-            {errors.country && <p className="mt-1.5 text-sm text-error">{errors.country}</p>}
-          </div>
-
-          <div className="w-full">
-            <label htmlFor="opt-branch-state" className="mb-2 block text-sm font-medium text-text-primary">Estado</label>
-            <select id="opt-branch-state" value={form.state ?? ""} onChange={handleStateChange} className={selectClass}>
-              <option value="">Selecciona...</option>
-              {stateOptions.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-            </select>
-            {errors.state && <p className="mt-1.5 text-sm text-error">{errors.state}</p>}
-          </div>
-
-          <div className="w-full">
-            <label htmlFor="opt-branch-municipality" className="mb-2 block text-sm font-medium text-text-primary">Municipio</label>
-            <select
-              id="opt-branch-municipality"
-              value={form.municipality ?? ""}
-              onChange={set("municipality")}
-              disabled={!form.state}
-              className={selectClass}
-            >
-              <option value="">{form.state ? "Selecciona..." : "Primero elige un estado"}</option>
-              {municipalityOptions.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-            </select>
-            {errors.municipality && <p className="mt-1.5 text-sm text-error">{errors.municipality}</p>}
-          </div>
-
         </div>
 
         <div className="flex justify-end gap-3 pt-2">

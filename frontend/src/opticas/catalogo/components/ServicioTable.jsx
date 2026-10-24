@@ -1,4 +1,4 @@
-import { Pencil, Ban, RotateCcw } from "lucide-react";
+import { Eye, Pencil, Ban, RotateCcw } from "lucide-react";
 import DataTable from "../../../shared/components/DataTable";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import IconButton from "../../../shared/components/IconButton";
@@ -15,6 +15,7 @@ export default function ServicioTable({
   servicios = [],
   canEdit = false,
   canDeactivate = false,
+  onView,
   onEdit,
   onDeactivate,
   onActivate,
@@ -22,11 +23,10 @@ export default function ServicioTable({
 
   const columns = [
     { key: "displayId", label: "ID" },
-    { key: "code", label: "Código" },
-    { key: "name", label: "Nombre" },
+    { key: "name", label: "Nombre", render: (row) => <span className="font-bold text-text-primary">{row.name}</span> },
+    { key: "code", label: "SKU" },
     { key: "category", label: "Categoría", render: (row) => categoryLabel(row.category) },
     { key: "price", label: "Precio", render: (row) => currency(row.price) },
-    { key: "duration", label: "Duración", render: (row) => (row.duration ? `${row.duration} min` : "—") },
     {
       key: "status",
       label: "Estado",
@@ -37,6 +37,7 @@ export default function ServicioTable({
       label: "Acciones",
       render: (row) => (
         <div className="flex items-center gap-1">
+          <IconButton icon={Eye} label="Ver" onClick={() => onView(row)} />
           {canEdit && <IconButton icon={Pencil} label="Editar" onClick={() => onEdit(row)} />}
           {canDeactivate && (row.active ? (
             <IconButton icon={Ban} label="Dar de baja" variant="danger" onClick={() => onDeactivate(row)} />
@@ -49,7 +50,13 @@ export default function ServicioTable({
   ];
 
   return (
-    <DataTable columns={columns} data={servicios} emptyMessage="No hay servicios que coincidan con la búsqueda." />
+    <DataTable
+      columns={columns}
+      data={servicios}
+      emptyMessage="No hay servicios que coincidan con la búsqueda."
+      headerTextClassName="text-indigo-primary"
+      pageSize={10}
+    />
   );
 
 }

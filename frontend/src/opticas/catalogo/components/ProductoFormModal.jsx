@@ -2,12 +2,18 @@ import { useEffect, useState } from "react";
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
-import { PRODUCT_CATEGORIES, MEASUREMENT_UNITS, DEFAULT_TAX_RATE } from "../constants";
+import { onlyLetters, onlyDigits, alphanumericDash } from "../../../shared/utils/textInput";
+import { PRODUCT_CATEGORIES } from "../constants";
 
+
+const CODE_MAX = 10;
+const NAME_MAX = 40;
+const BRAND_MAX = 20;
+const NUMBER_MAX = 3;
 
 const EMPTY = {
-  code: "", barcode: "", name: "", category: "", brand: "",
-  description: "", salePrice: "", cost: "", tax: String(DEFAULT_TAX_RATE), unit: "pieza",
+  code: "", name: "", category: "", brand: "",
+  description: "", salePrice: "", stockMin: "",
 };
 
 function crearForm(producto) {
@@ -15,15 +21,12 @@ function crearForm(producto) {
   return {
     ...EMPTY,
     code: producto.code ?? "",
-    barcode: producto.barcode ?? "",
     name: producto.name ?? "",
     category: producto.category ?? "",
     brand: producto.brand ?? "",
     description: producto.description ?? "",
     salePrice: producto.salePrice ?? "",
-    cost: producto.cost ?? "",
-    tax: producto.tax ?? DEFAULT_TAX_RATE,
-    unit: producto.unit ?? "pieza",
+    stockMin: producto.stockMin ?? "",
   };
 }
 
@@ -42,8 +45,10 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
     setErrors({});
   }, [open, producto]);
 
-  const set = (field) => (event) => {
-    setForm((prev) => ({ ...prev, [field]: event.target.value }));
+  const set = (field, transform) => (event) => {
+    const raw = event.target.value;
+    const value = transform ? transform(raw) : raw;
+    setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
@@ -54,11 +59,10 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
     const code = String(form.code ?? "").trim();
     const name = String(form.name ?? "").trim();
 
-    if (!code) nextErrors.code = "El código es obligatorio.";
+    if (!code) nextErrors.code = "El SKU es obligatorio.";
     if (!name) nextErrors.name = "El nombre es obligatorio.";
     if (!form.category) nextErrors.category = "Selecciona una categoría.";
     if (form.salePrice === "" || Number(form.salePrice) < 0) nextErrors.salePrice = "Indica el precio de venta.";
-    if (form.cost === "" || Number(form.cost) < 0) nextErrors.cost = "Indica el costo.";
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -67,15 +71,12 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
       setSaving(true);
       await onSubmit({
         code,
-        barcode: String(form.barcode ?? "").trim(),
         name,
         category: form.category,
         brand: String(form.brand ?? "").trim(),
         description: String(form.description ?? "").trim(),
         salePrice: Number(form.salePrice),
-        cost: Number(form.cost),
-        tax: Number(form.tax) || 0,
-        unit: form.unit,
+        stockMin: form.stockMin === "" ? 0 : Number(form.stockMin),
       });
       onClose();
     } finally {
@@ -90,11 +91,9 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
       <form onSubmit={handleSubmit} className="space-y-4">
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Código / SKU" value={form.code} onChange={set("code")} error={errors.code} />
-          <Input label="Código de barras" value={form.barcode} onChange={set("barcode")} />
+          <Input label="SKU" value={form.code} onChange={set("code", (v) => alphanumericDash(v, CODE_MAX))} error={errors.code} />
+          <Input label="Nombre" value={form.name} onChange={set("name", (v) => onlyLetters(v, NAME_MAX))} error={errors.name} />
         </div>
-
-        <Input label="Nombre" value={form.name} onChange={set("name")} error={errors.name} />
 
         <div className="w-full">
           <label htmlFor="prod-desc" className="mb-2 block text-sm font-medium text-text-primary">Descripción</label>
@@ -110,22 +109,12 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
             </select>
             {errors.category && <p className="mt-1.5 text-sm text-error">{errors.category}</p>}
           </div>
-          <Input label="Marca" value={form.brand} onChange={set("brand")} />
+          <Input label="Marca" value={form.brand} onChange={set("brand", (v) => onlyLetters(v, BRAND_MAX))} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Precio de venta" type="number" min="0" step="0.01" value={form.salePrice} onChange={set("salePrice")} error={errors.salePrice} />
-          <Input label="Costo" type="number" min="0" step="0.01" value={form.cost} onChange={set("cost")} error={errors.cost} />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Impuesto (%)" type="number" min="0" step="0.01" value={form.tax} onChange={set("tax")} />
-          <div className="w-full">
-            <label htmlFor="prod-unit" className="mb-2 block text-sm font-medium text-text-primary">Unidad de medida</label>
-            <select id="prod-unit" value={form.unit} onChange={set("unit")} className={selectClass}>
-              {MEASUREMENT_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
-            </select>
-          </div>
+          <Input label="Precio de venta" value={form.salePrice} onChange={set("salePrice", (v) => onlyDigits(v, NUMBER_MAX))} error={errors.salePrice} placeholder="Máx. 999" />
+          <Input label="Stock mínimo" value={form.stockMin} onChange={set("stockMin", (v) => onlyDigits(v, NUMBER_MAX))} placeholder="Máx. 999" />
         </div>
 
         <div className="flex justify-end gap-3 pt-2">

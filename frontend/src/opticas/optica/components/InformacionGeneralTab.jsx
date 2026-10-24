@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { Building2, FileText, Phone, Mail, User } from "lucide-react";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
 import { isValidEmail, isValidMexicanPhone } from "../../../shared/utils/validators";
 import { onlyLetters, onlyDigits } from "../../../shared/utils/textInput";
+import { OpticaCardHeader, OpticaFieldChip, OpticaCardDecoration } from "./OpticaCardParts";
 
 
 const NAME_MAX = 50;
@@ -18,15 +20,20 @@ export default function InformacionGeneralTab({ info, canManage, onSave, onCance
 
   if (!canManage) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-surface p-6">
-        <p className="mb-4 text-sm text-text-secondary">Datos básicos que identifican a tu empresa.</p>
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <Field label="Nombre comercial" value={info.nombreComercial} />
-          <Field label="Razón social" value={info.razonSocial} />
-          <Field label="Teléfono general" value={info.telefono} />
-          <Field label="Correo general" value={info.correo} />
-          <Field label="Responsable sanitario" value={info.responsableSanitario} optional />
-        </dl>
+      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6">
+        <OpticaCardDecoration />
+        <OpticaCardHeader icon={Building2} title="Información de la empresa" description="Datos básicos que identifican a tu empresa." tone="blue" />
+        <div className="relative grid gap-5 sm:grid-cols-2 sm:gap-x-8">
+          <div className="space-y-5 sm:border-r sm:border-gray-100 sm:pr-8">
+            <OpticaFieldChip icon={Building2} label="Nombre comercial" value={info.nombreComercial} tone="blue" />
+            <OpticaFieldChip icon={Phone} label="Teléfono general" value={info.telefono} tone="teal" />
+            <OpticaFieldChip icon={User} label="Responsable sanitario" value={info.responsableSanitario} optional tone="purple" />
+          </div>
+          <div className="space-y-5">
+            <OpticaFieldChip icon={FileText} label="Razón social" value={info.razonSocial} tone="amber" />
+            <OpticaFieldChip icon={Mail} label="Correo general" value={info.correo} tone="rose" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -60,11 +67,11 @@ export default function InformacionGeneralTab({ info, canManage, onSave, onCance
 
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-surface p-6">
+    <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6">
+      <OpticaCardDecoration />
+      <OpticaCardHeader icon={Building2} title="Información de la empresa" description="Datos básicos que identifican a tu empresa." />
 
-      <p className="mb-4 text-sm text-text-secondary">Datos básicos que identifican a tu empresa.</p>
-
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="relative grid gap-4 sm:grid-cols-2">
         <Input label="Nombre comercial *" value={form.nombreComercial ?? ""} onChange={set("nombreComercial", (v) => onlyLetters(v, NAME_MAX))} error={errors.nombreComercial} />
         <Input label="Razón social *" value={form.razonSocial ?? ""} onChange={set("razonSocial", (v) => onlyLetters(v, NAME_MAX))} error={errors.razonSocial} />
         <Input label="Teléfono general" value={form.telefono ?? ""} onChange={set("telefono", (v) => onlyDigits(v, 10))} error={errors.telefono} placeholder="10 dígitos" />
@@ -72,7 +79,7 @@ export default function InformacionGeneralTab({ info, canManage, onSave, onCance
         <Input label="Responsable sanitario (Opcional)" value={form.responsableSanitario ?? ""} onChange={set("responsableSanitario", (v) => onlyLetters(v, NAME_MAX))} />
       </div>
 
-      <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+      <div className="relative mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
         <Button type="button" variant="outline" onClick={() => { setForm(info); onCancel?.(); }}>Cancelar</Button>
         <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</Button>
       </div>
@@ -80,17 +87,4 @@ export default function InformacionGeneralTab({ info, canManage, onSave, onCance
     </form>
   );
 
-}
-
-
-function Field({ label, value, optional }) {
-  return (
-    <div>
-      <dt className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-text-secondary">
-        {label}
-        {optional && <span className="rounded-full bg-background px-1.5 py-0.5 text-[10px] font-medium normal-case text-text-secondary">Opcional</span>}
-      </dt>
-      <dd className="mt-1 text-sm text-text-primary">{value || "Sin registrar"}</dd>
-    </div>
-  );
 }

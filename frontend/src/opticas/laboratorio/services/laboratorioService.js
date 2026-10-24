@@ -31,6 +31,7 @@ function mapOrder(raw) {
         }))
       : [],
     receta: mapReceta(raw.receta),
+    workSubtype: raw.tipo_trabajo ?? raw.workSubtype ?? "",
     notes: raw.observaciones ?? raw.notes ?? "",
     status: raw.estado ?? raw.status ?? "pendiente",
     createdBy: raw.creado_por ?? raw.createdBy ?? null,
@@ -41,7 +42,7 @@ function mapOrder(raw) {
 
 export async function listOrders(branchId) {
   const { ordenes } = await httpClient.get(
-    `/api/opticas/laboratorio?sucursalId=${branchId}`
+    `/api/opticas/laboratorio?sucursalId=${branchId ?? ""}`
   );
   return (ordenes ?? []).map(mapOrder);
 }
@@ -58,6 +59,8 @@ export async function createOrder(payload) {
     sucursalId: payload.branchId,
     pacienteId: payload.patientId,
     ventaId: payload.saleId,
+    creadoPor: payload.createdBy,
+    tipoTrabajo: payload.workSubtype,
     items: payload.items.map((item) => ({
       productoId: item.productId,
       codigo: item.code,

@@ -15,8 +15,14 @@ import { useAuth } from "../context/AuthContext";
  * `alwaysLoad: true` carga la lista de sucursales aunque el usuario no sea
  * dueno (util cuando una pagina necesita el nombre de la sucursal fija de
  * un gerente/empleado, no solo su id).
+ *
+ * `autoSelectFirst: false` evita que, al cargar la lista, se elija la
+ * primera sucursal automaticamente - la pagina se queda en "" (Todas)
+ * hasta que el dueno elija una. Usalo en paginas donde "Todas las
+ * sucursales" es una opcion valida por defecto (ej. Ventas, Catalogo),
+ * no en paginas que exigen una sucursal concreta (ej. Nueva venta).
  */
-export default function useBranchScope({ listBranches, ownerRoles = [], alwaysLoad = false }) {
+export default function useBranchScope({ listBranches, ownerRoles = [], alwaysLoad = false, autoSelectFirst = true }) {
 
   const { user: currentUser } = useAuth();
   const isOwner = ownerRoles.includes(currentUser?.role);
@@ -41,7 +47,9 @@ export default function useBranchScope({ listBranches, ownerRoles = [], alwaysLo
         if (!active) return;
         const list = Array.isArray(data) ? data : [];
         setBranches(list);
-        setSelectedBranch((prev) => prev || list[0]?.id || "");
+        if (autoSelectFirst) {
+          setSelectedBranch((prev) => prev || list[0]?.id || "");
+        }
       } catch (error) {
         console.error("Error al cargar sucursales:", error);
         if (active) setBranches([]);

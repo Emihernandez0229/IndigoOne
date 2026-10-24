@@ -675,24 +675,52 @@ app.post("/api/indigo/laboratorio/:id/detalles", (req, res) => {
 });
 
 let indigoInventario = [
-  { id: "inv-1", displayId: 1, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", gender: "hombre", measurements: "56-17-140", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 48, stockReserved: 6, stockMin: 10, cost: 450, active: true, photos: [
+  { id: "inv-1", displayId: 1, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", shape: "Aviador", frameMaterial: "Metal", lensCompatibility: ["Monofocal", "Progresiva"], gender: "hombre", measurements: "56-17-140", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 48, stockReserved: 6, stockMin: 10, cost: 450, active: true, photos: [
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23c9a15a'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='20' text-anchor='middle'%3EFoto 1%3C/text%3E%3C/svg%3E",
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='20' text-anchor='middle'%3EFoto 2%3C/text%3E%3C/svg%3E",
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%234f46e5'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='20' text-anchor='middle'%3EFoto 3%3C/text%3E%3C/svg%3E"
   ] },
-  { id: "inv-1b", displayId: 2, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", gender: "hombre", measurements: "56-17-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 22, stockReserved: 2, stockMin: 10, cost: 450, active: true, photos: [] },
-  { id: "inv-1c", displayId: 3, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", gender: "hombre", measurements: "56-17-140", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 8, stockReserved: 0, stockMin: 10, cost: 450, active: true, photos: [] },
-  { id: "inv-2", displayId: 4, code: "ARM-002", model: "Wayfarer Mini", description: "Armazón de acetato compacto, ideal para rostros pequeños.", color: "Negro", type: "armazones", material: "JD Sport", gender: "unisex", measurements: "50-19-135", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 3, stockReserved: 1, stockMin: 5, cost: 380, active: true, photos: [] },
-  { id: "inv-3", displayId: 5, code: "ARM-003", model: "Round Vintage", description: "Armazón redondo de inspiración vintage.", color: "Carey", type: "armazones", material: "Cactus", gender: "mujer", measurements: "48-20-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 0, stockReserved: 0, stockMin: 4, cost: 500, active: true, photos: [] },
-  { id: "inv-4", displayId: 6, code: "MIC-001", model: "Progresiva HD", description: "Mica progresiva de alta definición.", color: "Transparente", type: "micas", material: "Progresivos Superfit", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 14, stockReserved: 4, stockMin: 8, cost: 900, active: true, photos: [] },
+  { id: "inv-1b", displayId: 2, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", shape: "Aviador", frameMaterial: "Metal", lensCompatibility: ["Monofocal", "Progresiva"], gender: "hombre", measurements: "56-17-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 22, stockReserved: 2, stockMin: 10, cost: 450, active: true, photos: [] },
+  { id: "inv-1c", displayId: 3, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", shape: "Aviador", frameMaterial: "Metal", lensCompatibility: ["Monofocal", "Progresiva"], gender: "hombre", measurements: "56-17-140", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 8, stockReserved: 0, stockMin: 10, cost: 450, active: true, photos: [] },
+  { id: "inv-2", displayId: 4, code: "ARM-002", model: "Wayfarer Mini", description: "Armazón de acetato compacto, ideal para rostros pequeños.", color: "Negro", type: "armazones", material: "JD Sport", shape: "Wayfarer", frameMaterial: "Acetato", lensCompatibility: ["Monofocal"], gender: "unisex", measurements: "50-19-135", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 3, stockReserved: 1, stockMin: 5, cost: 380, active: true, photos: [] },
+  { id: "inv-3", displayId: 5, code: "ARM-003", model: "Round Vintage", description: "Armazón redondo de inspiración vintage.", color: "Carey", type: "armazones", material: "Cactus", shape: "Redondo", frameMaterial: "Acetato", lensCompatibility: ["Monofocal", "Progresiva"], gender: "mujer", measurements: "48-20-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 0, stockReserved: 0, stockMin: 4, cost: 500, active: true, photos: [] },
+  { id: "inv-4", displayId: 6, code: "MIC-001", model: "Progresiva HD", description: "Visión de lejos, intermedia y de cerca sin línea visible.", color: "Transparente", type: "micas", material: "Progresivos Superfit", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 14, stockReserved: 4, stockMin: 8, cost: 900, active: true, photos: [] },
+  { id: "inv-4b", displayId: 15, code: "MIC-002", model: "Monofocal", description: "Un solo campo de visión, para lejos o para cerca.", color: "Transparente", type: "micas", material: "Photoflux", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 30, stockReserved: 0, stockMin: 5, cost: 250, active: true, photos: [] },
+  { id: "inv-4c", displayId: 16, code: "MIC-003", model: "Bifocal", description: "Dos campos de visión, con segmento visible.", color: "Transparente", type: "micas", material: "Resistant Flex", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 20, stockReserved: 0, stockMin: 5, cost: 400, active: true, photos: [] },
   { id: "inv-5", displayId: 7, code: "ACC-001", model: "Cordón para lentes ajustable", description: "Cordón ajustable para sujetar lentes.", color: "Negro", type: "accesorios", material: "Nylon", gender: "unisex", measurements: "70cm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 120, stockReserved: 10, stockMin: 20, cost: 35, active: true, photos: [] },
   { id: "inv-5b", displayId: 8, code: "ACC-001", model: "Cordón para lentes ajustable", description: "Cordón ajustable para sujetar lentes.", color: "Negro", type: "accesorios", material: "Nylon", gender: "unisex", measurements: "70cm", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 95, stockReserved: 5, stockMin: 20, cost: 35, active: true, photos: [] },
   { id: "inv-6", displayId: 9, code: "ACC-002", model: "Paño de microfibra", description: "Paño de microfibra para limpieza de lentes.", color: "Azul", type: "accesorios", material: "Microfibra", gender: "unisex", measurements: "15x15 cm", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 260, stockReserved: 0, stockMin: 30, cost: 18, active: true, photos: [] },
   { id: "inv-7", displayId: 10, code: "EST-001", model: "Estuche rígido con cierre", description: "Estuche rígido con cierre para armazones.", color: "Negro", type: "estuches", material: "EVA", gender: "unisex", measurements: "16x6x5 cm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 85, stockReserved: 8, stockMin: 15, cost: 60, active: true, photos: [] },
   { id: "inv-7b", displayId: 11, code: "EST-001", model: "Estuche rígido con cierre", description: "Estuche rígido con cierre para armazones.", color: "Negro", type: "estuches", material: "EVA", gender: "unisex", measurements: "16x6x5 cm", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 40, stockReserved: 2, stockMin: 15, cost: 60, active: true, photos: [] },
   { id: "inv-8", displayId: 12, code: "OTR-001", model: "Kit de destornilladores para lentes", description: "Kit de mini destornilladores para ajuste de armazones.", color: "Gris", type: "otros", material: "Metal", gender: "unisex", measurements: "N/A", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 18, stockReserved: 0, stockMin: 5, cost: 45, active: true, photos: [] },
-  { id: "inv-9", displayId: 13, code: "ARM-004", model: "Armazón al aire titanio", description: "Armazón al aire de titanio, ultraligero.", color: "Plata", type: "armazones", material: "Friend", gender: "hombre", measurements: "54-18-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 0, stockReserved: 0, stockMin: 6, cost: 1150, active: true, photos: [] },
-  { id: "inv-10", displayId: 14, code: "ARM-005", model: "Armazón infantil flexible", description: "Armazón flexible resistente para niños.", color: "Azul", type: "armazones", material: "Toki Kids", gender: "unisex", measurements: "44-16-125", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 6, stockReserved: 1, stockMin: 8, cost: 420, active: true, photos: [] },
+  { id: "inv-9", displayId: 13, code: "ARM-004", model: "Armazón al aire titanio", description: "Armazón al aire de titanio, ultraligero.", color: "Plata", type: "armazones", material: "Friend", shape: "Al aire", frameMaterial: "Titanio", lensCompatibility: ["Monofocal", "Progresiva", "Bifocal"], gender: "hombre", measurements: "54-18-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 0, stockReserved: 0, stockMin: 6, cost: 1150, active: true, photos: [] },
+  { id: "inv-10", displayId: 14, code: "ARM-005", model: "Armazón infantil flexible", description: "Armazón flexible resistente para niños.", color: "Azul", type: "armazones", material: "Toki Kids", shape: "Rectangular", frameMaterial: "TR90", lensCompatibility: ["Monofocal"], gender: "unisex", measurements: "44-16-125", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 6, stockReserved: 1, stockMin: 8, cost: 420, active: true, photos: [] },
+
+  // --- 20 productos extra para probar el catálogo con más volumen ---
+  { id: "inv-11", displayId: 17, code: "ARM-006", model: "Clubmaster Retro", description: "Armazón estilo clubmaster con ceja marcada.", color: "Carey", type: "armazones", material: "Eclipse", shape: "Clubmaster", frameMaterial: "Acetato", lensCompatibility: ["Monofocal", "Progresiva"], gender: "hombre", measurements: "52-18-145", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 15, stockReserved: 2, stockMin: 6, cost: 410, active: true, photos: [] },
+  { id: "inv-12", displayId: 18, code: "ARM-007", model: "Cat Eye Elegance", description: "Armazón cat eye con detalles metálicos.", color: "Rosa", type: "armazones", material: "Mar", shape: "Cat eye", frameMaterial: "Acetato", lensCompatibility: ["Monofocal"], gender: "mujer", measurements: "53-16-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 9, stockReserved: 1, stockMin: 5, cost: 530, active: true, photos: [] },
+  { id: "inv-13", displayId: 19, code: "ARM-008", model: "Square Bold", description: "Armazón cuadrado de pasta gruesa.", color: "Negro mate", type: "armazones", material: "Fashion", shape: "Cuadrado", frameMaterial: "Acetato", lensCompatibility: ["Monofocal", "Progresiva"], gender: "unisex", measurements: "54-19-145", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 2, stockReserved: 0, stockMin: 5, cost: 390, active: true, photos: [] },
+  { id: "inv-14", displayId: 20, code: "ARM-009", model: "Oversized Chic", description: "Armazón oversized de moda.", color: "Habano", type: "armazones", material: "Life", shape: "Oversized", frameMaterial: "Acetato", lensCompatibility: ["Monofocal"], gender: "mujer", measurements: "56-17-145", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 0, stockReserved: 0, stockMin: 4, cost: 470, active: true, photos: [] },
+  { id: "inv-15", displayId: 21, code: "ARM-010", model: "Sport Flex", description: "Armazón deportivo flexible resistente a impactos.", color: "Azul marino", type: "armazones", material: "JM", shape: "Deportivo", frameMaterial: "TR90", lensCompatibility: ["Monofocal", "Progresiva"], gender: "hombre", measurements: "55-18-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 20, stockReserved: 3, stockMin: 8, cost: 360, active: true, photos: [] },
+  { id: "inv-16", displayId: 22, code: "ARM-011", model: "Vintage Panto", description: "Armazón panto de inspiración vintage.", color: "Dorado", type: "armazones", material: "OKI Eyewear", shape: "Panto", frameMaterial: "Metal", lensCompatibility: ["Monofocal", "Progresiva"], gender: "unisex", measurements: "49-21-140", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 5, stockReserved: 0, stockMin: 6, cost: 480, active: true, photos: [] },
+  { id: "inv-17", displayId: 23, code: "ARM-012", model: "Browline Classic", description: "Armazón browline café con dorado.", color: "Café", type: "armazones", material: "Cactus", shape: "Browline", frameMaterial: "Metal", lensCompatibility: ["Monofocal"], gender: "hombre", measurements: "51-20-145", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 11, stockReserved: 1, stockMin: 5, cost: 420, active: true, photos: [] },
+  { id: "inv-18", displayId: 24, code: "ARM-013", model: "Kids Round", description: "Armazón redondo infantil, ligero y resistente.", color: "Verde", type: "armazones", material: "Toki Kids", shape: "Redondo", frameMaterial: "TR90", lensCompatibility: ["Monofocal"], gender: "unisex", measurements: "46-17-125", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 18, stockReserved: 2, stockMin: 8, cost: 300, active: true, photos: [] },
+  { id: "inv-19", displayId: 25, code: "ARM-014", model: "Titanium Light", description: "Armazón de titanio ultraligero para uso diario.", color: "Gris", type: "armazones", material: "Friend", shape: "Rectangular", frameMaterial: "Titanio", lensCompatibility: ["Monofocal", "Progresiva", "Bifocal"], gender: "hombre", measurements: "55-17-140", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 3, stockReserved: 0, stockMin: 5, cost: 980, active: true, photos: [] },
+  { id: "inv-20", displayId: 26, code: "ARM-015", model: "Minimal Rimless", description: "Armazón al aire minimalista.", color: "Plata", type: "armazones", material: "Eclipse", shape: "Al aire", frameMaterial: "Titanio", lensCompatibility: ["Monofocal", "Progresiva"], gender: "unisex", measurements: "54-18-140", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 7, stockReserved: 0, stockMin: 6, cost: 650, active: true, photos: [] },
+
+  { id: "inv-21", displayId: 27, code: "MIC-004", model: "Ocupacional", description: "Mica de uso ocupacional, enfocada a distancia intermedia.", color: "Transparente", type: "micas", material: "Photoflux", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 25, stockReserved: 0, stockMin: 8, cost: 350, active: true, photos: [] },
+  { id: "inv-22", displayId: 28, code: "MIC-005", model: "Polarizada", description: "Mica polarizada, reduce el reflejo de luz intensa.", color: "Gris", type: "micas", material: "Resistant Flex", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 15, stockReserved: 0, stockMin: 5, cost: 600, active: true, photos: [] },
+  { id: "inv-23", displayId: 29, code: "MIC-006", model: "Fotocromática", description: "Mica que se oscurece automáticamente con la luz solar.", color: "Transparente", type: "micas", material: "Antibue Premium", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 10, stockReserved: 0, stockMin: 5, cost: 750, active: true, photos: [] },
+
+  { id: "inv-24", displayId: 30, code: "ACC-003", model: "Spray limpiador de lentes", description: "Spray antiempañante y limpiador para lentes.", color: "Transparente", type: "accesorios", material: "Antiempañante", gender: "unisex", measurements: "60ml", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 150, stockReserved: 10, stockMin: 30, cost: 55, active: true, photos: [] },
+  { id: "inv-25", displayId: 31, code: "ACC-004", model: "Cadena para lentes", description: "Cadena decorativa para sujetar lentes.", color: "Dorado", type: "accesorios", material: "Metal", gender: "unisex", measurements: "75cm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 60, stockReserved: 5, stockMin: 15, cost: 90, active: true, photos: [] },
+  { id: "inv-26", displayId: 32, code: "ACC-005", model: "Funda de microfibra", description: "Funda suave de microfibra para transportar lentes.", color: "Gris", type: "accesorios", material: "Microfibra", gender: "unisex", measurements: "17x8 cm", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 80, stockReserved: 0, stockMin: 20, cost: 25, active: true, photos: [] },
+
+  { id: "inv-27", displayId: 33, code: "EST-002", model: "Estuche semirrígido", description: "Estuche semirrígido con broche magnético.", color: "Café", type: "estuches", material: "EVA", gender: "unisex", measurements: "16x6x5 cm", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 50, stockReserved: 3, stockMin: 15, cost: 70, active: true, photos: [] },
+  { id: "inv-28", displayId: 34, code: "EST-003", model: "Estuche de viaje compacto", description: "Estuche compacto plegable para viaje.", color: "Azul", type: "estuches", material: "Nylon", gender: "unisex", measurements: "14x5x4 cm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 30, stockReserved: 0, stockMin: 10, cost: 95, active: true, photos: [] },
+
+  { id: "inv-29", displayId: 35, code: "OTR-002", model: "Kit de limpieza completo", description: "Kit con paño, spray y destornillador de ajuste.", color: "Gris", type: "otros", material: "Mixto", gender: "unisex", measurements: "N/A", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 40, stockReserved: 0, stockMin: 10, cost: 120, active: true, photos: [] },
+  { id: "inv-30", displayId: 36, code: "OTR-003", model: "Soporte exhibidor de mostrador", description: "Soporte para exhibir armazones en mostrador.", color: "Transparente", type: "otros", material: "Acrílico", gender: "unisex", measurements: "20x15 cm", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 10, stockReserved: 0, stockMin: 3, cost: 200, active: true, photos: [] },
 ];
 
 let opticaSucursales = [
@@ -721,6 +749,16 @@ let opticaUsuarios = [
   { id: "u-odue-1", displayId: 1, name: "Sofia", username: "OPTDUENO1", role: "optica:dueno", branchId: null, branchName: "Sin sucursal", status: "active", phone: "", email: "sofia@optica.mx" },
   { id: "u-oenc-1", displayId: 2, name: "Marta", username: "OPTGTE1", role: "optica:encargado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611112223", email: "marta@optica.mx" },
   { id: "u-oemp-1", displayId: 3, name: "Luis", username: "OPTEMP1", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114444", email: "luis@optica.mx" },
+  { id: "u-oemp-2", displayId: 4, name: "Ana Torres", username: "OPTEMP2", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114445", email: "ana.torres@optica.mx" },
+  { id: "u-oemp-3", displayId: 5, name: "Jorge Ramírez", username: "OPTEMP3", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114446", email: "jorge.ramirez@optica.mx" },
+  { id: "u-oemp-4", displayId: 6, name: "Paola Méndez", username: "OPTEMP4", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114447", email: "paola.mendez@optica.mx" },
+  { id: "u-oemp-5", displayId: 7, name: "Diego Castillo", username: "OPTEMP5", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "inactive", phone: "9611114448", email: "diego.castillo@optica.mx" },
+  { id: "u-oemp-6", displayId: 8, name: "Valeria Nuñez", username: "OPTEMP6", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114449", email: "valeria.nunez@optica.mx" },
+  { id: "u-oemp-7", displayId: 9, name: "Hugo Pacheco", username: "OPTEMP7", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114450", email: "hugo.pacheco@optica.mx" },
+  { id: "u-oenc-2", displayId: 10, name: "Renata Solís", username: "OPTGTE2", role: "optica:encargado", branchId: "osuc-2", branchName: "Optica Norte", status: "active", phone: "9611114451", email: "renata.solis@optica.mx" },
+  { id: "u-oemp-8", displayId: 11, name: "Iván Cordero", username: "OPTEMP8", role: "optica:empleado", branchId: "osuc-2", branchName: "Optica Norte", status: "active", phone: "9611114452", email: "ivan.cordero@optica.mx" },
+  { id: "u-oemp-9", displayId: 12, name: "Fernanda Ibarra", username: "OPTEMP9", role: "optica:empleado", branchId: "osuc-2", branchName: "Optica Norte", status: "active", phone: "9611114453", email: "fernanda.ibarra@optica.mx" },
+  { id: "u-oemp-10", displayId: 13, name: "Ricardo Villa", username: "OPTEMP10", role: "optica:empleado", branchId: "osuc-2", branchName: "Optica Norte", status: "inactive", phone: "9611114454", email: "ricardo.villa@optica.mx" },
 ];
 
 let opticaInventario = [
@@ -728,6 +766,8 @@ let opticaInventario = [
   { id: "oinv-1b", displayId: 2, code: "OPT-001", model: "Redonda Slim", description: "Armazón redondo delgado, línea premium.", color: "Azul", type: "armazones", material: "Life", gender: "mujer", measurements: "50-18-138", branchId: "osuc-2", branchName: "Optica Norte", stockAvailable: 3, stockReserved: 0, stockMin: 4, cost: 620, active: true, photos: [] },
   { id: "oinv-2", displayId: 3, code: "OPT-002", model: "Clasica", description: "Armazón clásico de pasta.", color: "Café", type: "armazones", material: "Fashion", gender: "unisex", measurements: "52-19-140", branchId: "osuc-1", branchName: "Optica Centro", stockAvailable: 0, stockReserved: 0, stockMin: 3, cost: 300, active: true, photos: [] },
   { id: "oinv-3", displayId: 4, code: "MIC-OPT-001", model: "Antireflejante Plus", description: "Mica con tratamiento antirreflejante.", color: "Transparente", type: "micas", material: "Resistant Flex", gender: "unisex", measurements: "65mm", branchId: "osuc-1", branchName: "Optica Centro", stockAvailable: 9, stockReserved: 2, stockMin: 5, cost: 480, active: true, photos: [] },
+  { id: "oinv-4", displayId: 5, code: "EST-OPT-001", model: "Estuche Rígido", description: "Estuche rígido con forro interior.", color: "Negro", type: "estuches", material: "Estándar", gender: "unisex", measurements: "16x6cm", branchId: "osuc-1", branchName: "Optica Centro", stockAvailable: 12, stockReserved: 0, stockMin: 5, cost: 85, active: true, photos: [] },
+  { id: "oinv-5", displayId: 6, code: "ACC-OPT-001", model: "Cordón Deportivo", description: "Cordón ajustable para armazones.", color: "Negro", type: "accesorios", material: "Estándar", gender: "unisex", measurements: "70cm", branchId: "osuc-2", branchName: "Optica Norte", stockAvailable: 20, stockReserved: 0, stockMin: 8, cost: 45, active: true, photos: [] },
 ];
 
 // =========================================================
@@ -1376,6 +1416,16 @@ let opticaPacientes = [
   { id: "opac-1", sucursal_id: "osuc-1", nombre: "JUAN PÉREZ", telefono: "9611234567", email: "juan@example.com", fecha_nacimiento: "1990-05-20", created_at: "2026-01-10T10:00:00.000Z", updated_at: "2026-01-10T10:00:00.000Z", active: true },
   { id: "opac-2", sucursal_id: "osuc-1", nombre: "MARÍA LÓPEZ", telefono: "9619876543", email: "maria@example.com", fecha_nacimiento: "1985-11-02", created_at: "2026-02-05T10:00:00.000Z", updated_at: "2026-02-05T10:00:00.000Z", active: true },
   { id: "opac-3", sucursal_id: "osuc-2", nombre: "CARLOS RUIZ", telefono: "9615551234", email: null, fecha_nacimiento: null, created_at: "2026-03-01T10:00:00.000Z", updated_at: "2026-03-01T10:00:00.000Z", active: true },
+  { id: "opac-4", sucursal_id: "osuc-1", nombre: "LAURA HERNÁNDEZ", telefono: "9611234568", email: "laura.hernandez@example.com", fecha_nacimiento: "1992-03-14", created_at: "2026-02-10T10:00:00.000Z", updated_at: "2026-02-10T10:00:00.000Z", active: true },
+  { id: "opac-5", sucursal_id: "osuc-1", nombre: "PEDRO GÓMEZ", telefono: "9611234569", email: "pedro.gomez@example.com", fecha_nacimiento: "1978-07-22", created_at: "2026-02-12T10:00:00.000Z", updated_at: "2026-02-12T10:00:00.000Z", active: true },
+  { id: "opac-6", sucursal_id: "osuc-1", nombre: "SOFÍA RAMÍREZ", telefono: "9611234570", email: "sofia.ramirez@example.com", fecha_nacimiento: "1999-01-30", created_at: "2026-02-15T10:00:00.000Z", updated_at: "2026-02-15T10:00:00.000Z", active: true },
+  { id: "opac-7", sucursal_id: "osuc-1", nombre: "MIGUEL TORRES", telefono: "9611234571", email: null, fecha_nacimiento: "1995-09-18", created_at: "2026-02-18T10:00:00.000Z", updated_at: "2026-02-18T10:00:00.000Z", active: false },
+  { id: "opac-8", sucursal_id: "osuc-1", nombre: "ANDREA CASTRO", telefono: "9611234572", email: "andrea.castro@example.com", fecha_nacimiento: "1988-12-05", created_at: "2026-02-20T10:00:00.000Z", updated_at: "2026-02-20T10:00:00.000Z", active: true },
+  { id: "opac-9", sucursal_id: "osuc-1", nombre: "ROBERTO DÍAZ", telefono: "9611234573", email: "roberto.diaz@example.com", fecha_nacimiento: "1983-04-11", created_at: "2026-02-22T10:00:00.000Z", updated_at: "2026-02-22T10:00:00.000Z", active: true },
+  { id: "opac-10", sucursal_id: "osuc-2", nombre: "CLAUDIA VARGAS", telefono: "9615551235", email: "claudia.vargas@example.com", fecha_nacimiento: "1991-06-25", created_at: "2026-02-24T10:00:00.000Z", updated_at: "2026-02-24T10:00:00.000Z", active: true },
+  { id: "opac-11", sucursal_id: "osuc-2", nombre: "FERNANDO MORALES", telefono: "9615551236", email: "fernando.morales@example.com", fecha_nacimiento: "1987-10-09", created_at: "2026-02-26T10:00:00.000Z", updated_at: "2026-02-26T10:00:00.000Z", active: true },
+  { id: "opac-12", sucursal_id: "osuc-2", nombre: "PATRICIA JIMÉNEZ", telefono: "9615551237", email: null, fecha_nacimiento: "1996-02-17", created_at: "2026-02-27T10:00:00.000Z", updated_at: "2026-02-27T10:00:00.000Z", active: true },
+  { id: "opac-13", sucursal_id: "osuc-2", nombre: "ALEJANDRO SANTOS", telefono: "9615551238", email: "alejandro.santos@example.com", fecha_nacimiento: "1980-08-03", created_at: "2026-02-28T10:00:00.000Z", updated_at: "2026-02-28T10:00:00.000Z", active: false },
 ];
 
 // Imita el contrato real de /api/opticas/pacientes: respuestas envueltas
@@ -1412,7 +1462,7 @@ app.post("/api/opticas/pacientes", (req, res) => {
   const body = req.body;
   const paciente = {
     id: newId(),
-    sucursal_id: body.sucursalId || "osuc-1",
+    sucursal_id: body.sucursalId || null,
     nombre: String(body.nombre || "").toUpperCase(),
     telefono: body.telefono || null,
     email: body.email || null,
@@ -1470,6 +1520,16 @@ let opticaCitas = [
   { id: "ocit-6", sucursal_id: "osuc-1", cliente_final_id: "opac-1", fecha_hora: daysFromNow(-3, 17), motivo: "Consulta de seguimiento", estado: "no_asistio", creado_por: "u-oemp-1", created_at: daysFromNow(-7) },
   { id: "ocit-4", sucursal_id: "osuc-2", cliente_final_id: "opac-3", fecha_hora: daysFromNow(3, 16), motivo: "Consulta inicial", estado: "programada", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
   { id: "ocit-7", sucursal_id: "osuc-2", cliente_final_id: "opac-3", fecha_hora: daysFromNow(4, 9), motivo: "Adaptación de lentes de contacto", estado: "confirmada", creado_por: "u-odue-1", created_at: daysFromNow(-2) },
+  { id: "ocit-8", sucursal_id: "osuc-1", cliente_final_id: "opac-4", fecha_hora: daysFromNow(5, 10), motivo: "Revisión anual", estado: "programada", creado_por: "u-oenc-1", created_at: daysFromNow(-1) },
+  { id: "ocit-9", sucursal_id: "osuc-1", cliente_final_id: "opac-5", fecha_hora: daysFromNow(6, 11), motivo: "Ajuste de armazón", estado: "programada", creado_por: "u-oemp-1", created_at: daysFromNow(-1) },
+  { id: "ocit-10", sucursal_id: "osuc-1", cliente_final_id: "opac-6", fecha_hora: daysFromNow(-4, 10), motivo: "Entrega de lentes", estado: "atendida", creado_por: "u-oenc-1", created_at: daysFromNow(-8) },
+  { id: "ocit-11", sucursal_id: "osuc-1", cliente_final_id: "opac-7", fecha_hora: daysFromNow(-5, 9), motivo: "Consulta inicial", estado: "no_asistio", creado_por: "u-oemp-1", created_at: daysFromNow(-9) },
+  { id: "ocit-12", sucursal_id: "osuc-1", cliente_final_id: "opac-8", fecha_hora: daysFromNow(7, 12), motivo: "Revisión de graduación", estado: "confirmada", creado_por: "u-oenc-1", created_at: daysFromNow(-1) },
+  { id: "ocit-13", sucursal_id: "osuc-1", cliente_final_id: "opac-9", fecha_hora: daysFromNow(-6, 16), motivo: "Reparación de armazón", estado: "cancelada", creado_por: "u-oemp-1", created_at: daysFromNow(-10) },
+  { id: "ocit-14", sucursal_id: "osuc-2", cliente_final_id: "opac-10", fecha_hora: daysFromNow(8, 10), motivo: "Consulta inicial", estado: "programada", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
+  { id: "ocit-15", sucursal_id: "osuc-2", cliente_final_id: "opac-11", fecha_hora: daysFromNow(9, 11), motivo: "Revisión anual", estado: "confirmada", creado_por: "u-odue-1", created_at: daysFromNow(-2) },
+  { id: "ocit-16", sucursal_id: "osuc-2", cliente_final_id: "opac-12", fecha_hora: daysFromNow(-7, 9), motivo: "Entrega de lentes", estado: "atendida", creado_por: "u-odue-1", created_at: daysFromNow(-11) },
+  { id: "ocit-17", sucursal_id: "osuc-2", cliente_final_id: "opac-13", fecha_hora: daysFromNow(-8, 13), motivo: "Adaptación de lentes de contacto", estado: "no_asistio", creado_por: "u-odue-1", created_at: daysFromNow(-12) },
 ];
 
 // Contrato propuesto para citas: respuestas { success, data } (igual que
@@ -1479,7 +1539,7 @@ let opticaCitas = [
 
 app.get("/api/opticas/citas", (req, res) => {
   const { sucursalId } = req.query;
-  const citas = opticaCitas.filter((c) => c.sucursal_id === sucursalId);
+  const citas = sucursalId ? opticaCitas.filter((c) => c.sucursal_id === sucursalId) : opticaCitas;
   res.json({ success: true, data: citas });
 });
 
@@ -1493,7 +1553,7 @@ app.post("/api/opticas/citas", (req, res) => {
   const body = req.body;
   const cita = {
     id: newId(),
-    sucursal_id: body.sucursalId || "osuc-1",
+    sucursal_id: body.sucursalId || null,
     cliente_final_id: body.clienteId,
     fecha_hora: body.fechaHora,
     motivo: body.motivo,
@@ -1526,62 +1586,122 @@ app.patch("/api/opticas/citas/:id/estado", (req, res) => {
 
 let opticaVentas = [
   {
-    id: "oven-1", sucursal_id: "osuc-1", paciente_id: "opac-1", metodo_pago: "efectivo",
+    id: "oven-1", folio: "VEN-000001", sucursal_id: "osuc-1", paciente_id: "opac-1", metodo_pago: "efectivo",
+    tipo_trabajo: "venta_directa", prioridad: "normal",
     estado: "completada", creado_por: "u-oenc-1", created_at: daysFromNow(-1),
+    en_proceso_at: daysFromNow(-1), completada_at: daysFromNow(-1), cancelada_at: null, pagada_at: daysFromNow(-1),
     items: [{ producto_id: "oinv-1", codigo: "OPT-001", modelo: "Redonda Slim", cantidad: 1, precio_unitario: 620, subtotal: 620 }],
     subtotal: 620, iva: 99.2, total: 719.2, monto_pagado: 719.2, saldo_pendiente: 0,
   },
   {
-    id: "oven-2", sucursal_id: "osuc-1", paciente_id: "opac-1", metodo_pago: "credito",
-    estado: "completada", creado_por: "u-oemp-1", created_at: daysFromNow(0),
+    id: "oven-2", folio: "VEN-000002", sucursal_id: "osuc-1", paciente_id: "opac-1", metodo_pago: "credito",
+    tipo_trabajo: "trabajo_interno", prioridad: "urgente",
+    estado: "pendiente", creado_por: "u-oemp-1", created_at: daysFromNow(0),
+    en_proceso_at: null, completada_at: null, cancelada_at: null, pagada_at: null,
     items: [{ producto_id: "oinv-3", codigo: "MIC-OPT-001", modelo: "Antireflejante Plus", cantidad: 2, precio_unitario: 480, subtotal: 960 }],
     subtotal: 960, iva: 153.6, total: 1113.6, monto_pagado: 700, saldo_pendiente: 413.6,
   },
   {
-    id: "oven-3", sucursal_id: "osuc-1", paciente_id: "opac-2", metodo_pago: "efectivo",
+    id: "oven-3", folio: "VEN-000003", sucursal_id: "osuc-1", paciente_id: "opac-2", metodo_pago: "efectivo",
+    tipo_trabajo: "venta_directa", prioridad: "normal",
     estado: "cancelada", creado_por: "u-oenc-1", created_at: daysFromNow(-3),
+    en_proceso_at: null, completada_at: null, cancelada_at: daysFromNow(-3), pagada_at: null,
     items: [{ producto_id: "oinv-1", codigo: "OPT-001", modelo: "Redonda Slim", cantidad: 1, precio_unitario: 620, subtotal: 620 }],
     subtotal: 620, iva: 99.2, total: 719.2, monto_pagado: 719.2, saldo_pendiente: 0,
   },
   {
-    id: "oven-4", sucursal_id: "osuc-2", paciente_id: "opac-3", metodo_pago: "transferencia",
+    id: "oven-4", folio: "VEN-000004", sucursal_id: "osuc-2", paciente_id: "opac-3", metodo_pago: "transferencia",
+    tipo_trabajo: "venta_directa", prioridad: "normal",
     estado: "completada", creado_por: "u-odue-1", created_at: daysFromNow(-2),
+    en_proceso_at: daysFromNow(-2), completada_at: daysFromNow(-2), cancelada_at: null, pagada_at: daysFromNow(-2),
     items: [{ producto_id: "oinv-1b", codigo: "OPT-001", modelo: "Redonda Slim", cantidad: 1, precio_unitario: 620, subtotal: 620 }],
     subtotal: 620, iva: 99.2, total: 719.2, monto_pagado: 719.2, saldo_pendiente: 0,
   },
+  {
+    id: "oven-5", folio: "VEN-000005", sucursal_id: "osuc-1", paciente_id: "opac-4", metodo_pago: "efectivo",
+    tipo_trabajo: "orden_laboratorio", prioridad: "urgente",
+    estado: "en_proceso", creado_por: "u-oenc-1", created_at: daysFromNow(-1),
+    en_proceso_at: daysFromNow(-1), completada_at: null, cancelada_at: null, pagada_at: daysFromNow(-1),
+    items: [{ producto_id: "oinv-4", codigo: "EST-OPT-001", modelo: "Estuche Rígido", cantidad: 1, precio_unitario: 85, subtotal: 85 }],
+    subtotal: 85, iva: 13.6, total: 98.6, monto_pagado: 98.6, saldo_pendiente: 0,
+  },
+  {
+    id: "oven-6", folio: "VEN-000006", sucursal_id: "osuc-1", paciente_id: "opac-5", metodo_pago: "debito",
+    tipo_trabajo: "trabajo_interno", prioridad: "normal",
+    estado: "completada", creado_por: "u-oemp-1", created_at: daysFromNow(-4),
+    en_proceso_at: daysFromNow(-4), completada_at: daysFromNow(-4), cancelada_at: null, pagada_at: daysFromNow(-4),
+    items: [{ producto_id: "oinv-5", codigo: "ACC-OPT-001", modelo: "Cordón Deportivo", cantidad: 1, precio_unitario: 45, subtotal: 45 }],
+    subtotal: 45, iva: 7.2, total: 52.2, monto_pagado: 52.2, saldo_pendiente: 0,
+  },
 ];
+
+function nextVentaFolio() {
+  const nums = opticaVentas
+    .map((v) => parseInt(String(v.folio).replace(/\D/g, ""), 10))
+    .filter((n) => !Number.isNaN(n));
+  const max = nums.length ? Math.max(...nums) : 0;
+  return `VEN-${String(max + 1).padStart(6, "0")}`;
+}
+
+function withVendedorName(venta) {
+  const vendedor = opticaUsuarios.find((u) => u.id === venta.creado_por);
+  return { ...venta, vendedor_nombre: vendedor?.name ?? "" };
+}
 
 // Contrato propuesto para ventas (modulo nuevo, sin nada en el back real):
 // respuestas { ok, venta } / { ok, ventas }, con ?sucursalId= en el listado
-// igual que pacientes/citas. Al crear una venta se descuenta el stock del
-// producto en opticaInventario; al cancelar, se repone.
+// igual que pacientes/citas - sin sucursalId (o vacio) regresa las de
+// todas las sucursales ("Todas"). Al crear una venta se descuenta el
+// stock del producto; al cancelar, se repone.
+//
+// "estado" y los pagos son independientes:
+// - estado: pendiente -> en_proceso -> completada (o cancelada, solo
+//   mientras esta "pendiente"). Se mueve con PATCH /:id/estado, igual
+//   que /api/opticas/laboratorio/:id/estado.
+// - pago: no se guarda como estado, se deriva de saldo_pendiente
+//   (liquidada si es 0, en_adeudo si no) - PATCH /:id/liquidar solo
+//   abona al saldo, nunca toca "estado".
 
 app.get("/api/opticas/ventas", (req, res) => {
   const { sucursalId } = req.query;
-  const ventas = opticaVentas.filter((v) => v.sucursal_id === sucursalId);
+  const ventas = (sucursalId ? opticaVentas.filter((v) => v.sucursal_id === sucursalId) : opticaVentas)
+    .map(withVendedorName);
   res.json({ ok: true, ventas });
 });
 
 app.get("/api/opticas/ventas/:id", (req, res) => {
   const venta = opticaVentas.find((v) => v.id === req.params.id);
   if (!venta) return res.status(404).json({ error: "Venta no encontrada" });
-  res.json({ ok: true, venta });
+  res.json({ ok: true, venta: withVendedorName(venta) });
 });
 
 app.post("/api/opticas/ventas", (req, res) => {
   const body = req.body;
 
   const items = (body.items || []).map((item) => {
-    const producto = opticaInventario.find((p) => p.id === item.productoId);
+    let codigo = "";
+    let modelo = "";
 
-    if (producto) {
-      producto.stockAvailable = Math.max(0, producto.stockAvailable - Number(item.cantidad));
+    if (item.itemType === "servicio") {
+      const servicio = opticaServicios.find((s) => s.id === item.productoId);
+      codigo = servicio?.codigo ?? "";
+      modelo = servicio?.nombre ?? "";
+    } else {
+      const producto = opticaProductos.find((p) => p.id === item.productoId);
+      codigo = producto?.codigo ?? "";
+      modelo = producto?.nombre ?? "";
+
+      const branchStock = producto?.stock_por_sucursal?.find((s) => s.sucursal_id === body.sucursalId);
+      if (branchStock) {
+        branchStock.stock = Math.max(0, branchStock.stock - Number(item.cantidad));
+      }
     }
 
     return {
       producto_id: item.productoId,
-      codigo: producto?.code ?? "",
-      modelo: producto?.model ?? "",
+      item_type: item.itemType === "servicio" ? "servicio" : "producto",
+      codigo,
+      modelo,
       cantidad: Number(item.cantidad),
       precio_unitario: Number(item.precioUnitario),
       subtotal: Number(item.cantidad) * Number(item.precioUnitario),
@@ -1591,25 +1711,79 @@ app.post("/api/opticas/ventas", (req, res) => {
   const subtotal = body.subtotal ?? items.reduce((sum, item) => sum + item.subtotal, 0);
   const iva = body.iva ?? 0;
   const total = body.total ?? subtotal + iva;
+  const saldoPendiente = body.saldoPendiente ?? 0;
+  const tipoTrabajo = body.tipoTrabajo || "venta_directa";
+  const montoPagado = body.montoPagado ?? total;
+  const ahora = new Date().toISOString();
 
   const venta = {
     id: newId(),
+    folio: nextVentaFolio(),
     sucursal_id: body.sucursalId,
     paciente_id: body.pacienteId || null,
+    creado_por: body.creadoPor || null,
+    tipo_trabajo: tipoTrabajo,
+    prioridad: body.prioridad === "urgente" ? "urgente" : "normal",
     metodo_pago: body.metodoPago,
-    estado: "completada",
-    creado_por: "mock-user",
-    created_at: new Date().toISOString(),
+    estado: "pendiente",
+    created_at: ahora,
+    en_proceso_at: null,
+    completada_at: null,
+    cancelada_at: null,
+    pagada_at: saldoPendiente <= 0 ? ahora : null,
     items,
     subtotal,
     iva,
     total,
-    monto_pagado: body.montoPagado ?? total,
-    saldo_pendiente: body.saldoPendiente ?? 0,
+    monto_pagado: montoPagado,
+    saldo_pendiente: saldoPendiente,
   };
 
   opticaVentas.unshift(venta);
-  res.status(201).json({ ok: true, venta });
+  res.status(201).json({ ok: true, venta: withVendedorName(venta) });
+});
+
+// Abono al saldo pendiente - puede ser parcial o liquidar todo de una vez
+// (si no mandan "monto", se asume el saldo completo). Solo pasa a
+// "pagada" cuando el saldo llega a 0.
+app.patch("/api/opticas/ventas/:id/liquidar", (req, res) => {
+  const idx = opticaVentas.findIndex((v) => v.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Venta no encontrada" });
+
+  const venta = opticaVentas[idx];
+  const monto = Math.round(Math.max(0, Math.min(Number(req.body.monto ?? venta.saldo_pendiente), venta.saldo_pendiente)) * 100) / 100;
+  // Centavo de tolerancia para que un resto de punto flotante (ej.
+  // 2.8e-14) no deje el saldo pendiente por error de redondeo.
+  const saldoRestante = Math.max(0, Math.round((venta.saldo_pendiente - monto) * 100) / 100);
+  const quedaLiquidada = saldoRestante <= 0.01;
+
+  opticaVentas[idx] = {
+    ...venta,
+    monto_pagado: Math.round((venta.monto_pagado + monto) * 100) / 100,
+    saldo_pendiente: quedaLiquidada ? 0 : saldoRestante,
+    pagada_at: quedaLiquidada ? (venta.pagada_at ?? new Date().toISOString()) : venta.pagada_at,
+  };
+  res.json({ ok: true, venta: withVendedorName(opticaVentas[idx]) });
+});
+
+// Transicion del estado del trabajo (pendiente -> en_proceso ->
+// completada), igual patron que /api/opticas/laboratorio/:id/estado.
+// Nunca toca los campos de pago.
+app.patch("/api/opticas/ventas/:id/estado", (req, res) => {
+  const idx = opticaVentas.findIndex((v) => v.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Venta no encontrada" });
+
+  const venta = opticaVentas[idx];
+  const estado = req.body.estado;
+  const ahora = new Date().toISOString();
+
+  opticaVentas[idx] = {
+    ...venta,
+    estado,
+    en_proceso_at: estado === "en_proceso" ? (venta.en_proceso_at ?? ahora) : venta.en_proceso_at,
+    completada_at: estado === "completada" ? (venta.completada_at ?? ahora) : venta.completada_at,
+  };
+  res.json({ ok: true, venta: withVendedorName(opticaVentas[idx]) });
 });
 
 app.patch("/api/opticas/ventas/:id/cancelar", (req, res) => {
@@ -1619,14 +1793,16 @@ app.patch("/api/opticas/ventas/:id/cancelar", (req, res) => {
   const venta = opticaVentas[idx];
 
   venta.items.forEach((item) => {
-    const producto = opticaInventario.find((p) => p.id === item.producto_id);
-    if (producto) {
-      producto.stockAvailable += item.cantidad;
+    if (item.item_type === "servicio") return;
+    const producto = opticaProductos.find((p) => p.id === item.producto_id);
+    const branchStock = producto?.stock_por_sucursal?.find((s) => s.sucursal_id === venta.sucursal_id);
+    if (branchStock) {
+      branchStock.stock += item.cantidad;
     }
   });
 
-  opticaVentas[idx] = { ...venta, estado: "cancelada" };
-  res.json({ ok: true, venta: opticaVentas[idx] });
+  opticaVentas[idx] = { ...venta, estado: "cancelada", cancelada_at: new Date().toISOString() };
+  res.json({ ok: true, venta: withVendedorName(opticaVentas[idx]) });
 });
 
 let opticaLaboratorio = [
@@ -1660,7 +1836,7 @@ let opticaLaboratorio = [
 
 app.get("/api/opticas/laboratorio", (req, res) => {
   const { sucursalId } = req.query;
-  const ordenes = opticaLaboratorio.filter((o) => o.sucursal_id === sucursalId);
+  const ordenes = sucursalId ? opticaLaboratorio.filter((o) => o.sucursal_id === sucursalId) : opticaLaboratorio;
   res.json({ ok: true, ordenes });
 });
 
@@ -1692,9 +1868,10 @@ app.post("/api/opticas/laboratorio", (req, res) => {
       adicion: body.receta?.adicion || null,
       dp: body.receta?.dp || null,
     },
+    tipo_trabajo: body.tipoTrabajo || null,
     observaciones: body.observaciones || null,
     estado: "pendiente",
-    creado_por: "mock-user",
+    creado_por: body.creadoPor || null,
     created_at: new Date().toISOString(),
   };
   opticaLaboratorio.unshift(orden);
@@ -1767,32 +1944,93 @@ app.put("/api/opticas/informacion", (req, res) => {
 // ---- Productos y servicios (catalogo, no depende de sucursal) ----
 
 let opticaProductos = [
-  { id: "oprod-1", display_id: 1, codigo: "ARM-CAT-001", codigo_barras: "", nombre: "Armazón Clásico", categoria: "armazones", marca: "OKI Eyewear", descripcion: "Armazón de acetato clásico.", precio_venta: 890, costo: 450, impuesto: 16, unidad_medida: "pieza", active: true },
-  { id: "oprod-2", display_id: 2, codigo: "MIC-CAT-001", codigo_barras: "", nombre: "Mica Antireflejante", categoria: "lentes_oftalmicos", marca: "Resistant Flex", descripcion: "Mica con tratamiento antirreflejante.", precio_venta: 650, costo: 320, impuesto: 16, unidad_medida: "pieza", active: true },
-  { id: "oprod-3", display_id: 3, codigo: "SOL-CAT-001", codigo_barras: "", nombre: "Solución multipropósito", categoria: "soluciones", marca: "OptiCare", descripcion: "Solución para lentes de contacto 355ml.", precio_venta: 180, costo: 90, impuesto: 16, unidad_medida: "pieza", active: true },
+  { id: "oprod-1", display_id: 1, codigo: "ARM-CAT-001", nombre: "Armazón Clásico", categoria: "armazones", marca: "OKI Eyewear", descripcion: "Armazón de acetato clásico.", precio_venta: 890, costo: 450, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 10, active: true }, { sucursal_id: "osuc-2", stock: 4, active: true }], stock_minimo: 5, imagen_url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23c9a15a'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='20' text-anchor='middle'%3EArmaz%C3%B3n%3C/text%3E%3C/svg%3E", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-2", display_id: 2, codigo: "MIC-CAT-001", nombre: "Mica Antireflejante", categoria: "lentes_oftalmicos", marca: "Resistant Flex", descripcion: "Mica con tratamiento antirreflejante.", precio_venta: 650, costo: 320, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 6, active: true }, { sucursal_id: "osuc-1", stock: 3, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-2", active: true },
+  { id: "oprod-3", display_id: 3, codigo: "SOL-CAT-001", nombre: "Solución multipropósito", categoria: "soluciones", marca: "OptiCare", descripcion: "Solución para lentes de contacto 355ml.", precio_venta: 180, costo: 90, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 31, active: true }, { sucursal_id: "osuc-2", stock: 14, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-4", display_id: 4, codigo: "ARM-CAT-002", nombre: "Armazón Aviador Metal", categoria: "armazones", marca: "OKI Eyewear", descripcion: "Armazón metálico estilo aviador.", precio_venta: 920, costo: 480, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 8, active: true }, { sucursal_id: "osuc-2", stock: 4, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-5", display_id: 5, codigo: "ARM-CAT-003", nombre: "Armazón Wayfarer", categoria: "armazones", marca: "JD Sport", descripcion: "Armazón compacto estilo wayfarer.", precio_venta: 780, costo: 390, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 2, active: true }, { sucursal_id: "osuc-1", stock: 1, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-2", active: true },
+  { id: "oprod-6", display_id: 6, codigo: "ARM-CAT-004", nombre: "Armazón Redondo Vintage", categoria: "armazones", marca: "Cactus", descripcion: "Armazón redondo de inspiración vintage.", precio_venta: 850, costo: 420, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0, active: true }, { sucursal_id: "osuc-2", stock: 0, active: true }], stock_minimo: 4, imagen_url: "", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-7", display_id: 7, codigo: "ARM-CAT-005", nombre: "Armazón Infantil", categoria: "armazones", marca: "Toki Kids", descripcion: "Armazón flexible resistente para niños.", precio_venta: 620, costo: 300, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 18, active: true }, { sucursal_id: "osuc-1", stock: 7, active: true }], stock_minimo: 8, imagen_url: "", sucursal_id: "osuc-2", active: true },
+  { id: "oprod-8", display_id: 8, codigo: "MIC-CAT-002", nombre: "Mica Progresiva HD", categoria: "lentes_oftalmicos", marca: "Progresivos Superfit", descripcion: "Mica progresiva de alta definición.", precio_venta: 1800, costo: 900, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 6, active: true }, { sucursal_id: "osuc-2", stock: 2, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-9", display_id: 9, codigo: "MIC-CAT-003", nombre: "Mica Fotocromática", categoria: "lentes_oftalmicos", marca: "Antibue Premium", descripcion: "Mica que se oscurece con la luz solar.", precio_venta: 1200, costo: 600, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 4, active: true }, { sucursal_id: "osuc-1", stock: 2, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-2", active: true },
+  { id: "oprod-10", display_id: 10, codigo: "MIC-CAT-004", nombre: "Mica Filtro Luz Azul", categoria: "lentes_oftalmicos", marca: "Photoflux", descripcion: "Mica con filtro de luz azul.", precio_venta: 950, costo: 480, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0, active: true }, { sucursal_id: "osuc-2", stock: 0, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-11", display_id: 11, codigo: "LEN-CAT-001", nombre: "Lentes de contacto mensuales", categoria: "lentes_contacto", marca: "Acuvue", descripcion: "Caja de lentes de contacto de uso mensual.", precio_venta: 550, costo: 280, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 28, active: true }, { sucursal_id: "osuc-1", stock: 12, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-2", active: true },
+  { id: "oprod-12", display_id: 12, codigo: "LEN-CAT-002", nombre: "Lentes de contacto diarios", categoria: "lentes_contacto", marca: "Biofinity", descripcion: "Caja de 30 lentes de contacto diarios.", precio_venta: 680, costo: 340, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 11, active: true }, { sucursal_id: "osuc-2", stock: 4, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-13", display_id: 13, codigo: "SOL-CAT-002", nombre: "Gotas humectantes", categoria: "soluciones", marca: "OptiFree", descripcion: "Gotas humectantes para ojo seco.", precio_venta: 150, costo: 70, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 35, active: true }, { sucursal_id: "osuc-1", stock: 15, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-2", active: true },
+  { id: "oprod-14", display_id: 14, codigo: "SOL-CAT-003", nombre: "Solución para lentes rígidos", categoria: "soluciones", marca: "Boston", descripcion: "Solución limpiadora para lentes rígidos.", precio_venta: 220, costo: 110, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 1, active: true }, { sucursal_id: "osuc-2", stock: 1, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-15", display_id: 15, codigo: "EST-CAT-001", nombre: "Estuche rígido", categoria: "estuches", marca: "Genérico", descripcion: "Estuche rígido con cierre.", precio_venta: 150, costo: 60, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 21, active: true }, { sucursal_id: "osuc-1", stock: 9, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-2", active: true },
+  { id: "oprod-16", display_id: 16, codigo: "EST-CAT-002", nombre: "Estuche semirrígido", categoria: "estuches", marca: "Genérico", descripcion: "Estuche semirrígido con broche.", precio_venta: 120, costo: 50, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 13, active: true }, { sucursal_id: "osuc-2", stock: 5, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-17", display_id: 17, codigo: "PAN-CAT-001", nombre: "Paño de microfibra", categoria: "panos", marca: "Zeiss", descripcion: "Paño de microfibra para limpieza.", precio_venta: 60, costo: 25, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 70, active: true }, { sucursal_id: "osuc-1", stock: 30, active: true }], stock_minimo: 20, imagen_url: "", sucursal_id: "osuc-2", active: true },
+  { id: "oprod-18", display_id: 18, codigo: "PAN-CAT-002", nombre: "Paño antibacterial", categoria: "panos", marca: "Clean Optics", descripcion: "Paño antibacterial para limpieza de lentes.", precio_venta: 70, costo: 30, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0, active: true }, { sucursal_id: "osuc-2", stock: 0, active: true }], stock_minimo: 15, imagen_url: "", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-19", display_id: 19, codigo: "CAD-CAT-001", nombre: "Cadena deportiva", categoria: "cadenas", marca: "Genérico", descripcion: "Cadena deportiva ajustable para lentes.", precio_venta: 90, costo: 40, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 15, active: true }, { sucursal_id: "osuc-1", stock: 7, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-2", active: true },
+  { id: "oprod-20", display_id: 20, codigo: "CAD-CAT-002", nombre: "Cadena decorativa", categoria: "cadenas", marca: "Genérico", descripcion: "Cadena decorativa para lentes.", precio_venta: 110, costo: 50, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 4, active: true }, { sucursal_id: "osuc-2", stock: 1, active: true }], stock_minimo: 8, imagen_url: "", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-21", display_id: 21, codigo: "ACC-CAT-001", nombre: "Spray limpiador", categoria: "accesorios", marca: "OptiClean", descripcion: "Spray limpiador para lentes.", precio_venta: 85, costo: 35, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 42, active: true }, { sucursal_id: "osuc-1", stock: 18, active: true }], stock_minimo: 15, imagen_url: "", sucursal_id: "osuc-2", active: true },
+  { id: "oprod-22", display_id: 22, codigo: "ACC-CAT-002", nombre: "Kit de ajuste de armazones", categoria: "accesorios", marca: "Genérico", descripcion: "Kit de mini herramientas para ajuste.", precio_venta: 200, costo: 90, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 7, active: true }, { sucursal_id: "osuc-2", stock: 3, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-1", active: true },
+  { id: "oprod-23", display_id: 23, codigo: "ACC-CAT-003", nombre: "Funda protectora", categoria: "accesorios", marca: "Genérico", descripcion: "Funda protectora acolchada.", precio_venta: 95, costo: 40, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 1, active: true }, { sucursal_id: "osuc-1", stock: 0, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-2", active: true },
 ];
 
 let opticaServicios = [
-  { id: "oserv-1", display_id: 1, codigo: "SRV-001", nombre: "Examen de la vista", categoria: "consultas", descripcion: "Evaluación completa de agudeza visual.", precio: 300, impuesto: 16, duracion_estimada: 30, active: true },
-  { id: "oserv-2", display_id: 2, codigo: "SRV-002", nombre: "Ajuste de armazón", categoria: "ajustes", descripcion: "Ajuste y calibración de armazón.", precio: 0, impuesto: 0, duracion_estimada: 10, active: true },
-  { id: "oserv-3", display_id: 3, codigo: "SRV-003", nombre: "Reparación de armazón", categoria: "reparaciones", descripcion: "Reparación de bisagra o varilla.", precio: 150, impuesto: 16, duracion_estimada: 20, active: true },
+  { id: "oserv-1", display_id: 1, codigo: "SRV-001", nombre: "Examen de la vista", categoria: "consultas", descripcion: "Evaluación completa de agudeza visual.", precio: 300, duracion_estimada: 30, sucursal_id: "osuc-1", active: true },
+  { id: "oserv-2", display_id: 2, codigo: "SRV-002", nombre: "Ajuste de armazón", categoria: "ajustes", descripcion: "Ajuste y calibración de armazón.", precio: 0, duracion_estimada: 10, sucursal_id: "osuc-2", active: true },
+  { id: "oserv-3", display_id: 3, codigo: "SRV-003", nombre: "Reparación de armazón", categoria: "reparaciones", descripcion: "Reparación de bisagra o varilla.", precio: 150, duracion_estimada: 20, sucursal_id: "osuc-1", active: true },
 ];
 
 registrarCrud("/api/opticas/productos", () => opticaProductos, {
   crear: (body) => ({
     id: newId(), display_id: opticaProductos.length + 1,
-    codigo: body.codigo, codigo_barras: body.codigo_barras || "", nombre: body.nombre,
+    codigo: body.codigo, nombre: body.nombre,
     categoria: body.categoria, marca: body.marca, descripcion: body.descripcion || "",
-    precio_venta: Number(body.precio_venta), costo: Number(body.costo),
-    impuesto: Number(body.impuesto) || 0, unidad_medida: body.unidad_medida || "pieza",
+    precio_venta: Number(body.precio_venta), stock_minimo: Number(body.stock_minimo) || 0,
+    imagen_url: body.imagen_url || "",
+    stock_por_sucursal: [],
     active: true,
   }),
   actualizar: (body) => ({
-    codigo: body.codigo, codigo_barras: body.codigo_barras || "", nombre: body.nombre,
+    codigo: body.codigo, nombre: body.nombre,
     categoria: body.categoria, marca: body.marca, descripcion: body.descripcion || "",
-    precio_venta: Number(body.precio_venta), costo: Number(body.costo),
-    impuesto: Number(body.impuesto) || 0, unidad_medida: body.unidad_medida || "pieza",
+    precio_venta: Number(body.precio_venta), stock_minimo: Number(body.stock_minimo) || 0,
+    imagen_url: body.imagen_url || "",
   }),
+});
+
+// El Jefe de sucursal no edita los datos del producto (nombre, precio,
+// etc. - eso es del Dueño): solo administra el stock y el alta/baja de
+// SU sucursal, sin tocar las demas. Si la sucursal todavia no tiene
+// entrada en stock_por_sucursal se crea una nueva (stock 0, activa).
+
+function getOrCreateStockSucursal(producto, sucursalId) {
+  let entry = producto.stock_por_sucursal?.find((s) => s.sucursal_id === sucursalId);
+  if (!entry) {
+    entry = { sucursal_id: sucursalId, stock: 0, active: true };
+    producto.stock_por_sucursal = [...(producto.stock_por_sucursal ?? []), entry];
+  }
+  return entry;
+}
+
+app.patch("/api/opticas/productos/:id/sucursal/:sucursalId/baja", (req, res) => {
+  const producto = opticaProductos.find((p) => p.id === req.params.id);
+  if (!producto) return res.status(404).json({ error: "Producto no encontrado" });
+  getOrCreateStockSucursal(producto, req.params.sucursalId).active = false;
+  res.json(producto);
+});
+
+app.patch("/api/opticas/productos/:id/sucursal/:sucursalId/alta", (req, res) => {
+  const producto = opticaProductos.find((p) => p.id === req.params.id);
+  if (!producto) return res.status(404).json({ error: "Producto no encontrado" });
+  getOrCreateStockSucursal(producto, req.params.sucursalId).active = true;
+  res.json(producto);
+});
+
+app.patch("/api/opticas/productos/:id/sucursal/:sucursalId/movimiento", (req, res) => {
+  const producto = opticaProductos.find((p) => p.id === req.params.id);
+  if (!producto) return res.status(404).json({ error: "Producto no encontrado" });
+
+  const entry = getOrCreateStockSucursal(producto, req.params.sucursalId);
+  const cantidad = Math.max(0, Number(req.body.cantidad) || 0);
+  const suma = req.body.tipo === "entrada" || req.body.tipo === "ajustes";
+  entry.stock = Math.max(0, entry.stock + (suma ? cantidad : -cantidad));
+
+  res.json(producto);
 });
 
 registrarCrud("/api/opticas/servicios", () => opticaServicios, {
@@ -1800,13 +2038,11 @@ registrarCrud("/api/opticas/servicios", () => opticaServicios, {
     id: newId(), display_id: opticaServicios.length + 1,
     codigo: body.codigo, nombre: body.nombre, categoria: body.categoria,
     descripcion: body.descripcion || "", precio: Number(body.precio),
-    impuesto: Number(body.impuesto) || 0, duracion_estimada: Number(body.duracion_estimada) || 0,
     active: true,
   }),
   actualizar: (body) => ({
     codigo: body.codigo, nombre: body.nombre, categoria: body.categoria,
     descripcion: body.descripcion || "", precio: Number(body.precio),
-    impuesto: Number(body.impuesto) || 0, duracion_estimada: Number(body.duracion_estimada) || 0,
   }),
 });
 

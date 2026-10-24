@@ -1,23 +1,30 @@
-import { useCrudResource, prepend, mergeById } from "../../../shared/hooks/useCrudResource";
-import {
-  listInventory,
-  createInventoryItem,
-  updateInventoryItem,
-  deactivateInventoryItem,
-  activateInventoryItem,
-} from "../services/inventoryService";
-
+import { useEffect, useState } from "react";
+import { listIndigoCatalog } from "../services/inventoryService";
+import { buildCatalog } from "../catalogAggregate";
 
 export default function useInventory() {
-  const { data: items, ...rest } = useCrudResource({
-    list: listInventory,
-    mutations: {
-      create: { fn: createInventoryItem, apply: prepend },
-      update: { fn: updateInventoryItem, apply: mergeById },
-      deactivate: { fn: deactivateInventoryItem, apply: mergeById },
-      activate: { fn: activateInventoryItem, apply: mergeById },
-    },
-  });
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  return { items, ...rest };
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await listIndigoCatalog();
+        if (active) setItems(buildCatalog(Array.isArray(data) ? data : []));
+      } catch (err) {
+        if (active) setError(err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return { items, loading, error };
 }

@@ -8,7 +8,6 @@ import SelectFilter from "../../shared/filters/SelectFilter";
 import Input from "../../shared/components/Input";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
-import EmptyState from "../../shared/components/EmptyState";
 import ConfirmDialog from "../../shared/components/ConfirmDialog";
 import SidePanel from "../../shared/components/SidePanel";
 import usePermissions from "../../shared/hooks/usePermissions";
@@ -31,9 +30,11 @@ export default function LaboratorioPage() {
   const { isOwner, branches, selectedBranch, setSelectedBranch, loadingBranches } = useBranchScope({
     listBranches,
     ownerRoles: [ROLES.OPTICA_DUENO],
+    alwaysLoad: true,
+    autoSelectFirst: false,
   });
 
-  const { patients } = usePatients(selectedBranch);
+  const { patients } = usePatients(selectedBranch, { scopeToAll: !selectedBranch });
   const { orders, loading, error, changeStatus } = useLaboratorio(selectedBranch);
 
   const [query, setQuery] = useState("");
@@ -51,9 +52,19 @@ export default function LaboratorioPage() {
     return map;
   }, [patients]);
 
+  const branchesById = useMemo(() => {
+    const map = new Map();
+    branches.forEach((branch) => map.set(branch.id, branch.name));
+    return map;
+  }, [branches]);
+
   const ordersWithPatient = useMemo(
-    () => orders.map((order) => ({ ...order, patientName: patientsById.get(order.patientId) })),
-    [orders, patientsById]
+    () => orders.map((order) => ({
+      ...order,
+      patientName: patientsById.get(order.patientId),
+      branchName: branchesById.get(order.branchId) ?? "",
+    })),
+    [orders, patientsById, branchesById]
   );
 
   const filtered = useMemo(
@@ -120,8 +131,7 @@ export default function LaboratorioPage() {
                 label="Sucursal"
                 value={selectedBranch}
                 onChange={setSelectedBranch}
-                placeholder="Selecciona una sucursal"
-                options={branches.map((b) => ({ value: b.id, label: b.name }))}
+                options={[{ value: "", label: "Todas las sucursales" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
               />
             )}
             <SelectFilter
@@ -146,12 +156,7 @@ export default function LaboratorioPage() {
             )}
           </FilterBar>
 
-          {!selectedBranch ? (
-            <EmptyState
-              title="Selecciona una sucursal"
-              description="Elige una sucursal para ver sus órdenes de laboratorio."
-            />
-          ) : loading ? (
+          {loading ? (
             <LoadingSpinner />
           ) : error ? (
             <ErrorState />
