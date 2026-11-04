@@ -81,18 +81,19 @@ class StockRepository {
     }
 
     async registrarMovimiento(
-        { productoId, sucursalId, tipo, cantidad, cantidadAnterior, cantidadNueva, motivo, realizadoPor },
+        { productoId, sucursalId, tipo, cantidad, cantidadAnterior, cantidadNueva, motivo, realizadoPor, ventaId },
         client
     ) {
         const { rows } = await this._exec(client).query(
             `INSERT INTO stock_movimientos
                 (producto_id, sucursal_id, tipo, cantidad,
-                 cantidad_anterior, cantidad_nueva, motivo, realizado_por)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                 cantidad_anterior, cantidad_nueva, motivo, realizado_por, venta_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              RETURNING id, producto_id, sucursal_id, tipo, cantidad,
                        cantidad_anterior, cantidad_nueva, motivo,
-                       realizado_por, created_at`,
-            [productoId, sucursalId, tipo, cantidad, cantidadAnterior, cantidadNueva, motivo ?? null, realizadoPor]
+                       realizado_por, venta_id, created_at`,
+            [productoId, sucursalId, tipo, cantidad, cantidadAnterior, cantidadNueva,
+             motivo ?? null, realizadoPor, ventaId ?? null]
         );
         return rows[0];
     }

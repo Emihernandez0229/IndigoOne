@@ -49,10 +49,47 @@ class StockService {
     }
 
     /**
-     * Ajusta las existencias de un producto en una sucursal en una sola transacción.
-     * Bloquea la fila (FOR UPDATE) para que dos ajustes simultáneos
-     * no lean la misma cantidad anterior.
+     * Aplica un movimiento de stock DENTRO de una transacción ya abierta.
+     * Lo usan el ajuste manual y Ventas.
      */
+    async aplicarMovimiento(
+        { productoId, sucursalId, tipo, cantidad, motivo, realizadoPor, ventaId },
+        client
+    ) {
+        await this.stockRepository.asegurarFila(productoId, sucursalId, client);
+        const actual = await this.stockRepository.bloquearFila(productoId, sucursalId, client);
+
+        let cantidadNueva;
+        if (tipo === 'entrada' || tipo === 'devolucion') cantidadNueva = actual.cantidad + cantidad;
+        else if (tipo === 'salida' || tipo === 'venta') cantidadNueva = actual.cantidad - cantidad;
+        else cantidadNueva = cantidad; // ajuste: valor absoluto
+
+        if (cantidadNueva < 0) {
+            throw new BadRequestError(
+                `Existencias insuficientes: hay ${actual.cantidad} y se intenta sacar ${cantidad}.`
+            );
+        }
+
+        const diferencia = Math.abs(cantidadNueva - actual.cantidad);
+        let movimiento = null;
+
+        if (diferencia > 0) {
+            movimiento = await this.stockRepository.registrarMovimiento({
+                productoId, sucursalId, tipo,
+                cantidad: diferencia,
+                cantidadAnterior: actual.cantidad,
+                cantidadNueva,
+                motivo, realizadoPor, ventaId,
+            }, client);
+        }
+
+        const stock = await this.stockRepository.actualizar(
+            { productoId, sucursalId, cantidad: cantidadNueva }, client
+        );
+
+        return { stock, movimiento };
+    }
+
     async ajustarStock({ productoId, sucursalId, opticaId, realizadoPor, tipo, cantidad, motivo }) {
         if (!opticaId || !realizadoPor) {
             throw new BadRequestError('La óptica y el usuario son obligatorios');
@@ -62,40 +99,12 @@ class StockService {
             await this.#validarSucursal(sucursalId, opticaId, { validarActiva: true }, client);
             await this.#obtenerProducto(productoId, opticaId, client);
 
-            await this.stockRepository.asegurarFila(productoId, sucursalId, client);
-            const actual = await this.stockRepository.bloquearFila(productoId, sucursalId, client);
-
-            let cantidadNueva;
-            if (tipo === 'entrada') cantidadNueva = actual.cantidad + cantidad;
-            else if (tipo === 'salida') cantidadNueva = actual.cantidad - cantidad;
-            else cantidadNueva = cantidad; // ajuste: valor absoluto
-
-            if (cantidadNueva < 0) {
-                throw new BadRequestError(
-                    `Existencias insuficientes: hay ${actual.cantidad} y se intenta sacar ${cantidad}.`
-                );
-            }
-
-            const diferencia = Math.abs(cantidadNueva - actual.cantidad);
-            let movimiento = null;
-
-            if (diferencia > 0) {
-                movimiento = await this.stockRepository.registrarMovimiento({
-                    productoId, sucursalId, tipo,
-                    cantidad: diferencia,
-                    cantidadAnterior: actual.cantidad,
-                    cantidadNueva,
-                    motivo, realizadoPor,
-                }, client);
-            }
-
-            const stock = await this.stockRepository.actualizar(
-                { productoId, sucursalId, cantidad: cantidadNueva }, client
+            return this.aplicarMovimiento(
+                { productoId, sucursalId, tipo, cantidad, motivo, realizadoPor }, client
             );
-
-            return { stock, movimiento };
         });
     }
+
 
     async listarMovimientos({ productoId, sucursalId, opticaId, paginacion = {} }) {
         const limit = Math.min(paginacion.limit ?? LIMITE_DEFECTO, LIMITE_MAXIMO);
