@@ -38,7 +38,7 @@ export default function PersonnelFormModal({
   const branchLocked = Boolean(branch);
 
   const [form, setForm] = useState(() => ({ ...EMPTY, branchId: branch?.id ?? "" }));
-  const { errors, validate, clearError, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [requirePasswordChange, setRequirePasswordChange] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -92,6 +92,8 @@ export default function PersonnelFormModal({
         branchName: selectedBranch?.name,
       });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo crear el personal. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -203,6 +205,8 @@ export default function PersonnelFormModal({
               Deberá cambiar su contraseña al iniciar sesión por primera vez.
             </label>
           </div>
+
+          {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
           <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

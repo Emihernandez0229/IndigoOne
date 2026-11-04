@@ -74,6 +74,8 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
         price: Number(form.price),
       });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar el servicio. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -113,6 +115,8 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
         </div>
 
         <Input label="Precio" value={form.price} onChange={set("price", (v) => onlyDigits(v))} error={errors.price} />
+
+        {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

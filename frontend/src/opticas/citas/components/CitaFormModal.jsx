@@ -161,7 +161,7 @@ export default function CitaFormModal({
   const isOwner = currentUser?.role === ROLES.OPTICA_DUENO;
 
   const [form, setForm] = useState(() => crearFormDesdeCita(cita));
-  const { errors, validate, clearError, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [branches, setBranches] = useState([]);
   const [branchPatients, setBranchPatients] = useState(patients);
@@ -281,6 +281,8 @@ export default function CitaFormModal({
         branchId: form.branchId || defaultBranchId,
       });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar la cita. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -352,6 +354,8 @@ export default function CitaFormModal({
 
             </div>
           </div>
+
+          {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

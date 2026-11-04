@@ -80,6 +80,8 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
         stockMin: form.stockMin === "" ? 0 : Number(form.stockMin),
       });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar el producto. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -117,6 +119,8 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
           <Input label="Precio de venta" value={form.salePrice} onChange={set("salePrice", (v) => onlyDigits(v, NUMBER_MAX))} error={errors.salePrice} placeholder="Máx. 999" />
           <Input label="Stock mínimo" value={form.stockMin} onChange={set("stockMin", (v) => onlyDigits(v, NUMBER_MAX))} placeholder="Máx. 999" />
         </div>
+
+        {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

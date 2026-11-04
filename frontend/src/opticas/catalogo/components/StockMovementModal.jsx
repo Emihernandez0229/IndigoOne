@@ -27,7 +27,7 @@ const EMPTY = { tipo: "", cantidad: "", motivo: "" };
 export default function StockMovementModal({ open, producto, branchName, onClose, onSubmit }) {
 
   const [form, setForm] = useState(EMPTY);
-  const { errors, validate, clearError, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
 
@@ -62,6 +62,8 @@ export default function StockMovementModal({ open, producto, branchName, onClose
       setSaving(true);
       await onSubmit({ tipo: form.tipo, cantidad: Number(form.cantidad), motivo: form.motivo.trim() });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo registrar el movimiento. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -105,6 +107,8 @@ export default function StockMovementModal({ open, producto, branchName, onClose
           <p className="mt-1 text-right text-xs text-text-secondary">{form.motivo.length}/{MOTIVO_MAX}</p>
           {errors.motivo && <p className="mt-1.5 text-sm text-error">{errors.motivo}</p>}
         </div>
+
+        {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

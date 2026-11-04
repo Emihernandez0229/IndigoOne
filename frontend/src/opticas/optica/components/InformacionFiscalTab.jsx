@@ -97,6 +97,8 @@ export default function InformacionFiscalTab({ info, canManage, onSave, onCancel
     try {
       setSaving(true);
       await onSave(form);
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar la información. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -159,6 +161,8 @@ export default function InformacionFiscalTab({ info, canManage, onSave, onCancel
           {errors.pais && <p className="mt-1.5 text-sm text-error">{errors.pais}</p>}
         </div>
       </div>
+
+      {errors.submit && <p className="relative mt-4 text-sm text-error">{errors.submit}</p>}
 
       <div className="relative mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
         <Button type="button" variant="outline" onClick={() => { setForm(info); onCancel?.(); }}>Cancelar</Button>

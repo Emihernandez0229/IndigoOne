@@ -294,6 +294,7 @@ export default function NuevaVentaPage() {
   const [paymentMode, setPaymentMode] = useState("full");
   const [partialAmount, setPartialAmount] = useState("");
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const montoPagado = paymentMode === "full" ? total : Number(partialAmount) || 0;
   const saldoPendiente = Math.max(0, total - montoPagado);
@@ -316,6 +317,7 @@ export default function NuevaVentaPage() {
 
 
   const handleConfirmVenta = async () => {
+    setSubmitError("");
     try {
       setSaving(true);
 
@@ -370,6 +372,8 @@ export default function NuevaVentaPage() {
       });
 
       navigate(workType === "orden_laboratorio" ? "/opticas/laboratorio" : "/opticas/ventas");
+    } catch {
+      setSubmitError("No se pudo registrar la venta. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -908,6 +912,7 @@ export default function NuevaVentaPage() {
               )}
 
               <div className="space-y-2 pt-2">
+                {submitError && <p className="text-sm text-error">{submitError}</p>}
                 <Button
                   className="w-full justify-center bg-success hover:opacity-90"
                   disabled={saving || (paymentMode === "partial" && montoPagado <= 0)}

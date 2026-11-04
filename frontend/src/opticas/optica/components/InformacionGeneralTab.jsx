@@ -62,6 +62,8 @@ export default function InformacionGeneralTab({ info, canManage, onSave, onCance
     try {
       setSaving(true);
       await onSave(form);
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar la información. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -80,6 +82,8 @@ export default function InformacionGeneralTab({ info, canManage, onSave, onCance
         <Input label="Correo general *" type="email" value={form.correo ?? ""} onChange={set("correo")} error={errors.correo} />
         <Input label="Responsable sanitario (Opcional)" value={form.responsableSanitario ?? ""} onChange={set("responsableSanitario", (v) => onlyLetters(v, NAME_MAX))} />
       </div>
+
+      {errors.submit && <p className="relative mt-4 text-sm text-error">{errors.submit}</p>}
 
       <div className="relative mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
         <Button type="button" variant="outline" onClick={() => { setForm(info); onCancel?.(); }}>Cancelar</Button>

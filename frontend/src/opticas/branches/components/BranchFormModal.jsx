@@ -50,7 +50,7 @@ export default function BranchFormModal({
 }) {
 
   const [form, setForm] = useState(() => crearFormDesdeSucursal(branch));
-  const { errors, validate, clearError, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [managers, setManagers] = useState([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
@@ -152,6 +152,8 @@ export default function BranchFormModal({
         managerMode: form.managerMode,
       });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar la sucursal. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -225,6 +227,8 @@ export default function BranchFormModal({
             </>
           )}
         </div>
+
+        {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

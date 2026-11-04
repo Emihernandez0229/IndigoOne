@@ -19,6 +19,7 @@ export default function LiquidarSaldoPanel({ venta, onCancel, onConfirm }) {
 
   const [amount, setAmount] = useState(() => String(venta?.saldoPendiente ?? 0));
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   if (!venta) return null;
 
@@ -28,9 +29,12 @@ export default function LiquidarSaldoPanel({ venta, onCancel, onConfirm }) {
   const pagoDespues = saldoRestante <= 0 ? "liquidada" : "en_adeudo";
 
   const handleConfirm = async () => {
+    setError("");
     try {
       setSaving(true);
       await onConfirm(monto);
+    } catch {
+      setError("No se pudo registrar el pago. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -140,6 +144,8 @@ export default function LiquidarSaldoPanel({ venta, onCancel, onConfirm }) {
           <StatusBadge status={pagoDespues} />
         </div>
       </div>
+
+      {error && <p className="text-sm text-error">{error}</p>}
 
       <div className="flex gap-3">
         <Button variant="outline" className="flex-1 justify-center" onClick={onCancel}>

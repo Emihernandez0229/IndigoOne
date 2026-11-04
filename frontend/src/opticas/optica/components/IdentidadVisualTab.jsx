@@ -46,15 +46,19 @@ function LogoCard({ info, canManage, onSave }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(info.logoUrl);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const startEdit = () => { setValue(info.logoUrl); setEditing(true); };
   const cancel = () => { setValue(info.logoUrl); setEditing(false); };
 
   const save = async () => {
+    setError("");
     try {
       setSaving(true);
       await onSave({ ...info, logoUrl: value });
       setEditing(false);
+    } catch {
+      setError("No se pudo guardar el logo. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -69,6 +73,7 @@ function LogoCard({ info, canManage, onSave }) {
       {editing ? (
         <div className="space-y-4">
           <ImageUploadField label="Logo" value={value} onChange={setValue} />
+          {error && <p className="text-sm text-error">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" className="py-2 text-sm" onClick={cancel} disabled={saving}>Cancelar</Button>
             <Button type="button" className="py-2 text-sm" onClick={save} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</Button>
@@ -103,15 +108,19 @@ function ColorCard({ label, description, field, colorKey, info, canManage, onSav
   const [value, setValue] = useState(info[field]);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
 
   const startEdit = () => { setValue(info[field]); setEditing(true); };
   const cancel = () => { setValue(info[field]); setEditing(false); };
 
   const save = async () => {
+    setError("");
     try {
       setSaving(true);
       await onSave({ ...info, [field]: value });
       setEditing(false);
+    } catch {
+      setError("No se pudo guardar el color. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -155,6 +164,7 @@ function ColorCard({ label, description, field, colorKey, info, canManage, onSav
               );
             })}
           </div>
+          {error && <p className="text-sm text-error">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" className="py-2 text-sm" onClick={cancel} disabled={saving}>Cancelar</Button>
             <Button type="button" className="py-2 text-sm" onClick={save} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</Button>
@@ -188,15 +198,19 @@ function EsloganCard({ info, canManage, onSave }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(info.eslogan ?? "");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const startEdit = () => { setValue(info.eslogan ?? ""); setEditing(true); };
   const cancel = () => { setValue(info.eslogan ?? ""); setEditing(false); };
 
   const save = async () => {
+    setError("");
     try {
       setSaving(true);
       await onSave({ ...info, eslogan: value });
       setEditing(false);
+    } catch {
+      setError("No se pudo guardar el eslogan. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -216,6 +230,7 @@ function EsloganCard({ info, canManage, onSave }) {
         <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
           <div className="flex-1">
             <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="Frase representativa de tu óptica" />
+            {error && <p className="mt-1.5 text-sm text-error">{error}</p>}
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" className="py-2.5 text-sm" onClick={cancel} disabled={saving}>Cancelar</Button>

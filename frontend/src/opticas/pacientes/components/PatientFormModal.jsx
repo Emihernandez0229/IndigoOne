@@ -69,7 +69,7 @@ export default function PatientFormModal({
   const { user: currentUser } = useAuth();
 
   const [form, setForm] = useState(() => crearFormDesdePaciente(patient));
-  const { errors, validate, clearError, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [branches, setBranches] = useState([]);
   const [loadingBranches, setLoadingBranches] = useState(false);
@@ -170,6 +170,8 @@ export default function PatientFormModal({
         branchId: form.branchId || null,
       });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar el cliente. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -233,6 +235,8 @@ export default function PatientFormModal({
               )}
             </div>
           </div>
+
+          {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={onClose}>
