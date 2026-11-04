@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import Input from "../../../shared/components/Input";
 import SelectFilter from "../../../shared/filters/SelectFilter";
@@ -12,7 +12,7 @@ import SalesLineItemsTable from "../components/SalesLineItemsTable";
 import { PRODUCT_CATEGORIES, SERVICE_CATEGORIES } from "../../catalogo/constants";
 import {
   QUICK_RANGES, inDateRange, unidadesDeVenta,
-  buildDailyBuckets, groupByBranch, groupBySeller, groupByItem, itemTotalConIva, toCsv,
+  buildDailyBuckets, groupByBranch, groupBySeller, groupByItem, itemTotalConIva,
 } from "../salesReportUtils";
 import { currency } from "../../../shared/utils/format";
 
@@ -39,7 +39,7 @@ function mapLineItem(venta, item, idx) {
 export default function VentasReportTab({
   ventas, productos, servicios, branches, branchesById,
   branchId, setBranchId, dateFrom, dateTo, quickRange, onQuickRange, onDateFromChange, onDateToChange,
-  onClearFilters, onExportReady, branchLocked = false,
+  onClearFilters, branchLocked = false,
 }) {
 
   const [sellerName, setSellerName] = useState("");
@@ -137,19 +137,6 @@ export default function VentasReportTab({
 
   const comparisonLabel = comparisonDimensions.find((d) => d.value === comparisonDim)?.label
     ?? (branchLocked ? "Producto" : "Sucursal");
-
-  useEffect(() => {
-    onExportReady({
-      filename: `reporte-ventas-${dateFrom}-a-${dateTo}.csv`,
-      csv: toCsv([...detailRows].sort((a, b) => b.total - a.total), [
-        { label: detailLabel, value: (row) => row.name },
-        { label: "Operaciones", value: (row) => row.operaciones },
-        { label: "Unidades", value: (row) => row.unidades },
-        { label: "Total", value: (row) => row.total.toFixed(2) },
-      ]),
-    });
-  }, [detailRows, detailLabel, dateFrom, dateTo, onExportReady]);
-
 
   return (
     <>

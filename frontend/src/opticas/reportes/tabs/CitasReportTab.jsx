@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import Input from "../../../shared/components/Input";
 import SelectFilter from "../../../shared/filters/SelectFilter";
@@ -11,7 +11,7 @@ import { CHART_COLORS } from "../../../shared/charts/chartTheme";
 import SalesComparisonList from "../components/SalesComparisonList";
 import StatusDistributionBar from "../components/StatusDistributionBar";
 import { CITA_STATUSES } from "../../citas/constants";
-import { QUICK_RANGES, inDateRange, groupByCount, toCsv } from "../salesReportUtils";
+import { QUICK_RANGES, inDateRange, groupByCount } from "../salesReportUtils";
 import { formatFecha, formatHora } from "../../../shared/utils/format";
 
 const count = (value) => String(value ?? 0);
@@ -20,7 +20,7 @@ const count = (value) => String(value ?? 0);
 export default function CitasReportTab({
   citas, patients, users, branches, branchesById,
   branchId, setBranchId, dateFrom, dateTo, quickRange, onQuickRange, onDateFromChange, onDateToChange,
-  onClearFilters, onExportReady, branchLocked = false,
+  onClearFilters, branchLocked = false,
 }) {
 
   const [employeeName, setEmployeeName] = useState("");
@@ -104,22 +104,6 @@ export default function CitasReportTab({
     ...(branchLocked ? [] : [{ key: "branchName", label: "Sucursal" }]),
     { key: "status", label: "Estado", render: (row) => <StatusBadge status={row.status} /> },
   ];
-
-  useEffect(() => {
-    onExportReady({
-      filename: `reporte-citas-${dateFrom}-a-${dateTo}.csv`,
-      csv: toCsv(listadoRows, [
-        { label: "Fecha", value: (row) => formatFecha(row.dateTime) },
-        { label: "Hora", value: (row) => formatHora(row.dateTime) },
-        { label: "Paciente", value: (row) => row.patientName },
-        { label: "Servicio", value: (row) => row.reason },
-        { label: "Atiende", value: (row) => row.employeeName },
-        ...(branchLocked ? [] : [{ label: "Sucursal", value: (row) => row.branchName }]),
-        { label: "Estado", value: (row) => row.status },
-      ]),
-    });
-  }, [listadoRows, dateFrom, dateTo, onExportReady, branchLocked]);
-
 
   return (
     <>

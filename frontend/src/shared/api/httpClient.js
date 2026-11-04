@@ -66,9 +66,15 @@ async function request(method, path, body) {
   });
 
 
-  const data = await response
+  const raw = await response
     .json()
     .catch(() => null);
+
+  // El backend real envuelve casi todo en { success/message, data } - el
+  // dato que de verdad importa siempre vive en esa propiedad "data" cuando
+  // existe. Si no existe (login, health check, mensajes simples), se
+  // regresa tal cual.
+  const data = raw && typeof raw === "object" && "data" in raw ? raw.data : raw;
 
 
   if (!response.ok) {

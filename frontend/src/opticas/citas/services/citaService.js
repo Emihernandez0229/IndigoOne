@@ -17,21 +17,20 @@ function mapCita(raw) {
 
 
 export async function listCitas(branchId) {
-  const { data } = await httpClient.get(
-    `/api/opticas/citas?sucursalId=${branchId ?? ""}`
-  );
+  const query = branchId ? `?sucursalId=${branchId}` : "";
+  const data = await httpClient.get(`/api/opticas/citas${query}`);
   return (data ?? []).map(mapCita);
 }
 
 
 export async function getCita(id) {
-  const { data } = await httpClient.get(`/api/opticas/citas/${id}`);
+  const data = await httpClient.get(`/api/opticas/citas/${id}`);
   return mapCita(data);
 }
 
 
 export async function createCita(payload) {
-  const { data } = await httpClient.post("/api/opticas/citas", {
+  const data = await httpClient.post("/api/opticas/citas", {
     sucursalId: payload.branchId || undefined,
     clienteId: payload.patientId,
     fechaHora: payload.dateTime,
@@ -42,7 +41,7 @@ export async function createCita(payload) {
 
 
 export async function updateCita(id, payload) {
-  const { data } = await httpClient.patch(`/api/opticas/citas/${id}`, {
+  const data = await httpClient.patch(`/api/opticas/citas/${id}`, {
     fechaHora: payload.dateTime,
     motivo: payload.reason,
   });
@@ -51,7 +50,7 @@ export async function updateCita(id, payload) {
 
 
 export async function updateCitaStatus(id, status) {
-  const { data } = await httpClient.patch(`/api/opticas/citas/${id}/estado`, {
+  const data = await httpClient.patch(`/api/opticas/citas/${id}/estado`, {
     estado: status,
   });
   return mapCita(data);

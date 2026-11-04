@@ -1,4 +1,5 @@
 import { httpClient } from "../../../shared/api/httpClient";
+import { IVA_RATE } from "../constants";
 
 
 function mapItem(raw) {
@@ -45,7 +46,7 @@ function mapVenta(raw) {
 
 
 export async function listVentas(branchId) {
-  const { ventas } = await httpClient.get(
+  const ventas = await httpClient.get(
     `/api/opticas/ventas?sucursalId=${branchId ?? ""}`
   );
   return (ventas ?? []).map(mapVenta);
@@ -53,24 +54,21 @@ export async function listVentas(branchId) {
 
 
 export async function getVenta(id) {
-  const { venta } = await httpClient.get(`/api/opticas/ventas/${id}`);
+  const venta = await httpClient.get(`/api/opticas/ventas/${id}`);
   return mapVenta(venta);
 }
 
 
 export async function createVenta(payload) {
-  const { venta } = await httpClient.post("/api/opticas/ventas", {
+  const venta = await httpClient.post("/api/opticas/ventas", {
     sucursalId: payload.branchId,
     pacienteId: payload.patientId,
     creadoPor: payload.createdBy,
     tipoTrabajo: payload.workType,
     prioridad: payload.priority,
     metodoPago: payload.paymentMethod,
-    subtotal: payload.subtotal,
-    iva: payload.iva,
-    total: payload.total,
+    tasaIva: IVA_RATE * 100,
     montoPagado: payload.montoPagado,
-    saldoPendiente: payload.saldoPendiente,
     items: payload.items.map((item) => ({
       productoId: item.productId,
       itemType: item.itemType,
@@ -83,18 +81,18 @@ export async function createVenta(payload) {
 
 
 export async function liquidarVenta(id, monto) {
-  const { venta } = await httpClient.patch(`/api/opticas/ventas/${id}/liquidar`, { monto });
+  const venta = await httpClient.patch(`/api/opticas/ventas/${id}/liquidar`, { monto });
   return mapVenta(venta);
 }
 
 
 export async function changeVentaStatus(id, estado) {
-  const { venta } = await httpClient.patch(`/api/opticas/ventas/${id}/estado`, { estado });
+  const venta = await httpClient.patch(`/api/opticas/ventas/${id}/estado`, { estado });
   return mapVenta(venta);
 }
 
 
 export async function cancelVenta(id) {
-  const { venta } = await httpClient.patch(`/api/opticas/ventas/${id}/cancelar`);
+  const venta = await httpClient.patch(`/api/opticas/ventas/${id}/cancelar`);
   return mapVenta(venta);
 }

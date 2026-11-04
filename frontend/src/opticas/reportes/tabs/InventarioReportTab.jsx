@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import Input from "../../../shared/components/Input";
 import SelectFilter from "../../../shared/filters/SelectFilter";
@@ -7,7 +7,7 @@ import ChartContainer from "../../../shared/charts/ChartContainer";
 import DataTable from "../../../shared/components/DataTable";
 import StatusBadge from "../../../shared/components/StatusBadge";
 
-import { QUICK_RANGES, inDateRange, toCsv } from "../salesReportUtils";
+import { QUICK_RANGES, inDateRange } from "../salesReportUtils";
 import { PRODUCT_CATEGORIES } from "../../catalogo/constants";
 import { MOVIMIENTO_META } from "../../inventory/constants";
 import { formatFecha } from "../../../shared/utils/format";
@@ -22,7 +22,7 @@ const ESTADO_OPTIONS = [
 export default function InventarioReportTab({
   productos, movimientos, users, branches, branchesById,
   branchId, setBranchId, dateFrom, dateTo, quickRange, onQuickRange, onDateFromChange, onDateToChange,
-  onClearFilters, onExportReady, branchLocked = false,
+  onClearFilters, branchLocked = false,
 }) {
 
   const [category, setCategory] = useState("");
@@ -141,20 +141,6 @@ export default function InventarioReportTab({
     },
     { key: "realizadoPor", label: "Realizado por" },
   ];
-
-  useEffect(() => {
-    onExportReady({
-      filename: `reporte-inventario-${dateFrom}-a-${dateTo}.csv`,
-      csv: toCsv(existenciaRows, [
-        { label: "Producto", value: (row) => row.productName },
-        ...(branchLocked ? [] : [{ label: "Sucursal", value: (row) => row.branchName }]),
-        { label: "Existencia", value: (row) => row.stock },
-        { label: "Mínimo", value: (row) => row.stockMin },
-        { label: "Estado", value: (row) => row.status },
-      ]),
-    });
-  }, [existenciaRows, dateFrom, dateTo, onExportReady, branchLocked]);
-
 
   return (
     <>

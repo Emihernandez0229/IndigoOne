@@ -1,9 +1,8 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { Home, Download } from "lucide-react";
+import { Home } from "lucide-react";
 
 import PageContainer from "../../shared/layouts/PageContainer";
-import Button from "../../shared/components/Button";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
 import useBranchScope from "../../shared/hooks/useBranchScope";
@@ -23,7 +22,7 @@ import InventarioReportTab from "./tabs/InventarioReportTab";
 import ClientesReportTab from "./tabs/ClientesReportTab";
 import ServiciosReportTab from "./tabs/ServiciosReportTab";
 import CitasReportTab from "./tabs/CitasReportTab";
-import { quickRangeDates, downloadCsv } from "./salesReportUtils";
+import { quickRangeDates } from "./salesReportUtils";
 
 
 const TOP_TABS = [
@@ -62,7 +61,6 @@ export default function BranchReportesPage() {
   const [dateFrom, setDateFrom] = useState(() => quickRangeDates(30).from);
   const [dateTo, setDateTo] = useState(() => quickRangeDates(30).to);
   const [resetKey, setResetKey] = useState(0);
-  const [exportConfig, setExportConfig] = useState(null);
 
   const branchesById = useMemo(() => new Map(allBranches.map((b) => [b.id, b.name])), [allBranches]);
   const ownBranch = useMemo(() => allBranches.filter((b) => b.id === selectedBranch), [allBranches, selectedBranch]);
@@ -91,13 +89,6 @@ export default function BranchReportesPage() {
     setResetKey((k) => k + 1);
   };
 
-  const onExportReady = useCallback((config) => setExportConfig(config), []);
-
-  const handleExport = () => {
-    if (!exportConfig) return;
-    downloadCsv(exportConfig.filename, exportConfig.csv);
-  };
-
   const loading = loadingBranches || loadingVentas || loadingProductos || loadingServicios ||
     loadingPatients || loadingCitas || loadingUsers || loadingMovimientos;
   const error = errorVentas;
@@ -109,7 +100,6 @@ export default function BranchReportesPage() {
     onDateFromChange: handleDateFromChange,
     onDateToChange: handleDateToChange,
     onClearFilters: handleClearFilters,
-    onExportReady,
     branchLocked: true,
   };
 
@@ -120,16 +110,10 @@ export default function BranchReportesPage() {
       title="Reportes"
       description="Consulta y analiza la información histórica de tu sucursal por período."
       actions={
-        <>
-          <span className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-surface px-4 py-2 text-sm font-medium text-text-primary">
-            <Home className="h-4 w-4" />
-            {scopeLabel}
-          </span>
-          <Button variant="outline" className="inline-flex items-center gap-2 py-2.5 text-sm" onClick={handleExport}>
-            <Download className="h-4 w-4" />
-            Exportar
-          </Button>
-        </>
+        <span className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-surface px-4 py-2 text-sm font-medium text-text-primary">
+          <Home className="h-4 w-4" />
+          {scopeLabel}
+        </span>
       }
     >
 

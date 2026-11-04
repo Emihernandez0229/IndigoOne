@@ -29,6 +29,30 @@ import {
 import { currency as formatCurrency } from "../../shared/utils/format";
 
 
+// ============================================================================
+// NuevaVentaPage - wizard de 3 pasos (Paciente+carrito / Tipo de trabajo /
+// Pago) para registrar una venta. Todo el estado y los 3 pasos viven en este
+// mismo componente - es el archivo mas largo de Opticas (~940 lineas) y la
+// auditoria de arquitectura (04 nov 2026) lo señalo como candidato a
+// partirse en 3 componentes (uno por paso), pero se decidio posponerlo: no
+// hay pruebas automatizadas para este flujo, asi que cualquier refactor
+// necesita probarse a mano, paso por paso, con los 3 tipos de trabajo
+// (venta_directa / trabajo_interno / orden_laboratorio) y los 2 modos de
+// pago (full / partial) antes de darse por bueno.
+//
+// Mapa rapido para quien vea esto primero:
+//   - Componentes chicos de UI (Card, WorkTypeCard, SubtypeRadioList): solo
+//     para esta pagina, no viven en components/ porque no se reusan en
+//     ningun otro lado.
+//   - Estado: agrupado por tema con comentarios (paciente, catalogo/carrito,
+//     trabajo, pago) - ver mas abajo en el cuerpo del componente.
+//   - JSX: un wizard de 3 pasos, cada uno marcado con un comentario
+//     "===== PASO N ===== " mas abajo en el return.
+//   - handleConfirmVenta: hace 3 cosas encadenadas (crear venta, si aplica
+//     crear orden de laboratorio, generar/descargar el recibo en PDF) - ver
+//     el comentario justo arriba de esa funcion.
+// ============================================================================
+
 const INDICACIONES_MAX = 300;
 
 // Busqueda de paciente: por nombre (letras, hasta 50) o telefono (solo
@@ -59,6 +83,8 @@ const WORK_TYPE_ICONS = {
 };
 
 
+// Piezas de UI chicas, usadas solo por los 3 pasos de abajo - a proposito
+// no viven en components/ porque no se reusan en ninguna otra pagina.
 function Card({ title, children }) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-surface p-6">
@@ -316,6 +342,13 @@ export default function NuevaVentaPage() {
       : null;
 
 
+  // Submit del paso 3 - encadena 3 cosas: 1) crea la venta, 2) si el tipo
+  // de trabajo es "orden_laboratorio" crea tambien la orden en el modulo de
+  // laboratorio (enlazada por created.id), 3) genera y descarga el PDF del
+  // recibo. Si cualquiera de las 3 falla, ninguna navegacion ocurre y se
+  // muestra submitError - pero si la venta (1) ya se creo y falla la orden
+  // de laboratorio (2) o el PDF (3), la venta queda creada igual (no hay
+  // rollback del lado del front).
   const handleConfirmVenta = async () => {
     setSubmitError("");
     try {
@@ -412,6 +445,7 @@ export default function NuevaVentaPage() {
           <VentaStepper step={step} />
         </div>
 
+        {/* ===== PASO 1: elegir sucursal (si aplica), paciente y armar el carrito de productos/servicios ===== */}
         {step === 1 && (
           <div className="grid gap-6 lg:grid-cols-3">
 
@@ -617,6 +651,7 @@ export default function NuevaVentaPage() {
           </div>
         )}
 
+        {/* ===== PASO 2a: tipo de trabajo, variante "venta_directa" (sin columna de detalle, centrado) ===== */}
         {step === 2 && workType === "venta_directa" && (
           <div className="mx-auto max-w-2xl space-y-6">
 
@@ -667,6 +702,7 @@ export default function NuevaVentaPage() {
           </div>
         )}
 
+        {/* ===== PASO 2b: tipo de trabajo, variante "trabajo_interno"/"orden_laboratorio" (con columna de detalle: subtipo, receta, indicaciones) ===== */}
         {step === 2 && workType !== "venta_directa" && (
           <div className="grid gap-6 lg:grid-cols-3">
 
@@ -771,6 +807,7 @@ export default function NuevaVentaPage() {
           </div>
         )}
 
+        {/* ===== PASO 3: resumen (paciente, trabajo, articulos) y pago - handleConfirmVenta se dispara desde el boton "Confirmar venta" de aqui abajo ===== */}
         {step === 3 && (
           <div className="grid gap-6 lg:grid-cols-3">
 

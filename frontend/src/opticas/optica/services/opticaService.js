@@ -32,13 +32,13 @@ function mapInfo(raw) {
 
 
 export async function getOpticaInfo() {
-  const { info } = await httpClient.get("/api/opticas/informacion");
+  const info = await httpClient.get("/api/opticas/informacion");
   return mapInfo(info);
 }
 
 
 export async function updateOpticaInfo(payload) {
-  const { info } = await httpClient.put("/api/opticas/informacion", {
+  const info = await httpClient.put("/api/opticas/informacion", {
     logoUrl: payload.logoUrl,
     nombreComercial: payload.nombreComercial,
     razonSocial: payload.razonSocial,

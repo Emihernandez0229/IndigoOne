@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 import Input from "../../../shared/components/Input";
 import SelectFilter from "../../../shared/filters/SelectFilter";
@@ -7,7 +7,7 @@ import ChartContainer from "../../../shared/charts/ChartContainer";
 import DataTable from "../../../shared/components/DataTable";
 
 import SalesComparisonList from "../components/SalesComparisonList";
-import { QUICK_RANGES, inDateRange, groupByCount, toCsv } from "../salesReportUtils";
+import { QUICK_RANGES, inDateRange, groupByCount } from "../salesReportUtils";
 
 const count = (value) => String(value ?? 0);
 
@@ -25,7 +25,7 @@ function TypeBadges({ nuevo, recurrente, paciente }) {
 export default function ClientesReportTab({
   patients, ventas, citas, branches, branchesById,
   branchId, setBranchId, dateFrom, dateTo, quickRange, onQuickRange, onDateFromChange, onDateToChange,
-  onClearFilters, onExportReady, branchLocked = false,
+  onClearFilters, branchLocked = false,
 }) {
 
   const branchOptions = useMemo(() => branches.map((b) => ({ value: b.id, label: b.name })), [branches]);
@@ -145,19 +145,6 @@ export default function ClientesReportTab({
     { key: "total", label: "Total", render: (row) => <span className="font-bold text-text-primary">${row.total.toLocaleString("es-MX")}</span> },
     { key: "tipo", label: "Tipo", render: (row) => <TypeBadges nuevo={row.nuevo} recurrente={row.recurrente} paciente={row.paciente} /> },
   ];
-
-  useEffect(() => {
-    onExportReady({
-      filename: `reporte-clientes-${dateFrom}-a-${dateTo}.csv`,
-      csv: toCsv(activityRows, [
-        { label: "Cliente", value: (row) => row.name },
-        ...(branchLocked ? [] : [{ label: "Sucursal", value: (row) => row.branchName }]),
-        { label: "Compras", value: (row) => row.compras },
-        { label: "Total", value: (row) => row.total.toFixed(2) },
-      ]),
-    });
-  }, [activityRows, dateFrom, dateTo, onExportReady, branchLocked]);
-
 
   return (
     <>

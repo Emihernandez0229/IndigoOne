@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import Input from "../../../shared/components/Input";
 import SelectFilter from "../../../shared/filters/SelectFilter";
@@ -8,7 +8,7 @@ import BarChart from "../../../shared/charts/BarChart";
 
 import SalesComparisonList from "../components/SalesComparisonList";
 import SalesLineItemsTable from "../components/SalesLineItemsTable";
-import { QUICK_RANGES, inDateRange, groupByItem, buildServiceDailyBuckets, itemTotalConIva, toCsv } from "../salesReportUtils";
+import { QUICK_RANGES, inDateRange, groupByItem, buildServiceDailyBuckets, itemTotalConIva } from "../salesReportUtils";
 import { currency } from "../../../shared/utils/format";
 
 const count = (value) => String(value ?? 0);
@@ -17,7 +17,7 @@ const count = (value) => String(value ?? 0);
 export default function ServiciosReportTab({
   ventas, servicios, branches,
   branchId, setBranchId, dateFrom, dateTo, quickRange, onQuickRange, onDateFromChange, onDateToChange,
-  onClearFilters, onExportReady, branchLocked = false,
+  onClearFilters, branchLocked = false,
 }) {
 
   const [serviceId, setServiceId] = useState("");
@@ -88,18 +88,6 @@ export default function ServiciosReportTab({
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
   }, [scopedVentas, serviceId]);
 
-  useEffect(() => {
-    onExportReady({
-      filename: `reporte-servicios-${dateFrom}-a-${dateTo}.csv`,
-      csv: toCsv(servicioLineItems, [
-        { label: "Servicio", value: (row) => row.itemName },
-        { label: "Fecha", value: (row) => row.fecha },
-        { label: "Vendedor", value: (row) => row.vendedor },
-        { label: "Cantidad", value: (row) => row.cantidad },
-        { label: "Total", value: (row) => row.total.toFixed(2) },
-      ]),
-    });
-  }, [servicioLineItems, dateFrom, dateTo, onExportReady]);
 
 
   return (
