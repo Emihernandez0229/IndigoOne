@@ -4,6 +4,8 @@ import { ClipboardList, Clock, AlertTriangle, XCircle, DollarSign, Info } from "
 import StatusBadge from "../../../shared/components/StatusBadge";
 import Button from "../../../shared/components/Button";
 import TabBar from "../../../shared/components/TabBar";
+import SectionTitle from "../../../shared/components/SectionTitle";
+import Field from "../../../shared/components/DetailField";
 import PriorityBadge from "./PriorityBadge";
 import VentaTimeline from "./VentaTimeline";
 import GraduacionSummary from "./GraduacionSummary";
@@ -26,26 +28,6 @@ const formatDateTime = (value) => {
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("es-MX", { dateStyle: "full", timeStyle: "short" });
 };
-
-
-function SectionTitle({ icon: Icon, children }) {
-  return (
-    <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-text-primary">
-      <Icon className="h-4 w-4 text-indigo-primary" />
-      {children}
-    </h3>
-  );
-}
-
-
-function Field({ label, value }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</dt>
-      <dd className="mt-1 text-sm font-bold text-text-primary">{value || "—"}</dd>
-    </div>
-  );
-}
 
 
 /**

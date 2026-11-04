@@ -37,6 +37,7 @@ export default function VentasPage() {
   const { isOwner, branches, selectedBranch, setSelectedBranch, loadingBranches } = useBranchScope({
     listBranches,
     ownerRoles: [ROLES.OPTICA_DUENO],
+    alwaysLoad: true,
     autoSelectFirst: false,
   });
 

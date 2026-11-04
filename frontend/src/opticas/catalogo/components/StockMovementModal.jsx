@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
 import { useFormValidation } from "../../../shared/hooks/useFormValidation";
 import { onlyDigits, textWithSpecialChars } from "../../../shared/utils/textInput";
@@ -77,10 +78,10 @@ export default function StockMovementModal({ open, producto, branchName, onClose
 
         <div>
           <label className="mb-2 block text-sm font-medium text-text-primary">Tipo</label>
-          <select value={form.tipo} onChange={set("tipo")} className={selectClass}>
+          <Select value={form.tipo} onChange={set("tipo")}>
             <option value="">Selecciona...</option>
             {MOVEMENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+          </Select>
           {errors.tipo && <p className="mt-1.5 text-sm text-error">{errors.tipo}</p>}
         </div>
 

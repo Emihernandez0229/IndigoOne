@@ -1,27 +1,9 @@
 import { Ban, RotateCcw, Users, Building2, ShieldCheck } from "lucide-react";
 
 import StatusBadge from "../../../shared/components/StatusBadge";
+import SectionTitle from "../../../shared/components/SectionTitle";
+import Field from "../../../shared/components/DetailField";
 import { USER_ROLE_LABELS } from "../constants";
-
-
-function SectionTitle({ icon: Icon, children }) {
-  return (
-    <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-text-primary">
-      <Icon className="h-4 w-4 text-indigo-primary" />
-      {children}
-    </h3>
-  );
-}
-
-
-function Field({ label, value }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</dt>
-      <dd className="mt-1 text-sm font-bold text-text-primary">{value || "—"}</dd>
-    </div>
-  );
-}
 
 
 export default function UserDetailPanel({ user, canDeactivate = false, onDeactivate, onActivate }) {

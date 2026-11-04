@@ -3,12 +3,15 @@ import { UserPlus, User, Phone, Mail, Calendar, Building2, ShieldCheck } from "l
 
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
 import StatusBadge from "../../../shared/components/StatusBadge";
+import SectionTitle from "../../../shared/components/SectionTitle";
 import { useAuth } from "../../../shared/context/AuthContext";
 import { ROLES } from "../../../shared/security/roles";
 import { useFormValidation } from "../../../shared/hooks/useFormValidation";
-import { onlyLetters, onlyDigits, isValidEmail, isValidPhone } from "../../../shared/utils/textInput";
+import { onlyLetters, onlyDigits, isValidPhone } from "../../../shared/utils/textInput";
+import { isValidEmail } from "../../../shared/utils/validators";
 import { listBranches } from "../../branches/services/branchService";
 
 
@@ -47,31 +50,6 @@ function formatDate(value) {
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
 }
-
-
-function SectionTitle({ icon: Icon, children, subtitle, step }) {
-  return (
-    <div className="mb-5 flex items-start gap-3">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-light text-sm font-bold text-indigo-primary">
-        {step}
-      </span>
-      <div>
-        <h3 className="flex items-center gap-2 text-base font-bold text-text-primary">
-          <Icon className="h-4 w-4 text-indigo-primary" />
-          {children}
-        </h3>
-        {subtitle && <p className="text-sm text-text-secondary">{subtitle}</p>}
-      </div>
-    </div>
-  );
-}
-
-
-const selectClass = `
-  w-full rounded-xl border border-gray-200 bg-surface px-4 py-3 text-text-primary
-  outline-none transition focus:border-indigo-primary focus:ring-2 focus:ring-indigo-light
-  disabled:cursor-not-allowed disabled:opacity-50
-`;
 
 
 /**
@@ -177,7 +155,8 @@ export default function PatientFormModal({
     const isValid = validate([
       ["name", !name, "El nombre es obligatorio."],
       ["phone", !isValidPhone(form.phone), "El teléfono debe tener exactamente 10 dígitos."],
-      ["email", email && !isValidEmail(email), "El correo no es válido."],
+      ["email", !email || !isValidEmail(email), "Escribe un correo electrónico válido."],
+      ["birthDate", !form.birthDate, "La fecha de nacimiento es obligatoria."],
     ]);
     if (!isValid) return;
 
@@ -214,9 +193,9 @@ export default function PatientFormModal({
                 <Input label="Nombre *" value={form.name} onChange={set("name", (v) => onlyLetters(v, NAME_MAX))} error={errors.name} />
               </div>
               <Input label="Teléfono *" value={form.phone} onChange={set("phone", (v) => onlyDigits(v, 10))} error={errors.phone} />
-              <Input label="Correo electrónico" type="email" value={form.email} onChange={set("email", (v) => v.slice(0, EMAIL_MAX))} error={errors.email} />
+              <Input label="Correo electrónico *" type="email" value={form.email} onChange={set("email", (v) => v.slice(0, EMAIL_MAX))} error={errors.email} />
               <Input
-                label="Fecha de nacimiento"
+                label="Fecha de nacimiento *"
                 type="date"
                 value={form.birthDate ?? ""}
                 onChange={set("birthDate")}
@@ -234,12 +213,11 @@ export default function PatientFormModal({
                       {patient?.branchName || "Sin asignar"}
                     </div>
                   ) : (
-                    <select
+                    <Select
                       id="patient-branch"
                       value={form.branchId}
                       onChange={set("branchId")}
                       disabled={loadingBranches}
-                      className={selectClass}
                     >
                       <option value="">
                         {loadingBranches ? "Cargando..." : "Sin sucursal"}
@@ -249,7 +227,7 @@ export default function PatientFormModal({
                           {branch.name}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   )}
                 </div>
               )}

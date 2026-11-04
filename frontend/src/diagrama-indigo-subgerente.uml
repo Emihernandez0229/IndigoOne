@@ -1,0 +1,102 @@
+@startuml CasoUso_Indigo_Subgerente
+title Caso de uso - Subgerente (Indigo)
+top to bottom direction
+skinparam actorStyle awesome
+skinparam packageStyle rect
+skinparam usecaseBackgroundColor #EEF2FF
+skinparam usecaseBorderColor #4F46E5
+
+actor "Gerente de sucursal" as Gerente #DDDDDD
+actor "Subgerente" as Sub
+
+Sub --|> Gerente
+note right of Sub
+  Mismos casos de uso que
+  Gerente de sucursal
+end note
+
+rectangle "Sistema Indigo" {
+  usecase "Ver dashboard\nde su sucursal" as UC_Dashboard
+
+  usecase "Consultar su sucursal" as UC_MiSucursal
+  usecase "Editar información\nde sucursal" as UC_EditarSucursal
+
+  usecase "Gestionar personal\nde su sucursal" as UC_Personal
+  usecase "Registrar empleado" as UC_RegEmpleado
+  usecase "Editar empleado" as UC_EditEmpleado
+  usecase "Dar de baja empleado" as UC_BajaEmpleado
+
+  usecase "Gestionar clientes\nde su sucursal" as UC_Clientes
+  usecase "Registrar cliente" as UC_RegCliente
+  usecase "Editar cliente" as UC_EditCliente
+  usecase "Desactivar cliente" as UC_BajaCliente
+
+  usecase "Consultar laboratorio\nde su sucursal" as UC_Laboratorio
+  usecase "Consultar mermas\nde su sucursal" as UC_Mermas
+
+  usecase "Gestionar inventario\nde su sucursal" as UC_Inventario
+  usecase "Registrar producto" as UC_RegInventario
+  usecase "Editar producto" as UC_EditInventario
+  usecase "Dar de baja producto" as UC_BajaInventario
+
+  usecase "Consultar reportes\nde su sucursal" as UC_Reportes
+  usecase "Comparar mermas" as UC_CompararRed
+  usecase "Ver tendencia\nde efectividad" as UC_Tendencia
+  usecase "Comparar periodos" as UC_CompararPeriodos
+  usecase "Ver actividad\ndel equipo" as UC_ActividadEquipo
+
+  usecase "Gestionar perfil" as UC_Perfil
+  usecase "Actualizar información\npersonal" as UC_InfoPersonal
+  usecase "Actualizar contacto\nde emergencia" as UC_ContactoEmergencia
+  usecase "Cambiar contraseña" as UC_CambiarPassword
+}
+
+Sub -- UC_Dashboard
+Sub -- UC_MiSucursal
+Sub -- UC_Personal
+Sub -- UC_Clientes
+Sub -- UC_Laboratorio
+Sub -- UC_Mermas
+Sub -- UC_Inventario
+Sub -- UC_Reportes
+Sub -- UC_Perfil
+
+UC_Dashboard -[hidden]-> UC_MiSucursal
+UC_MiSucursal -[hidden]-> UC_Personal
+UC_Personal -[hidden]-> UC_Clientes
+UC_Clientes -[hidden]-> UC_Laboratorio
+UC_Laboratorio -[hidden]-> UC_Mermas
+UC_Mermas -[hidden]-> UC_Inventario
+UC_Inventario -[hidden]-> UC_Reportes
+UC_Reportes -[hidden]-> UC_Perfil
+
+UC_EditarSucursal ..> UC_MiSucursal : <<extend>>
+
+UC_RegEmpleado ..> UC_Personal : <<extend>>
+UC_EditEmpleado ..> UC_Personal : <<extend>>
+UC_BajaEmpleado ..> UC_Personal : <<extend>>
+
+UC_RegInventario ..> UC_Inventario : <<extend>>
+UC_EditInventario ..> UC_Inventario : <<extend>>
+UC_BajaInventario ..> UC_Inventario : <<extend>>
+
+UC_RegCliente ..> UC_Clientes : <<extend>>
+UC_EditCliente ..> UC_Clientes : <<extend>>
+UC_BajaCliente ..> UC_Clientes : <<extend>>
+
+UC_CompararRed ..> UC_Reportes : <<extend>>
+UC_Tendencia ..> UC_Reportes : <<extend>>
+UC_CompararPeriodos ..> UC_Reportes : <<extend>>
+UC_ActividadEquipo ..> UC_Reportes : <<extend>>
+
+UC_InfoPersonal ..> UC_Perfil : <<extend>>
+UC_ContactoEmergencia ..> UC_Perfil : <<extend>>
+UC_CambiarPassword ..> UC_Perfil : <<extend>>
+
+note bottom of UC_Personal
+  {Restricción: no puede administrar
+  los roles "Gerente de sucursal" ni
+  "Subgerente" (ni a sí mismo)}
+end note
+
+@enduml

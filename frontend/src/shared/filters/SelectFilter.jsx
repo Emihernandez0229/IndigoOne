@@ -4,6 +4,8 @@ export default function SelectFilter({
     options = [],
     onChange,
     placeholder,
+    disabled = false,
+    hint,
 }) {
 
 
@@ -24,6 +26,12 @@ export default function SelectFilter({
 
                         {label}
 
+                        {
+                            hint && (
+                                <span className="font-normal text-text-secondary/70"> · {hint}</span>
+                            )
+                        }
+
                     </label>
 
                 )
@@ -38,6 +46,7 @@ export default function SelectFilter({
                 onChange={(event) =>
                     onChange(event.target.value)
                 }
+                disabled={disabled}
                 className="
                     w-full
                     rounded-xl
@@ -51,6 +60,8 @@ export default function SelectFilter({
                     outline-none
                     focus:ring-2
                     focus:ring-indigo-primary
+                    disabled:cursor-not-allowed
+                    disabled:opacity-60
                 "
             >
 

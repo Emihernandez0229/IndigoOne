@@ -1,0 +1,50 @@
+@startuml CasoUso_Indigo_Laboratorio
+title Caso de uso - Empleado de laboratorio (Indigo)
+top to bottom direction
+skinparam actorStyle awesome
+skinparam packageStyle rect
+skinparam usecaseBackgroundColor #EEF2FF
+skinparam usecaseBorderColor #4F46E5
+
+actor "Empleado de laboratorio" as Lab
+
+rectangle "Sistema Indigo" {
+  usecase "Ver dashboard\n(inicio)" as UC_Dashboard
+  usecase "Consultar trabajos\nde su sucursal" as UC_Trabajos
+  usecase "Aceptar trabajo" as UC_Aceptar
+  usecase "Completar trabajo" as UC_Completar
+  usecase "Registrar merma" as UC_Merma
+  usecase "Agregar detalle\nal trabajo" as UC_Detalle
+  usecase "Consultar mermas" as UC_ConsultarMermas
+
+  usecase "Gestionar perfil" as UC_Perfil
+  usecase "Actualizar información\npersonal" as UC_InfoPersonal
+  usecase "Actualizar contacto\nde emergencia" as UC_ContactoEmergencia
+  usecase "Cambiar contraseña" as UC_CambiarPassword
+}
+
+Lab -- UC_Dashboard
+Lab -- UC_Trabajos
+Lab -- UC_ConsultarMermas
+Lab -- UC_Perfil
+
+UC_Dashboard -[hidden]-> UC_Trabajos
+UC_Trabajos -[hidden]-> UC_ConsultarMermas
+UC_ConsultarMermas -[hidden]-> UC_Perfil
+
+UC_Aceptar ..> UC_Trabajos : <<extend>>
+UC_Completar ..> UC_Trabajos : <<extend>>
+UC_Merma ..> UC_Trabajos : <<extend>>
+UC_Detalle ..> UC_Trabajos : <<extend>>
+
+UC_InfoPersonal ..> UC_Perfil : <<extend>>
+UC_ContactoEmergencia ..> UC_Perfil : <<extend>>
+UC_CambiarPassword ..> UC_Perfil : <<extend>>
+
+note bottom of UC_Trabajos
+  Ve TODA la cola de su sucursal
+  (los registra Ventas), no solo
+  los que él mismo ha atendido
+end note
+
+@enduml

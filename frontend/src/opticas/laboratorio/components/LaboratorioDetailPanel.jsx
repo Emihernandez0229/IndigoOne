@@ -3,6 +3,9 @@ import { Link } from "react-router-dom";
 
 import StatusBadge from "../../../shared/components/StatusBadge";
 import Button from "../../../shared/components/Button";
+import SectionTitle from "../../../shared/components/SectionTitle";
+import Field from "../../../shared/components/DetailField";
+import PriorityBadge from "../../ventas/components/PriorityBadge";
 import { STATUS_TRANSITIONS } from "../constants";
 import { LAB_WORK_SUBTYPES } from "../../ventas/constants";
 
@@ -10,25 +13,7 @@ import { LAB_WORK_SUBTYPES } from "../../ventas/constants";
 const subtypeLabel = (value) =>
   LAB_WORK_SUBTYPES.find((option) => option.value === value)?.label ?? value;
 
-
-function SectionTitle({ icon: Icon, children }) {
-  return (
-    <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-text-primary">
-      <Icon className="h-4 w-4 text-indigo-primary" />
-      {children}
-    </h3>
-  );
-}
-
-
-function Field({ label, value }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</dt>
-      <dd className="mt-1 text-sm font-bold text-text-primary">{value || "—"}</dd>
-    </div>
-  );
-}
+const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
 
 
 function formatDateTime(value) {
@@ -41,9 +26,8 @@ function formatDateTime(value) {
 
 /**
  * Detalle de orden de laboratorio para el Dueño de óptica - mismo patrón
- * visual que los demás paneles de "ver" ya hechos, con la misma
- * información que ya tenía LaboratorioDetailPage (incluido el cambio de
- * estado y la graduación).
+ * visual que los demás paneles de "ver" ya hechos, con el cambio de
+ * estado y la graduación incluidos.
  */
 export default function LaboratorioDetailPanel({ order, patient, canManage = false, onChangeStatus }) {
 
@@ -61,12 +45,18 @@ export default function LaboratorioDetailPanel({ order, patient, canManage = fal
         </div>
         <div>
           <h2 className="text-xl font-bold text-text-primary">{patient?.name ?? "Orden de laboratorio"}</h2>
-          <StatusBadge status={order.status} />
+          <p className="text-sm text-text-secondary">{order.folio ? `Venta ${order.folio} · ` : ""}{formatDateTime(order.createdAt)}</p>
         </div>
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-surface p-5">
         <SectionTitle icon={Info}>Datos de la orden</SectionTitle>
+
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <StatusBadge status={order.status} />
+          <PriorityBadge priority={order.priority} />
+        </div>
+
         <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
           <div className="col-span-2">
             <Field label="Paciente" value={patient?.name} />
@@ -79,8 +69,14 @@ export default function LaboratorioDetailPanel({ order, patient, canManage = fal
               <Field label="Tipo de trabajo solicitado" value={subtypeLabel(order.workSubtype)} />
             </div>
           )}
-          <Field label="Fecha" value={formatDateTime(order.createdAt)} />
+          <Field label="Vendedor" value={order.sellerName} />
+          <Field label="Sucursal" value={order.branchName} />
+          <Field label="Total" value={currency(order.total)} />
           <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">Pagos</dt>
+            <dd className="mt-1">{order.paymentStatus ? <StatusBadge status={order.paymentStatus} /> : "—"}</dd>
+          </div>
+          <div className="col-span-2">
             <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">Venta relacionada</dt>
             <dd className="mt-1 text-sm font-bold text-text-primary">
               {order.saleId ? (

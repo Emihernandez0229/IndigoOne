@@ -3,9 +3,12 @@ import { UserPlus, Phone, Mail, Briefcase, Building2, User, Lock, Eye, EyeOff, S
 
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
+import SectionTitle from "../../../shared/components/SectionTitle";
 import { useFormValidation } from "../../../shared/hooks/useFormValidation";
-import { onlyLetters, onlyDigits, isValidEmail, isValidPhone } from "../../../shared/utils/textInput";
+import { onlyLetters, onlyDigits, isValidPhone } from "../../../shared/utils/textInput";
+import { isValidEmail } from "../../../shared/utils/validators";
 import { OPTICAS_PERSONAL_ROLES, generatePersonalUsername } from "../constants";
 
 
@@ -18,30 +21,6 @@ function generatePassword() {
 
 
 const EMPTY = { name: "", phone: "", email: "", role: "", branchId: "" };
-
-
-function SectionTitle({ icon: Icon, children, subtitle, step }) {
-  return (
-    <div className="mb-5 flex items-start gap-3">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-light text-sm font-bold text-indigo-primary">
-        {step}
-      </span>
-      <div>
-        <h3 className="flex items-center gap-2 text-base font-bold text-text-primary">
-          <Icon className="h-4 w-4 text-indigo-primary" />
-          {children}
-        </h3>
-        {subtitle && <p className="text-sm text-text-secondary">{subtitle}</p>}
-      </div>
-    </div>
-  );
-}
-
-
-const selectClass = `
-  w-full rounded-xl border border-gray-200 bg-surface px-4 py-3 text-text-primary
-  outline-none transition focus:border-indigo-primary focus:ring-2 focus:ring-indigo-light
-`;
 
 
 /**
@@ -94,7 +73,7 @@ export default function PersonnelFormModal({
     const isValid = validate([
       ["name", !form.name.trim(), "El nombre es obligatorio."],
       ["phone", !isValidPhone(form.phone), "El teléfono debe tener exactamente 10 dígitos."],
-      ["email", form.email && !isValidEmail(form.email), "Escribe un correo electrónico válido."],
+      ["email", !form.email.trim() || !isValidEmail(form.email), "Escribe un correo electrónico válido."],
       ["role", !form.role, "Selecciona un puesto."],
     ]);
     if (!isValid) return;
@@ -146,7 +125,7 @@ export default function PersonnelFormModal({
               />
               <div className="sm:col-span-2">
                 <Input
-                  label="Correo electrónico"
+                  label="Correo electrónico *"
                   placeholder="Ej. juan@ejemplo.com"
                   type="email"
                   value={form.email}
@@ -164,10 +143,10 @@ export default function PersonnelFormModal({
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-text-primary">Puesto / Rol *</label>
-                <select value={form.role} onChange={set("role")} className={selectClass}>
+                <Select value={form.role} onChange={set("role")}>
                   <option value="">Selecciona un puesto...</option>
                   {roleOptions.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
+                </Select>
                 {errors.role && <p className="mt-1.5 text-sm text-error">{errors.role}</p>}
               </div>
               <div>
@@ -179,10 +158,10 @@ export default function PersonnelFormModal({
                     <Lock className="ml-auto h-3.5 w-3.5" />
                   </div>
                 ) : (
-                  <select value={form.branchId} onChange={set("branchId")} className={selectClass}>
+                  <Select value={form.branchId} onChange={set("branchId")}>
                     <option value="">Sin sucursal</option>
                     {branches?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
+                  </Select>
                 )}
               </div>
             </div>

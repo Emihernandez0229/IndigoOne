@@ -20,13 +20,13 @@ import PeriodComparisonChart from "./components/PeriodComparisonChart";
 import PeriodDetailTable from "./components/PeriodDetailTable";
 import ReportsActivityPanel from "./components/ReportsActivityPanel";
 import { CHART_COLORS } from "../../shared/charts/chartTheme";
+import { buildPeriodWindows } from "../../shared/utils/periodWindows";
 import {
   categoryOf,
   getPeriodRange,
   inRange,
   pct,
   formatShortDate,
-  buildPeriodWindows,
 } from "./utils";
 
 

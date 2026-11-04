@@ -17,7 +17,7 @@ import BranchMetricComparisonList from "./components/BranchMetricComparisonList"
 import BranchComparisonTable from "./components/BranchComparisonTable";
 import MermasByTypeList from "./components/MermasByTypeList";
 import LabPerformanceList from "./components/LabPerformanceList";
-import SalesPerformanceChart from "../dashboard/components/SalesPerformanceChart";
+import SalesPerformanceChart from "../../shared/charts/SalesPerformanceChart";
 import { CHART_COLORS } from "../../shared/charts/chartTheme";
 import {
   categoryOf,

@@ -11,7 +11,8 @@ import { useAuth } from "../../shared/context/AuthContext";
 import { getRoleConfig } from "../../shared/security/roleConfig";
 
 import useUsers from "../users/hooks/useUsers";
-import { onlyLetters, onlyDigits, isValidEmail, isValidPhone } from "../../shared/utils/textInput";
+import { onlyLetters, onlyDigits, isValidPhone } from "../../shared/utils/textInput";
+import { isValidEmail } from "../../shared/utils/validators";
 import { useFormValidation } from "../../shared/hooks/useFormValidation";
 
 

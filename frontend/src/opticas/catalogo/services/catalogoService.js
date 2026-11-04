@@ -92,6 +92,7 @@ export async function registerProductoMovimiento(id, branchId, payload) {
     tipo: payload.tipo,
     cantidad: payload.cantidad,
     motivo: payload.motivo,
+    creadoPor: payload.createdBy,
   }));
 }
 

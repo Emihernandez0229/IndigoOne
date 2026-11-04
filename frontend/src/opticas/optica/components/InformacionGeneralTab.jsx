@@ -51,8 +51,10 @@ export default function InformacionGeneralTab({ info, canManage, onSave, onCance
     const nextErrors = {};
     if (!String(form.nombreComercial ?? "").trim()) nextErrors.nombreComercial = "El nombre comercial es obligatorio.";
     if (!String(form.razonSocial ?? "").trim()) nextErrors.razonSocial = "La razón social es obligatoria.";
-    if (form.telefono && !isValidMexicanPhone(form.telefono)) nextErrors.telefono = "El teléfono debe tener 10 dígitos.";
-    if (form.correo && !isValidEmail(form.correo)) nextErrors.correo = "El correo no es válido.";
+    if (!String(form.telefono ?? "").trim()) nextErrors.telefono = "El teléfono es obligatorio.";
+    else if (!isValidMexicanPhone(form.telefono)) nextErrors.telefono = "El teléfono debe tener 10 dígitos.";
+    if (!String(form.correo ?? "").trim()) nextErrors.correo = "El correo es obligatorio.";
+    else if (!isValidEmail(form.correo)) nextErrors.correo = "El correo no es válido.";
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -74,8 +76,8 @@ export default function InformacionGeneralTab({ info, canManage, onSave, onCance
       <div className="relative grid gap-4 sm:grid-cols-2">
         <Input label="Nombre comercial *" value={form.nombreComercial ?? ""} onChange={set("nombreComercial", (v) => onlyLetters(v, NAME_MAX))} error={errors.nombreComercial} />
         <Input label="Razón social *" value={form.razonSocial ?? ""} onChange={set("razonSocial", (v) => onlyLetters(v, NAME_MAX))} error={errors.razonSocial} />
-        <Input label="Teléfono general" value={form.telefono ?? ""} onChange={set("telefono", (v) => onlyDigits(v, 10))} error={errors.telefono} placeholder="10 dígitos" />
-        <Input label="Correo general" type="email" value={form.correo ?? ""} onChange={set("correo")} error={errors.correo} />
+        <Input label="Teléfono general *" value={form.telefono ?? ""} onChange={set("telefono", (v) => onlyDigits(v, 10))} error={errors.telefono} placeholder="10 dígitos" />
+        <Input label="Correo general *" type="email" value={form.correo ?? ""} onChange={set("correo")} error={errors.correo} />
         <Input label="Responsable sanitario (Opcional)" value={form.responsableSanitario ?? ""} onChange={set("responsableSanitario", (v) => onlyLetters(v, NAME_MAX))} />
       </div>
 

@@ -15,8 +15,9 @@ import { useAuth } from "../../../shared/context/AuthContext";
 import { COUNTRIES, getStatesForCountry, getMunicipalitiesForState } from "../../../shared/constants/locations";
 import {
   onlyLetters, onlyLettersAndDots, onlyDigits, alphanumericSpaces, rfcInput,
-  isValidEmail, isValidPhone, isValidPostalCode,
+  isValidPhone,
 } from "../../../shared/utils/textInput";
+import { isValidEmail, isValidPostalCode } from "../../../shared/utils/validators";
 
 import useClients from "../hooks/useClients";
 import useBranches from "../../branches/hooks/useBranches";

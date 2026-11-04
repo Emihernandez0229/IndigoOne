@@ -21,9 +21,12 @@ export default function Sidebar({ items = [] }) {
   const { permissions } = usePermissions();
   const { user } = useAuth();
 
-  // "Mi perfil" es para todos los roles de Indigo (dueño, gerente,
-  // subgerente, ventas, laboratorio) - por ahora no aplica a Opticas.
-  const showProfileLink = getRoleConfig(user?.role)?.module === "indigo";
+  // "Mi perfil" es para todos los roles, tanto de Indigo (dueño, gerente,
+  // subgerente, ventas, laboratorio) como de Opticas (dueño, jefe de
+  // sucursal, ventas) - cada modulo con su propia ruta.
+  const roleConfig = getRoleConfig(user?.role);
+  const showProfileLink = roleConfig?.module === "indigo" || roleConfig?.module === "opticas";
+  const profilePath = roleConfig?.module === "opticas" ? "/opticas/perfil" : "/indigo/perfil";
 
 
   const menuItems = filterMenuByPermissions(items, permissions);
@@ -192,7 +195,7 @@ export default function Sidebar({ items = [] }) {
           <div className="border-t border-white/10 px-3 py-3">
 
             <NavLink
-              to="/indigo/perfil"
+              to={profilePath}
               className={({ isActive }) => `
                 flex
                 items-center

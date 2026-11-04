@@ -45,3 +45,31 @@ export async function activateUser(
   return httpClient.patch(`/api/opticas/usuarios/${id}/activate`);
 }
 
+
+// "Mi perfil" (todos los roles): cada quien edita su propia información.
+export async function updateMyProfile(id, payload) {
+  return httpClient.put(`/api/opticas/usuarios/${id}`, {
+    nombre: payload.name,
+    usuario: payload.username,
+    telefono: payload.phone,
+    correo: payload.email,
+  });
+}
+
+
+export async function updateMyEmergencyContact(id, payload) {
+  return httpClient.put(`/api/opticas/usuarios/${id}`, {
+    contacto_nombre: payload.name,
+    contacto_telefono: payload.phone,
+    contacto_parentesco: payload.relation,
+  });
+}
+
+
+export async function changeMyPassword(id, payload) {
+  return httpClient.patch(`/api/opticas/usuarios/${id}/password`, {
+    actual: payload.currentPassword,
+    nueva: payload.newPassword,
+  });
+}
+

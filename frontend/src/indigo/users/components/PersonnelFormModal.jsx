@@ -5,7 +5,8 @@ import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
 import { useFormValidation } from "../../../shared/hooks/useFormValidation";
-import { onlyLetters, onlyDigits, isValidEmail, isValidPhone } from "../../../shared/utils/textInput";
+import { onlyLetters, onlyDigits, isValidPhone } from "../../../shared/utils/textInput";
+import { isValidEmail } from "../../../shared/utils/validators";
 import { EMPLOYEE_ROLES, generatePersonalUsername } from "../constants";
 import { ROLES } from "../../../shared/security/roles";
 

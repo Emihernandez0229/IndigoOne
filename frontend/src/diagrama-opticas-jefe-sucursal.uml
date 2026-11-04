@@ -1,0 +1,131 @@
+@startuml CasoUso_Opticas_Jefe
+title Caso de uso - Jefe de sucursal (Ópticas)
+top to bottom direction
+skinparam actorStyle awesome
+skinparam packageStyle rect
+skinparam usecaseBackgroundColor #ECFDF5
+skinparam usecaseBorderColor #0D9488
+
+actor "Jefe de sucursal" as Jefe
+
+rectangle "Sistema Ópticas" {
+  usecase "Ver dashboard\nde su sucursal" as UC_Dashboard
+
+  usecase "Consultar configuración\nde la óptica" as UC_Config
+
+  usecase "Consultar su sucursal" as UC_MiSucursal
+  usecase "Editar información\nde sucursal" as UC_EditarSucursal
+
+  usecase "Gestionar personal\nde su sucursal" as UC_Personal
+  usecase "Registrar empleado" as UC_RegEmpleado
+  usecase "Editar empleado" as UC_EditEmpleado
+  usecase "Dar de baja empleado" as UC_BajaEmpleado
+
+  usecase "Gestionar pacientes" as UC_Pacientes
+  usecase "Registrar paciente" as UC_RegPaciente
+  usecase "Editar paciente" as UC_EditPaciente
+  usecase "Desactivar paciente" as UC_BajaPaciente
+
+  usecase "Gestionar citas" as UC_Citas
+  usecase "Registrar cita" as UC_RegCita
+  usecase "Editar cita" as UC_EditCita
+
+  usecase "Gestionar ventas" as UC_Ventas
+  usecase "Registrar venta" as UC_RegVenta
+  usecase "Venta directa" as UC_VentaDirecta
+  usecase "Trabajo interno" as UC_TrabajoInterno
+  usecase "Liquidar pago\nde venta" as UC_LiquidarPago
+
+  usecase "Consultar laboratorio" as UC_Laboratorio
+  usecase "Registrar orden\nde laboratorio" as UC_RegOrdenLab
+
+  usecase "Actualizar catálogo\nexistente" as UC_Catalogo
+  usecase "Editar producto\no servicio" as UC_EditCatalogo
+  usecase "Dar de baja producto\no servicio" as UC_BajaCatalogo
+  usecase "Registrar movimiento\nde stock" as UC_MovStock
+
+  usecase "Consultar catálogo\nde Indigo" as UC_CatalogoIndigo
+
+  usecase "Consultar reportes" as UC_Reportes
+  usecase "Ver reporte\nde ventas" as UC_RepVentas
+  usecase "Ver reporte\nde inventario" as UC_RepInventario
+  usecase "Ver reporte de\nclientes y pacientes" as UC_RepClientes
+  usecase "Ver reporte\nde servicios" as UC_RepServicios
+  usecase "Ver reporte\nde citas" as UC_RepCitas
+
+  usecase "Gestionar perfil" as UC_Perfil
+  usecase "Editar información\npersonal" as UC_EditPerfil
+  usecase "Cambiar contraseña" as UC_CambiarPassword
+}
+
+Jefe -- UC_Dashboard
+Jefe -- UC_Config
+Jefe -- UC_MiSucursal
+Jefe -- UC_Personal
+Jefe -- UC_Pacientes
+Jefe -- UC_Citas
+Jefe -- UC_Ventas
+Jefe -- UC_Laboratorio
+Jefe -- UC_Catalogo
+Jefe -- UC_CatalogoIndigo
+Jefe -- UC_Reportes
+Jefe -- UC_Perfil
+
+UC_Dashboard -[hidden]-> UC_Config
+UC_Config -[hidden]-> UC_MiSucursal
+UC_MiSucursal -[hidden]-> UC_Personal
+UC_Personal -[hidden]-> UC_Pacientes
+UC_Pacientes -[hidden]-> UC_Citas
+UC_Citas -[hidden]-> UC_Ventas
+UC_Ventas -[hidden]-> UC_Laboratorio
+UC_Laboratorio -[hidden]-> UC_Catalogo
+UC_Catalogo -[hidden]-> UC_CatalogoIndigo
+UC_CatalogoIndigo -[hidden]-> UC_Reportes
+UC_Reportes -[hidden]-> UC_Perfil
+
+UC_EditarSucursal ..> UC_MiSucursal : <<extend>>
+
+UC_RegEmpleado ..> UC_Personal : <<extend>>
+UC_EditEmpleado ..> UC_Personal : <<extend>>
+UC_BajaEmpleado ..> UC_Personal : <<extend>>
+
+UC_RegPaciente ..> UC_Pacientes : <<extend>>
+UC_EditPaciente ..> UC_Pacientes : <<extend>>
+UC_BajaPaciente ..> UC_Pacientes : <<extend>>
+
+UC_RegCita ..> UC_Citas : <<extend>>
+UC_EditCita ..> UC_Citas : <<extend>>
+
+UC_RegVenta ..> UC_Ventas : <<extend>>
+UC_VentaDirecta ..> UC_RegVenta : <<extend>>
+UC_TrabajoInterno ..> UC_RegVenta : <<extend>>
+UC_LiquidarPago ..> UC_Ventas : <<extend>>
+
+UC_RegOrdenLab ..> UC_Laboratorio : <<extend>>
+UC_RegOrdenLab ..> UC_RegVenta : <<extend>>
+
+UC_EditCatalogo ..> UC_Catalogo : <<extend>>
+UC_BajaCatalogo ..> UC_Catalogo : <<extend>>
+UC_MovStock ..> UC_Catalogo : <<extend>>
+
+UC_RepVentas ..> UC_Reportes : <<extend>>
+UC_RepInventario ..> UC_Reportes : <<extend>>
+UC_RepClientes ..> UC_Reportes : <<extend>>
+UC_RepServicios ..> UC_Reportes : <<extend>>
+UC_RepCitas ..> UC_Reportes : <<extend>>
+
+UC_EditPerfil ..> UC_Perfil : <<extend>>
+UC_CambiarPassword ..> UC_Perfil : <<extend>>
+
+note bottom of UC_Personal
+  {Restricción: solo administra
+  el rol "Ventas" (no Jefe de
+  sucursal ni Dueño)}
+end note
+
+note bottom of UC_Catalogo
+  No registra productos/servicios
+  nuevos (eso es solo del Dueño)
+end note
+
+@enduml

@@ -1,0 +1,92 @@
+@startuml CasoUso_Indigo_SuperUsuario
+title Caso de uso - Super usuario (Indigo)
+top to bottom direction
+skinparam actorStyle awesome
+skinparam packageStyle rect
+skinparam usecaseBackgroundColor #EEF2FF
+skinparam usecaseBorderColor #4F46E5
+
+actor "Dueño Indigo" as Dueno #DDDDDD
+actor "Super usuario" as Super
+
+Super --|> Dueno
+note right of Super
+  Mismos casos de uso que
+  Dueño Indigo
+end note
+
+rectangle "Sistema Indigo" {
+  usecase "Ver dashboard\n(indicadores globales)" as UC_Dashboard
+
+  usecase "Gestionar sucursales" as UC_Sucursales
+  usecase "Registrar sucursal" as UC_RegSucursal
+  usecase "Asignar gerente\nde sucursal" as UC_AsignarGerente
+  usecase "Editar sucursal" as UC_EditSucursal
+  usecase "Dar de baja sucursal" as UC_BajaSucursal
+
+  usecase "Gestionar personal\nde toda la red" as UC_Personal
+  usecase "Registrar personal\n(cualquier rol/sucursal)" as UC_RegPersonal
+  usecase "Editar personal\n(cualquier rol/sucursal)" as UC_EditPersonal
+  usecase "Dar de baja personal\n(cualquier rol/sucursal)" as UC_BajaPersonal
+
+  usecase "Consultar clientes\n(todas las sucursales)" as UC_Clientes
+
+  usecase "Consultar laboratorio\n(todas las sucursales)" as UC_Laboratorio
+  usecase "Consultar mermas\n(todas las sucursales)" as UC_Mermas
+
+  usecase "Consultar inventario\n(todas las sucursales)" as UC_Inventario
+
+  usecase "Consultar reportes\n(todas las sucursales)" as UC_Reportes
+  usecase "Comparar sucursales" as UC_CompararSucursales
+  usecase "Ver mermas por tipo" as UC_MermasPorTipo
+  usecase "Ver desempeño\nde laboratorio" as UC_DesempenoLab
+  usecase "Ver rendimiento\nde ventas" as UC_RendimientoVentas
+
+  usecase "Consultar bitácora\ndel sistema" as UC_Bitacora
+
+  usecase "Gestionar perfil" as UC_Perfil
+  usecase "Actualizar información\npersonal" as UC_InfoPersonal
+  usecase "Actualizar contacto\nde emergencia" as UC_ContactoEmergencia
+  usecase "Cambiar contraseña" as UC_CambiarPassword
+}
+
+Super -- UC_Dashboard
+Super -- UC_Sucursales
+Super -- UC_Personal
+Super -- UC_Clientes
+Super -- UC_Laboratorio
+Super -- UC_Mermas
+Super -- UC_Inventario
+Super -- UC_Reportes
+Super -- UC_Bitacora
+Super -- UC_Perfil
+
+UC_Dashboard -[hidden]-> UC_Sucursales
+UC_Sucursales -[hidden]-> UC_Personal
+UC_Personal -[hidden]-> UC_Clientes
+UC_Clientes -[hidden]-> UC_Laboratorio
+UC_Laboratorio -[hidden]-> UC_Mermas
+UC_Mermas -[hidden]-> UC_Inventario
+UC_Inventario -[hidden]-> UC_Reportes
+UC_Reportes -[hidden]-> UC_Bitacora
+UC_Bitacora -[hidden]-> UC_Perfil
+
+UC_RegSucursal ..> UC_Sucursales : <<extend>>
+UC_EditSucursal ..> UC_Sucursales : <<extend>>
+UC_BajaSucursal ..> UC_Sucursales : <<extend>>
+UC_RegSucursal ..> UC_AsignarGerente : <<include>>
+
+UC_RegPersonal ..> UC_Personal : <<extend>>
+UC_EditPersonal ..> UC_Personal : <<extend>>
+UC_BajaPersonal ..> UC_Personal : <<extend>>
+
+UC_CompararSucursales ..> UC_Reportes : <<extend>>
+UC_MermasPorTipo ..> UC_Reportes : <<extend>>
+UC_DesempenoLab ..> UC_Reportes : <<extend>>
+UC_RendimientoVentas ..> UC_Reportes : <<extend>>
+
+UC_InfoPersonal ..> UC_Perfil : <<extend>>
+UC_ContactoEmergencia ..> UC_Perfil : <<extend>>
+UC_CambiarPassword ..> UC_Perfil : <<extend>>
+
+@enduml

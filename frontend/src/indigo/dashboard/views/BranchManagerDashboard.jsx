@@ -9,6 +9,7 @@ import ChartContainer from "../../../shared/charts/ChartContainer";
 import DonutChart from "../../../shared/charts/DonutChart";
 import LoadingSpinner from "../../../shared/components/LoadingSpinner";
 import ErrorState from "../../../shared/components/ErrorState";
+import PeriodToggle from "../../../shared/components/PeriodToggle";
 import { useAuth } from "../../../shared/context/AuthContext";
 
 import useBranches from "../../branches/hooks/useBranches";
@@ -16,11 +17,12 @@ import useClients from "../../clients/hooks/useClients";
 import useUsers from "../../users/hooks/useUsers";
 import useLaboratoryJobs from "../../laboratory/hooks/useLaboratoryJobs";
 import useInventory from "../../inventory/hooks/useInventory";
-import SalesPerformanceChart from "../components/SalesPerformanceChart";
 import TeamActivityPanel from "../components/TeamActivityPanel";
 import BranchMetricComparisonList from "../../reports/components/BranchMetricComparisonList";
-import { getPeriodRange, inRange, pct, buildPeriodWindows } from "../../reports/utils";
+import { getPeriodRange, inRange, pct } from "../../reports/utils";
 import { CHART_COLORS } from "../../../shared/charts/chartTheme";
+import SalesPerformanceChart from "../../../shared/charts/SalesPerformanceChart";
+import { buildPeriodWindows } from "../../../shared/utils/periodWindows";
 
 
 const PERIODS = [
@@ -195,20 +197,7 @@ export default function BranchManagerDashboard() {
       <div className="space-y-6">
 
         <div className="flex justify-end">
-          <div className="inline-flex rounded-xl border border-gray-200 bg-surface p-1">
-            {PERIODS.map((p) => (
-              <button
-                key={p.value}
-                type="button"
-                onClick={() => setPeriod(p.value)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                  period === p.value ? "bg-indigo-primary text-white" : "text-text-secondary hover:bg-background"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <PeriodToggle periods={PERIODS} value={period} onChange={setPeriod} />
         </div>
 
         <KpiRow items={kpis} />

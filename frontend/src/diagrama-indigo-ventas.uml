@@ -1,0 +1,42 @@
+@startuml CasoUso_Indigo_Ventas
+title Caso de uso - Empleado de ventas (Indigo)
+top to bottom direction
+skinparam actorStyle awesome
+skinparam packageStyle rect
+skinparam usecaseBackgroundColor #EEF2FF
+skinparam usecaseBorderColor #4F46E5
+
+actor "Empleado de ventas" as Ventas
+
+rectangle "Sistema Indigo" {
+  usecase "Ver dashboard\n(inicio)" as UC_Dashboard
+  usecase "Consultar clientes\nde su sucursal" as UC_Clientes
+  usecase "Gestionar trabajos\nu órdenes" as UC_TrabajosOrdenes
+  usecase "Registrar orden\nde laboratorio/venta" as UC_RegOrdenVenta
+  usecase "Consultar orden\nde laboratorio/venta" as UC_ConsultarOrdenVenta
+
+  usecase "Gestionar perfil" as UC_Perfil
+  usecase "Actualizar información\npersonal" as UC_InfoPersonal
+  usecase "Actualizar contacto\nde emergencia" as UC_ContactoEmergencia
+  usecase "Cambiar contraseña" as UC_CambiarPassword
+}
+
+Ventas -- UC_Dashboard
+Ventas -- UC_Clientes
+Ventas -- UC_TrabajosOrdenes
+Ventas -- UC_Perfil
+
+UC_Dashboard -[hidden]-> UC_Clientes
+UC_Clientes -[hidden]-> UC_TrabajosOrdenes
+UC_TrabajosOrdenes -[hidden]-> UC_Perfil
+
+UC_TrabajosOrdenes ..> UC_Clientes : <<include>>
+
+UC_RegOrdenVenta ..> UC_TrabajosOrdenes : <<extend>>
+UC_ConsultarOrdenVenta ..> UC_TrabajosOrdenes : <<extend>>
+
+UC_InfoPersonal ..> UC_Perfil : <<extend>>
+UC_ContactoEmergencia ..> UC_Perfil : <<extend>>
+UC_CambiarPassword ..> UC_Perfil : <<extend>>
+
+@enduml

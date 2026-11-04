@@ -1340,8 +1340,27 @@ registrarCrud("/api/opticas/usuarios", () => opticaUsuarios, {
       patch.branchId = body.sucursal_id || null;
       patch.branchName = branch?.name ?? "Sin sucursal";
     }
+    // "Mi perfil" (todos los roles): contacto de emergencia.
+    if (body.contacto_nombre !== undefined || body.contacto_telefono !== undefined || body.contacto_parentesco !== undefined) {
+      patch.emergencyContact = {
+        name: body.contacto_nombre ?? "",
+        phone: body.contacto_telefono ?? "",
+        relation: body.contacto_parentesco ?? "",
+      };
+    }
     return patch;
   },
+});
+
+// "Mi perfil": cambio de contraseña - el backend mock no guarda contraseñas
+// reales (el login acepta cualquiera), asi que solo se simula el exito.
+app.patch("/api/opticas/usuarios/:id/password", (req, res) => {
+  const user = opticaUsuarios.find((u) => u.id === req.params.id);
+  if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+  if (!req.body.actual || !req.body.nueva) {
+    return res.status(400).json({ error: "Faltan campos" });
+  }
+  res.json({ ok: true });
 });
 
 // Modulo "Personal" (Dueño): da de alta cualquier rol de personal
@@ -1530,6 +1549,15 @@ let opticaCitas = [
   { id: "ocit-15", sucursal_id: "osuc-2", cliente_final_id: "opac-11", fecha_hora: daysFromNow(9, 11), motivo: "Revisión anual", estado: "confirmada", creado_por: "u-odue-1", created_at: daysFromNow(-2) },
   { id: "ocit-16", sucursal_id: "osuc-2", cliente_final_id: "opac-12", fecha_hora: daysFromNow(-7, 9), motivo: "Entrega de lentes", estado: "atendida", creado_por: "u-odue-1", created_at: daysFromNow(-11) },
   { id: "ocit-17", sucursal_id: "osuc-2", cliente_final_id: "opac-13", fecha_hora: daysFromNow(-8, 13), motivo: "Adaptación de lentes de contacto", estado: "no_asistio", creado_por: "u-odue-1", created_at: daysFromNow(-12) },
+
+  // Citas de hoy, para que la agenda del dashboard (Dueño) tenga algo que
+  // mostrar sin esperar a que se agenden citas reales.
+  { id: "ocit-18", sucursal_id: "osuc-1", cliente_final_id: "opac-1", fecha_hora: daysFromNow(0, 9), motivo: "Revisión anual", estado: "confirmada", creado_por: "u-oenc-1", created_at: daysFromNow(-1) },
+  { id: "ocit-19", sucursal_id: "osuc-1", cliente_final_id: "opac-4", fecha_hora: daysFromNow(0, 10), motivo: "Entrega de lentes", estado: "confirmada", creado_por: "u-oemp-1", created_at: daysFromNow(-1) },
+  { id: "ocit-20", sucursal_id: "osuc-1", cliente_final_id: "opac-5", fecha_hora: daysFromNow(0, 11), motivo: "Ajuste de armazón", estado: "programada", creado_por: "u-oenc-1", created_at: daysFromNow(-1) },
+  { id: "ocit-21", sucursal_id: "osuc-2", cliente_final_id: "opac-10", fecha_hora: daysFromNow(0, 12), motivo: "Consulta inicial", estado: "programada", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
+  { id: "ocit-22", sucursal_id: "osuc-1", cliente_final_id: "opac-7", fecha_hora: daysFromNow(0, 14), motivo: "Reparación de armazón", estado: "confirmada", creado_por: "u-oemp-1", created_at: daysFromNow(-1) },
+  { id: "ocit-23", sucursal_id: "osuc-2", cliente_final_id: "opac-11", fecha_hora: daysFromNow(0, 16), motivo: "Adaptación de lentes de contacto", estado: "programada", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
 ];
 
 // Contrato propuesto para citas: respuestas { success, data } (igual que
@@ -1694,6 +1722,12 @@ app.post("/api/opticas/ventas", (req, res) => {
       const branchStock = producto?.stock_por_sucursal?.find((s) => s.sucursal_id === body.sucursalId);
       if (branchStock) {
         branchStock.stock = Math.max(0, branchStock.stock - Number(item.cantidad));
+        opticaMovimientos.unshift({
+          id: newId(), producto_id: producto.id, sucursal_id: body.sucursalId,
+          tipo: "ventas", cantidad: Number(item.cantidad), motivo: "",
+          creado_por: body.creadoPor || null,
+          created_at: new Date().toISOString(),
+        });
       }
     }
 
@@ -2021,6 +2055,25 @@ app.patch("/api/opticas/productos/:id/sucursal/:sucursalId/alta", (req, res) => 
   res.json(producto);
 });
 
+// Historial de movimientos de inventario, para el reporte de Inventario
+// (Dueño). Se alimenta de cada alta/baja de stock que registra el Jefe de
+// sucursal en el catálogo.
+let opticaMovimientos = [
+  { id: "omov-1", producto_id: "oprod-11", sucursal_id: "osuc-1", tipo: "entrada", cantidad: 20, motivo: "Reabastecimiento de proveedor", creado_por: "u-oenc-1", created_at: daysFromNow(0) },
+  { id: "omov-2", producto_id: "oprod-3", sucursal_id: "osuc-1", tipo: "salida", cantidad: 2, motivo: "Venta mostrador", creado_por: "u-oemp-1", created_at: daysFromNow(0) },
+  { id: "omov-3", producto_id: "oprod-11", sucursal_id: "osuc-2", tipo: "salida", cantidad: 2, motivo: "Venta mostrador", creado_por: "u-odue-1", created_at: daysFromNow(0) },
+  { id: "omov-4", producto_id: "oprod-7", sucursal_id: "osuc-2", tipo: "salida", cantidad: 2, motivo: "Venta mostrador", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
+  { id: "omov-5", producto_id: "oprod-3", sucursal_id: "osuc-1", tipo: "salida", cantidad: 3, motivo: "Venta mostrador", creado_por: "u-oemp-1", created_at: daysFromNow(-1) },
+  { id: "omov-6", producto_id: "oprod-15", sucursal_id: "osuc-1", tipo: "entrada", cantidad: 10, motivo: "Reabastecimiento de proveedor", creado_por: "u-oenc-1", created_at: daysFromNow(-2) },
+  { id: "omov-7", producto_id: "oprod-1", sucursal_id: "osuc-2", tipo: "ajustes", cantidad: 1, motivo: "Conteo físico", creado_por: "u-odue-1", created_at: daysFromNow(-3) },
+  { id: "omov-8", producto_id: "oprod-9", sucursal_id: "osuc-1", tipo: "salida", cantidad: 1, motivo: "Producto dañado", creado_por: "u-oenc-1", created_at: daysFromNow(-4) },
+];
+
+app.get("/api/opticas/inventario/movimientos", (req, res) => {
+  const ordenado = [...opticaMovimientos].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  res.json(ordenado);
+});
+
 app.patch("/api/opticas/productos/:id/sucursal/:sucursalId/movimiento", (req, res) => {
   const producto = opticaProductos.find((p) => p.id === req.params.id);
   if (!producto) return res.status(404).json({ error: "Producto no encontrado" });
@@ -2029,6 +2082,13 @@ app.patch("/api/opticas/productos/:id/sucursal/:sucursalId/movimiento", (req, re
   const cantidad = Math.max(0, Number(req.body.cantidad) || 0);
   const suma = req.body.tipo === "entrada" || req.body.tipo === "ajustes";
   entry.stock = Math.max(0, entry.stock + (suma ? cantidad : -cantidad));
+
+  opticaMovimientos.unshift({
+    id: newId(), producto_id: producto.id, sucursal_id: req.params.sucursalId,
+    tipo: req.body.tipo, cantidad, motivo: req.body.motivo || "",
+    creado_por: req.body.creadoPor || null,
+    created_at: new Date().toISOString(),
+  });
 
   res.json(producto);
 });

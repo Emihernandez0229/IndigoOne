@@ -9,6 +9,8 @@ import StatusBadge from "../../shared/components/StatusBadge";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
 import EmptyState from "../../shared/components/EmptyState";
+import SectionTitle from "../../shared/components/SectionTitle";
+import Field from "../../shared/components/DetailField";
 import Can from "../../shared/security/Can";
 import { useAuth } from "../../shared/context/AuthContext";
 import { ROLES } from "../../shared/security/roles";
@@ -20,29 +22,6 @@ import usePatients from "../pacientes/hooks/usePatients";
 import useLaboratorio from "../laboratorio/hooks/useLaboratorio";
 import MyBranchEditModal from "./components/MyBranchEditModal";
 import { OpticaCardDecoration } from "../optica/components/OpticaCardParts";
-
-
-function SectionTitle({ icon: Icon, children }) {
-  return (
-    <h3 className="flex items-center gap-2 text-base font-bold text-text-primary">
-      <Icon className="h-4 w-4 text-indigo-primary" />
-      {children}
-    </h3>
-  );
-}
-
-
-function Field({ icon: Icon, label, value }) {
-  return (
-    <div className="flex items-start gap-2">
-      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" />
-      <div>
-        <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</dt>
-        <dd className="mt-0.5 text-sm font-semibold text-text-primary">{value || "—"}</dd>
-      </div>
-    </div>
-  );
-}
 
 
 function MiniKpi({ icon: Icon, label, value, color }) {
@@ -154,7 +133,7 @@ export default function MyBranchPage() {
 
           <div className="rounded-2xl border border-gray-200 bg-surface p-6">
             <div className="mb-4 flex items-center justify-between">
-              <SectionTitle icon={Building2}>Información general</SectionTitle>
+              <SectionTitle icon={Building2} className="">Información general</SectionTitle>
               <Can permission="optica.branch.update">
                 <button
                   type="button"
@@ -176,7 +155,7 @@ export default function MyBranchPage() {
 
           <div className="rounded-2xl border border-gray-200 bg-surface p-6">
             <div className="mb-4">
-              <SectionTitle icon={Users}>Personal de la sucursal</SectionTitle>
+              <SectionTitle icon={Users} className="">Personal de la sucursal</SectionTitle>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <MiniKpi icon={Users} label="Total de empleados" color="green" value={staff.length} />
@@ -189,7 +168,7 @@ export default function MyBranchPage() {
         <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6">
           <OpticaCardDecoration />
           <div className="relative mb-4">
-            <SectionTitle icon={BarChart3}>Operación de la sucursal</SectionTitle>
+            <SectionTitle icon={BarChart3} className="">Operación de la sucursal</SectionTitle>
           </div>
           <div className="relative grid grid-cols-2 gap-4 sm:grid-cols-5">
             <MiniKpi icon={UserRound} label="Clientes" color="green" value={patients.length} />

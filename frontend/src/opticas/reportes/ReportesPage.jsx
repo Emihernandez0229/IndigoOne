@@ -14,6 +14,8 @@ import { listInventory } from "../inventory/services/inventoryService";
 import usePatients from "../pacientes/hooks/usePatients";
 import useCitas from "../citas/hooks/useCitas";
 import useVentas from "../ventas/hooks/useVentas";
+import OwnerReportesPage from "./OwnerReportesPage";
+import BranchReportesPage from "./BranchReportesPage";
 
 
 const PERIODS = [
@@ -48,6 +50,23 @@ function withinPeriod(dateStr, period) {
 
 
 export default function ReportesPage() {
+
+  const { user: currentUser } = useAuth();
+
+  if (currentUser?.role === ROLES.OPTICA_DUENO) {
+    return <OwnerReportesPage />;
+  }
+
+  if (currentUser?.role === ROLES.OPTICA_ENCARGADO) {
+    return <BranchReportesPage />;
+  }
+
+  return <ReportesList />;
+
+}
+
+
+function ReportesList() {
 
   const { user: currentUser } = useAuth();
   const isEmployee = currentUser?.role === ROLES.OPTICA_EMPLEADO;

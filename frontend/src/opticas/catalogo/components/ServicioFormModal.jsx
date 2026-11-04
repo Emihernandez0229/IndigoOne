@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
 import { onlyLetters, onlyDigits, alphanumericDash } from "../../../shared/utils/textInput";
 import { SERVICE_CATEGORIES } from "../constants";
@@ -104,10 +105,10 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
 
         <div className="w-full">
           <label htmlFor="serv-category" className="mb-2 block text-sm font-medium text-text-primary">Categoría</label>
-          <select id="serv-category" value={form.category} onChange={set("category")} className={selectClass}>
+          <Select id="serv-category" value={form.category} onChange={set("category")}>
             <option value="">Selecciona...</option>
             {SERVICE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
+          </Select>
           {errors.category && <p className="mt-1.5 text-sm text-error">{errors.category}</p>}
         </div>
 

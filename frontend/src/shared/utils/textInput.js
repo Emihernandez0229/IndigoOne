@@ -63,14 +63,6 @@ export function diopterValue(value, maxLength) {
   return maxLength ? clean.slice(0, maxLength) : clean;
 }
 
-export function isValidEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
 export function isValidPhone(value) {
   return /^\d{10}$/.test(value);
-}
-
-export function isValidPostalCode(value) {
-  return /^\d{5}$/.test(value);
 }

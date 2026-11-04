@@ -309,8 +309,6 @@ export const PERMISSIONS = {
     "optica.lab.create",
 
     "optica.inventory.view",
-
-    "optica.reports.view",
   ],
 
 };

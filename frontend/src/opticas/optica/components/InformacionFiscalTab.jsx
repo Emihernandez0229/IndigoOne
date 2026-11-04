@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Landmark, IdCard, FileText, Mail, MapPin, Hash, Globe } from "lucide-react";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
 import { isValidEmail, isValidPostalCode, isValidRFC } from "../../../shared/utils/validators";
 import { onlyLetters, onlyDigits, rfcInput } from "../../../shared/utils/textInput";
@@ -78,7 +79,8 @@ export default function InformacionFiscalTab({ info, canManage, onSave, onCancel
     if (!String(form.rfc ?? "").trim()) nextErrors.rfc = "El RFC es obligatorio.";
     else if (!isValidRFC(form.rfc)) nextErrors.rfc = "El RFC no tiene un formato válido.";
     if (!form.regimenFiscal) nextErrors.regimenFiscal = "Selecciona un régimen fiscal.";
-    if (form.correoFiscal && !isValidEmail(form.correoFiscal)) nextErrors.correoFiscal = "El correo no es válido.";
+    if (!String(form.correoFiscal ?? "").trim()) nextErrors.correoFiscal = "El correo fiscal es obligatorio.";
+    else if (!isValidEmail(form.correoFiscal)) nextErrors.correoFiscal = "El correo no es válido.";
 
     if (!String(form.calle ?? "").trim()) nextErrors.calle = "La calle es obligatoria.";
     if (!String(form.numeroExterior ?? "").trim()) nextErrors.numeroExterior = "El número exterior es obligatorio.";
@@ -111,14 +113,14 @@ export default function InformacionFiscalTab({ info, canManage, onSave, onCancel
 
         <div className="w-full">
           <label htmlFor="fiscal-regimen" className="mb-2 block text-sm font-medium text-text-primary">Régimen fiscal *</label>
-          <select id="fiscal-regimen" value={form.regimenFiscal ?? ""} onChange={set("regimenFiscal")} className={selectClass}>
+          <Select id="fiscal-regimen" value={form.regimenFiscal ?? ""} onChange={set("regimenFiscal")}>
             <option value="">Selecciona...</option>
             {TAX_REGIMES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-          </select>
+          </Select>
           {errors.regimenFiscal && <p className="mt-1.5 text-sm text-error">{errors.regimenFiscal}</p>}
         </div>
 
-        <Input label="Correo fiscal" type="email" value={form.correoFiscal ?? ""} onChange={set("correoFiscal")} error={errors.correoFiscal} />
+        <Input label="Correo fiscal *" type="email" value={form.correoFiscal ?? ""} onChange={set("correoFiscal")} error={errors.correoFiscal} />
       </div>
 
       <p className="relative mb-4 mt-6 border-t border-gray-100 pt-4 text-sm font-medium text-text-primary">Domicilio fiscal</p>
@@ -141,19 +143,19 @@ export default function InformacionFiscalTab({ info, canManage, onSave, onCancel
 
         <div className="w-full">
           <label htmlFor="fiscal-estado" className="mb-2 block text-sm font-medium text-text-primary">Estado *</label>
-          <select id="fiscal-estado" value={form.estadoDireccion ?? ""} onChange={set("estadoDireccion")} className={selectClass}>
+          <Select id="fiscal-estado" value={form.estadoDireccion ?? ""} onChange={set("estadoDireccion")}>
             <option value="">Selecciona...</option>
             {MEXICAN_STATES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
+          </Select>
           {errors.estadoDireccion && <p className="mt-1.5 text-sm text-error">{errors.estadoDireccion}</p>}
         </div>
 
         <div className="w-full">
           <label htmlFor="fiscal-pais" className="mb-2 block text-sm font-medium text-text-primary">País *</label>
-          <select id="fiscal-pais" value={form.pais ?? ""} onChange={set("pais")} className={selectClass}>
+          <Select id="fiscal-pais" value={form.pais ?? ""} onChange={set("pais")}>
             <option value="">Selecciona...</option>
             {COUNTRIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
+          </Select>
           {errors.pais && <p className="mt-1.5 text-sm text-error">{errors.pais}</p>}
         </div>
       </div>
@@ -168,19 +170,3 @@ export default function InformacionFiscalTab({ info, canManage, onSave, onCancel
 
 }
 
-
-const selectClass = `
-  w-full
-  rounded-xl
-  border
-  border-gray-200
-  bg-surface
-  px-4
-  py-3
-  text-text-primary
-  outline-none
-  transition
-  focus:border-indigo-primary
-  focus:ring-2
-  focus:ring-indigo-light
-`;

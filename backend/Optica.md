@@ -706,8 +706,8 @@ De esta forma, **las sucursales son opcionales**, el dueño siempre pertenece di
 
 
 
+OPTDUENO1
 
-
-OPTDUENO1	Dueño Óptica
+	Dueño Óptica
 OPTGTE1	Jefe de sucursal Óptica
 OPTEMP1	Ventas Óptica

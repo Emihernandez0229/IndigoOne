@@ -31,7 +31,7 @@ export default function VentaTable({
     { key: "patientName", label: "Paciente", render: (row) => row.patientName || "Público general" },
     { key: "branchName", label: "Sucursal", render: (row) => row.branchName || "—" },
     { key: "sellerName", label: "Vendedor", render: (row) => row.sellerName || "—" },
-    { key: "workType", label: "Trabajo", render: (row) => workTypeLabel(row.workType) },
+    { key: "workType", label: "Trabajo", render: (row) => <span className="font-bold text-text-primary">{workTypeLabel(row.workType)}</span> },
     { key: "itemCount", label: "Cant. productos", render: (row) => itemCount(row.items) },
     { key: "total", label: "Total", render: (row) => <span className="font-bold text-text-primary">{currency(row.total)}</span> },
     { key: "createdAt", label: "Fecha y hora", render: (row) => formatDate(row.createdAt) },

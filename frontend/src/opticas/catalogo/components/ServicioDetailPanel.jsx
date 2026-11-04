@@ -1,6 +1,7 @@
 import { Pencil, Ban, RotateCcw } from "lucide-react";
 import Button from "../../../shared/components/Button";
 import StatusBadge from "../../../shared/components/StatusBadge";
+import Field from "../../../shared/components/DetailField";
 import Can from "../../../shared/security/Can";
 import { SERVICE_CATEGORIES } from "../constants";
 
@@ -60,14 +61,4 @@ export default function ServicioDetailPanel({ servicio, canDeactivate = false, o
     </div>
   );
 
-}
-
-
-function Field({ label, value }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</dt>
-      <dd className="mt-1 text-sm font-bold text-text-primary">{value || "—"}</dd>
-    </div>
-  );
 }

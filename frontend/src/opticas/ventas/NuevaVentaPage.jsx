@@ -231,6 +231,11 @@ export default function NuevaVentaPage() {
         ...prev,
         {
           itemId: item.itemId,
+          // Lo que createVenta/createOrder esperan para enlazar el renglón
+          // con el producto/servicio del catálogo (sin esto se perdía el
+          // id y quedaban sin nombre en reportes, y el stock no se
+          // descontaba).
+          productId: item.itemId,
           itemType: item.itemType,
           code: item.code,
           model: item.name,
