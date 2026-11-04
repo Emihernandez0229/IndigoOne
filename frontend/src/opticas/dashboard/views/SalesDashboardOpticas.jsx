@@ -16,15 +16,7 @@ import usePatients from "../../pacientes/hooks/usePatients";
 import TodayAgendaCalendar from "../components/TodayAgendaCalendar";
 
 import { inDateRange, quickRangeDates } from "../../reportes/salesReportUtils";
-
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
-
-function formatFecha(dateStr) {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
-}
+import { currency, formatFecha } from "../../../shared/utils/format";
 
 
 /**

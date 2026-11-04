@@ -14,6 +14,7 @@ import {
   QUICK_RANGES, inDateRange, unidadesDeVenta,
   buildDailyBuckets, groupByBranch, groupBySeller, groupByItem, itemTotalConIva, toCsv,
 } from "../salesReportUtils";
+import { currency } from "../../../shared/utils/format";
 
 const ALL_DIMENSIONS = [
   { value: "sucursal", label: "Sucursal" },
@@ -21,8 +22,6 @@ const ALL_DIMENSIONS = [
   { value: "producto", label: "Producto" },
   { value: "servicio", label: "Servicio" },
 ];
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
 
 function mapLineItem(venta, item, idx) {
   return {

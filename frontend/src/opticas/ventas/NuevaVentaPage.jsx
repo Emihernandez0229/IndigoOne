@@ -26,6 +26,7 @@ import {
   IVA_RATE, WORK_TYPES, WORK_TYPE_INFO, INTERNAL_WORK_SUBTYPES,
   LAB_WORK_SUBTYPES, PRIORITIES, PAYMENT_METHODS,
 } from "./constants";
+import { currency as formatCurrency } from "../../shared/utils/format";
 
 
 const INDICACIONES_MAX = 300;
@@ -39,7 +40,7 @@ function onlyPatientSearch(value) {
 }
 
 
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const currency = (value) => formatCurrency(value, { decimals: true });
 
 const formatFullDate = (date) => {
   const text = date.toLocaleDateString("es-MX", {

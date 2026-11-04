@@ -4,9 +4,7 @@ import StatusBadge from "../../../shared/components/StatusBadge";
 import IconButton from "../../../shared/components/IconButton";
 import PriorityBadge from "../../ventas/components/PriorityBadge";
 import { WORK_TYPES } from "../../ventas/constants";
-
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
+import { currency } from "../../../shared/utils/format";
 
 const workTypeLabel = (value) =>
   WORK_TYPES.find((option) => option.value === value)?.label ?? value;

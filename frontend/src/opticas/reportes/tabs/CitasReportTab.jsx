@@ -12,22 +12,9 @@ import SalesComparisonList from "../components/SalesComparisonList";
 import StatusDistributionBar from "../components/StatusDistributionBar";
 import { CITA_STATUSES } from "../../citas/constants";
 import { QUICK_RANGES, inDateRange, groupByCount, toCsv } from "../salesReportUtils";
+import { formatFecha, formatHora } from "../../../shared/utils/format";
 
 const count = (value) => String(value ?? 0);
-
-function formatFecha(dateStr) {
-  if (!dateStr) return "—";
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-function formatHora(dateStr) {
-  if (!dateStr) return "—";
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
-}
 
 
 export default function CitasReportTab({

@@ -9,8 +9,8 @@ import BarChart from "../../../shared/charts/BarChart";
 import SalesComparisonList from "../components/SalesComparisonList";
 import SalesLineItemsTable from "../components/SalesLineItemsTable";
 import { QUICK_RANGES, inDateRange, groupByItem, buildServiceDailyBuckets, itemTotalConIva, toCsv } from "../salesReportUtils";
+import { currency } from "../../../shared/utils/format";
 
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
 const count = (value) => String(value ?? 0);
 
 

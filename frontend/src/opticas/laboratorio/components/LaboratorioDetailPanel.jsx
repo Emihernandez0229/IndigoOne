@@ -8,12 +8,11 @@ import Field from "../../../shared/components/DetailField";
 import PriorityBadge from "../../ventas/components/PriorityBadge";
 import { STATUS_TRANSITIONS } from "../constants";
 import { LAB_WORK_SUBTYPES } from "../../ventas/constants";
+import { currency } from "../../../shared/utils/format";
 
 
 const subtypeLabel = (value) =>
   LAB_WORK_SUBTYPES.find((option) => option.value === value)?.label ?? value;
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
 
 
 function formatDateTime(value) {

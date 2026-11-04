@@ -10,14 +10,13 @@ import PriorityBadge from "./PriorityBadge";
 import VentaTimeline from "./VentaTimeline";
 import GraduacionSummary from "./GraduacionSummary";
 import { PAYMENT_METHODS, WORK_TYPE_INFO, STATUS_TRANSITIONS } from "../constants";
+import { currency } from "../../../shared/utils/format";
 
 
 const TABS = [
   { value: "info", label: "Información general" },
   { value: "details", label: "Detalles" },
 ];
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
 
 const paymentLabel = (value) =>
   PAYMENT_METHODS.find((option) => option.value === value)?.label ?? value;

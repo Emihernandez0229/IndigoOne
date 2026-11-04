@@ -3,9 +3,10 @@ import { Wallet, User, Banknote } from "lucide-react";
 
 import StatusBadge from "../../../shared/components/StatusBadge";
 import Button from "../../../shared/components/Button";
+import { currency as formatCurrency } from "../../../shared/utils/format";
 
 
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const currency = (value) => formatCurrency(value, { decimals: true });
 
 
 /**

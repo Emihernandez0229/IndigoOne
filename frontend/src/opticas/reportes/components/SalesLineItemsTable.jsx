@@ -1,13 +1,5 @@
 import DataTable from "../../../shared/components/DataTable";
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
-
-function formatFecha(dateStr) {
-  if (!dateStr) return "—";
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
-}
+import { currency, formatFecha } from "../../../shared/utils/format";
 
 
 /**

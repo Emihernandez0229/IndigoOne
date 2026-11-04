@@ -16,6 +16,7 @@ import useCitas from "../citas/hooks/useCitas";
 import useVentas from "../ventas/hooks/useVentas";
 import OwnerReportesPage from "./OwnerReportesPage";
 import BranchReportesPage from "./BranchReportesPage";
+import { currency } from "../../shared/utils/format";
 
 
 const PERIODS = [
@@ -24,8 +25,6 @@ const PERIODS = [
   { value: "month", label: "Mes" },
   { value: "year", label: "Año" },
 ];
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
 
 function withinPeriod(dateStr, period) {
   if (!dateStr) return false;

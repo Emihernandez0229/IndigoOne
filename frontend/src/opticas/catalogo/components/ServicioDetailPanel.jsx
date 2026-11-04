@@ -4,9 +4,7 @@ import StatusBadge from "../../../shared/components/StatusBadge";
 import Field from "../../../shared/components/DetailField";
 import Can from "../../../shared/security/Can";
 import { SERVICE_CATEGORIES } from "../constants";
-
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
+import { currency } from "../../../shared/utils/format";
 
 const categoryLabel = (value) =>
   SERVICE_CATEGORIES.find((c) => c.value === value)?.label ?? value;

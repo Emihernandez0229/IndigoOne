@@ -1,4 +1,4 @@
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
+import { currency } from "../../../shared/utils/format";
 
 
 /**

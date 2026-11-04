@@ -9,26 +9,14 @@ import StatusBadge from "../../../shared/components/StatusBadge";
 
 import { QUICK_RANGES, inDateRange, toCsv } from "../salesReportUtils";
 import { PRODUCT_CATEGORIES } from "../../catalogo/constants";
+import { MOVIMIENTO_META } from "../../inventory/constants";
+import { formatFecha } from "../../../shared/utils/format";
 
 const ESTADO_OPTIONS = [
   { value: "available", label: "Disponible" },
   { value: "low_stock", label: "Pocas unidades" },
   { value: "out_of_stock", label: "Agotado" },
 ];
-
-const MOVIMIENTO_META = {
-  entrada: { label: "Entrada", sign: 1, badge: "entrada" },
-  ajustes: { label: "Ajuste", sign: 1, badge: "ajustes" },
-  salida: { label: "Salida", sign: -1, badge: "salida" },
-  ventas: { label: "Venta", sign: -1, badge: "salida" },
-};
-
-function formatFecha(dateStr) {
-  if (!dateStr) return "—";
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" }).replace(".", "");
-}
 
 
 export default function InventarioReportTab({

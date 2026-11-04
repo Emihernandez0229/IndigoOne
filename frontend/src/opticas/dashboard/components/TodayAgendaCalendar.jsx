@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import DashboardPanel from "../../../shared/dashboard/DashboardPanel";
+import { formatHora as sharedFormatHora } from "../../../shared/utils/format";
 
 const WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"];
 
@@ -23,9 +24,7 @@ function tipoDeCita(reason) {
 }
 
 function formatHora(dateStr) {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return sharedFormatHora(dateStr, { emptyValue: "" });
 }
 
 

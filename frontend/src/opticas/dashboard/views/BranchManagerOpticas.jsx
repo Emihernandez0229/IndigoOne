@@ -22,15 +22,14 @@ import usePatients from "../../pacientes/hooks/usePatients";
 import useProductos from "../../catalogo/hooks/useProductos";
 import useUsers from "../../users/hooks/useUsers";
 import useMovimientos from "../../inventory/hooks/useMovimientos";
+import { MOVIMIENTO_META } from "../../inventory/constants";
 
 import TodayAgendaCalendar from "../components/TodayAgendaCalendar";
 import RecentActivityFeed from "../components/RecentActivityFeed";
 import CriticalStockTable from "../components/CriticalStockTable";
 
 import { inDateRange, quickRangeDates } from "../../reportes/salesReportUtils";
-
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
+import { currency } from "../../../shared/utils/format";
 
 const PERIODS = [
   { value: "week", label: "Semanal" },
@@ -38,12 +37,6 @@ const PERIODS = [
   { value: "year", label: "Anual" },
 ];
 const PERIOD_DAYS = { week: 7, month: 30, year: 365 };
-
-const MOVIMIENTO_META = {
-  entrada: { label: "entrada", iconBg: "bg-success/10", iconColor: "text-success" },
-  salida: { label: "salida", iconBg: "bg-error/10", iconColor: "text-error" },
-  ajustes: { label: "un ajuste", iconBg: "bg-indigo-light", iconColor: "text-indigo-primary" },
-};
 
 
 /**
@@ -179,7 +172,7 @@ export default function BranchManagerOpticas() {
         id: `mov-${m.id}`,
         icon: Package, iconBg: meta.iconBg, iconColor: meta.iconColor,
         actor: usersById.get(m.createdBy) ?? "Sistema",
-        description: `registró ${meta.label} de ${m.cantidad} ${productosById.get(m.productId)?.name ?? "producto"}`,
+        description: `registró ${meta.phrase} de ${m.cantidad} ${productosById.get(m.productId)?.name ?? "producto"}`,
         timestamp: m.createdAt,
       });
     });
