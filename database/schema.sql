@@ -146,6 +146,8 @@ CREATE TABLE optica_usuarios (
     optica_id UUID NOT NULL REFERENCES opticas(id),
     sucursal_id UUID REFERENCES sucursales(id),
     nombre VARCHAR(150) NOT NULL,
+    telefono VARCHAR(20),
+    email VARCHAR(150),
     usuario VARCHAR(100) NOT NULL,
     password_hash TEXT NOT NULL,
     rol VARCHAR(30) NOT NULL CHECK (rol IN ('dueno', 'encargado', 'empleado')),
@@ -265,19 +267,7 @@ CREATE TABLE stock (
 );
 
 
-CREATE TABLE stock_movimientos (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    producto_id UUID NOT NULL REFERENCES productos(id),
-    sucursal_id UUID NOT NULL REFERENCES sucursales(id),
-    tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('entrada', 'salida', 'ajuste')),
-    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
-    cantidad_anterior INTEGER NOT NULL,
-    cantidad_nueva INTEGER NOT NULL,
-    motivo VARCHAR(200),
-    realizado_por UUID NOT NULL REFERENCES optica_usuarios(id),
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
+CREATE SEQUENCE IF NOT EXISTS seq_folio_venta;
 
 CREATE TABLE ventas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -285,18 +275,52 @@ CREATE TABLE ventas (
     sucursal_id UUID NOT NULL REFERENCES sucursales(id),
     cliente_final_id UUID REFERENCES clientes_finales(id),
     vendedor_id UUID NOT NULL REFERENCES optica_usuarios(id),
-    total NUMERIC(10,2) NOT NULL,
-    estado VARCHAR(20) DEFAULT 'completada' CHECK (estado IN ('completada', 'cancelada')),
-    created_at TIMESTAMPTZ DEFAULT now()
+    tipo_trabajo VARCHAR(20) NOT NULL DEFAULT 'venta_directa'
+        CHECK (tipo_trabajo IN ('venta_directa','trabajo_interno','orden_laboratorio')),
+    prioridad VARCHAR(10) NOT NULL DEFAULT 'normal'
+        CHECK (prioridad IN ('normal','urgente')),
+    metodo_pago VARCHAR(20) NOT NULL DEFAULT 'efectivo' CHECK (metodo_pago IN ('efectivo')),
+    tasa_iva NUMERIC(5,2) NOT NULL CHECK (tasa_iva BETWEEN 0 AND 100),
+    subtotal NUMERIC(10,2) NOT NULL CHECK (subtotal >= 0),
+    iva NUMERIC(10,2) NOT NULL CHECK (iva >= 0),
+    total NUMERIC(10,2) NOT NULL CHECK (total >= 0),
+    monto_pagado NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (monto_pagado >= 0),
+    estado VARCHAR(20) NOT NULL DEFAULT 'completada'
+        CHECK (estado IN ('pendiente','en_proceso','completada','cancelada')),
+    en_proceso_at TIMESTAMPTZ,
+    completada_at TIMESTAMPTZ,
+    cancelada_at TIMESTAMPTZ,
+    pagada_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    CHECK (monto_pagado <= total),
+    CHECK (tipo_trabajo <> 'venta_directa' OR estado IN ('completada','cancelada'))
 );
-
 CREATE TABLE venta_detalle (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     venta_id UUID NOT NULL REFERENCES ventas(id),
-    producto_servicio_id UUID NOT NULL REFERENCES productos_servicios(id),
-    cantidad INTEGER NOT NULL DEFAULT 1,
-    precio_unitario NUMERIC(10,2) NOT NULL,
-    subtotal NUMERIC(10,2) NOT NULL
+    producto_id UUID REFERENCES productos(id),
+    servicio_id UUID REFERENCES servicios(id),
+    codigo VARCHAR(50),
+    descripcion VARCHAR(150) NOT NULL,
+    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+    precio_unitario NUMERIC(10,2) NOT NULL CHECK (precio_unitario >= 0),
+    subtotal NUMERIC(10,2) NOT NULL CHECK (subtotal >= 0),
+    CHECK (num_nonnulls(producto_id, servicio_id) = 1)
+);
+
+CREATE TABLE stock_movimientos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    producto_id UUID NOT NULL REFERENCES productos(id),
+    sucursal_id UUID NOT NULL REFERENCES sucursales(id),
+    tipo VARCHAR(20) NOT NULL
+        CHECK (tipo IN ('entrada', 'salida', 'ajuste', 'venta', 'devolucion')),
+    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+    cantidad_anterior INTEGER NOT NULL CHECK (cantidad_anterior >= 0),
+    cantidad_nueva INTEGER NOT NULL CHECK (cantidad_nueva >= 0),
+    motivo VARCHAR(200),
+    venta_id UUID REFERENCES ventas(id),
+    realizado_por UUID NOT NULL REFERENCES optica_usuarios(id),
+    created_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE citas (
@@ -311,7 +335,7 @@ CREATE TABLE citas (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-
+-- Deprecated
 CREATE TABLE ordenes_laboratorio (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     folio VARCHAR(30) UNIQUE NOT NULL,
@@ -328,7 +352,7 @@ CREATE TABLE ordenes_laboratorio (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-
+-- Deprecated
 CREATE TABLE ordenes_historial (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     orden_id UUID NOT NULL REFERENCES ordenes_laboratorio(id),
@@ -362,8 +386,6 @@ CREATE INDEX idx_inventario_existencias_item ON inventario_existencias(item_id);
 CREATE INDEX idx_consultas_sucursal_fecha ON consultas (sucursal_id, fecha_examen);
 CREATE INDEX idx_consultas_cliente ON consultas (cliente_final_id, fecha_examen);
 
-CREATE INDEX idx_productos_servicios_sucursal ON productos_servicios (sucursal_id);
-
 CREATE UNIQUE INDEX uq_productos_optica_sku
     ON productos (optica_id, sku) WHERE sku IS NOT NULL;
 
@@ -384,3 +406,9 @@ CREATE INDEX idx_servicios_categoria ON servicios (optica_id, categoria_id);
 
 CREATE UNIQUE INDEX uq_citas_sucursal_fecha_hora_activa
   ON citas (sucursal_id, fecha_hora) WHERE estado IN ('programada', 'confirmada');
+
+CREATE INDEX idx_ventas_sucursal_fecha ON ventas (sucursal_id, created_at DESC);
+
+CREATE INDEX idx_venta_detalle_venta ON venta_detalle (venta_id);
+
+CREATE INDEX idx_stock_mov_venta ON stock_movimientos (venta_id);
