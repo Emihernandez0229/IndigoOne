@@ -54,8 +54,20 @@ const cambiarGerenteSchema = z.object({
     })
 }).strict();
 
+
+const asignarGerenteSchema = z.object({
+    sucursal_id: z.uuid({ error: 'El ID de la sucursal debe tener un formato UUID válido' }),
+    optica_usuario_id: z.uuid({ error: 'El ID del usuario debe tener un formato UUID válido' }),
+}).strict();
+
+const sucursalParamsSchema = z.object({
+    id: z.uuid({ error: 'El ID de la sucursal debe tener un formato UUID válido' }),
+}).strict();
+
 module.exports = {
     crearSucursalSchema,
     actualizarSucursalSchema,
-    cambiarGerenteSchema
+    cambiarGerenteSchema,
+    asignarGerenteSchema,
+    sucursalParamsSchema
 }

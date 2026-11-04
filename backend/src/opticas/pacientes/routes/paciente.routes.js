@@ -10,7 +10,9 @@ const {
 
 const {
     crearPacienteSchema,
-    actualizarPacienteSchema
+    actualizarPacienteSchema,
+    sucursalParamsSchema,
+    pacienteParamsSchema,
 } = require('../schemas/pacientes.schema');
 
 const { pacienteController } = require('../container/paciente.container');
@@ -29,16 +31,19 @@ router.post(
 
 router.get(
     '/sucursal/:sucursalId',
+    validate(sucursalParamsSchema, 'params'),
     pacienteController.obtenerPacientes.bind(pacienteController)
 );
 
 router.get(
     '/:id',
+    validate(pacienteParamsSchema, 'params'),
     pacienteController.obtenerPacientePorId.bind(pacienteController)
 );
 
 router.patch(
     '/:id',
+    validate(pacienteParamsSchema, 'params'),
     validate(actualizarPacienteSchema),
     pacienteController.actualizarPaciente.bind(pacienteController)
 );
