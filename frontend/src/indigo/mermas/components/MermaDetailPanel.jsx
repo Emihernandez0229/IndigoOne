@@ -2,6 +2,7 @@ import { AlertTriangle, ClipboardList, Users, Clock } from "lucide-react";
 
 import PriorityBadge from "../../laboratory/components/PriorityBadge";
 import { SERVICE_TYPE_LABELS } from "../../laboratory/constants";
+import { formatDuration } from "../../../shared/utils/format";
 
 
 function SectionTitle({ icon: Icon, children, tone = "indigo" }) {
@@ -82,13 +83,6 @@ export default function MermaDetailPanel({ merma }) {
   const minutesToLoss = merma.lossAt && merma.entryAt
     ? Math.round((new Date(merma.lossAt) - new Date(merma.entryAt)) / 60000)
     : null;
-
-  const formatDuration = (minutes) => {
-    if (minutes == null) return "—";
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return h > 0 ? `${h} h ${m} min` : `${m} min`;
-  };
 
   return (
     <div className="space-y-6">

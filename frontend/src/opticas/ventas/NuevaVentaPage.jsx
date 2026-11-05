@@ -26,7 +26,32 @@ import {
   IVA_RATE, WORK_TYPES, WORK_TYPE_INFO, INTERNAL_WORK_SUBTYPES,
   LAB_WORK_SUBTYPES, PRIORITIES, PAYMENT_METHODS,
 } from "./constants";
+import { currency as formatCurrency } from "../../shared/utils/format";
 
+
+// ============================================================================
+// NuevaVentaPage - wizard de 3 pasos (Paciente+carrito / Tipo de trabajo /
+// Pago) para registrar una venta. Todo el estado y los 3 pasos viven en este
+// mismo componente - es el archivo mas largo de Opticas (~940 lineas) y la
+// auditoria de arquitectura (04 nov 2026) lo señalo como candidato a
+// partirse en 3 componentes (uno por paso), pero se decidio posponerlo: no
+// hay pruebas automatizadas para este flujo, asi que cualquier refactor
+// necesita probarse a mano, paso por paso, con los 3 tipos de trabajo
+// (venta_directa / trabajo_interno / orden_laboratorio) y los 2 modos de
+// pago (full / partial) antes de darse por bueno.
+//
+// Mapa rapido para quien vea esto primero:
+//   - Componentes chicos de UI (Card, WorkTypeCard, SubtypeRadioList): solo
+//     para esta pagina, no viven en components/ porque no se reusan en
+//     ningun otro lado.
+//   - Estado: agrupado por tema con comentarios (paciente, catalogo/carrito,
+//     trabajo, pago) - ver mas abajo en el cuerpo del componente.
+//   - JSX: un wizard de 3 pasos, cada uno marcado con un comentario
+//     "===== PASO N ===== " mas abajo en el return.
+//   - handleConfirmVenta: hace 3 cosas encadenadas (crear venta, si aplica
+//     crear orden de laboratorio, generar/descargar el recibo en PDF) - ver
+//     el comentario justo arriba de esa funcion.
+// ============================================================================
 
 const INDICACIONES_MAX = 300;
 
@@ -39,7 +64,7 @@ function onlyPatientSearch(value) {
 }
 
 
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const currency = (value) => formatCurrency(value, { decimals: true });
 
 const formatFullDate = (date) => {
   const text = date.toLocaleDateString("es-MX", {
@@ -58,6 +83,8 @@ const WORK_TYPE_ICONS = {
 };
 
 
+// Piezas de UI chicas, usadas solo por los 3 pasos de abajo - a proposito
+// no viven en components/ porque no se reusan en ninguna otra pagina.
 function Card({ title, children }) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-surface p-6">
@@ -231,6 +258,11 @@ export default function NuevaVentaPage() {
         ...prev,
         {
           itemId: item.itemId,
+          // Lo que createVenta/createOrder esperan para enlazar el renglón
+          // con el producto/servicio del catálogo (sin esto se perdía el
+          // id y quedaban sin nombre en reportes, y el stock no se
+          // descontaba).
+          productId: item.itemId,
           itemType: item.itemType,
           code: item.code,
           model: item.name,
@@ -288,6 +320,7 @@ export default function NuevaVentaPage() {
   const [paymentMode, setPaymentMode] = useState("full");
   const [partialAmount, setPartialAmount] = useState("");
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const montoPagado = paymentMode === "full" ? total : Number(partialAmount) || 0;
   const saldoPendiente = Math.max(0, total - montoPagado);
@@ -309,7 +342,15 @@ export default function NuevaVentaPage() {
       : null;
 
 
+  // Submit del paso 3 - encadena 3 cosas: 1) crea la venta, 2) si el tipo
+  // de trabajo es "orden_laboratorio" crea tambien la orden en el modulo de
+  // laboratorio (enlazada por created.id), 3) genera y descarga el PDF del
+  // recibo. Si cualquiera de las 3 falla, ninguna navegacion ocurre y se
+  // muestra submitError - pero si la venta (1) ya se creo y falla la orden
+  // de laboratorio (2) o el PDF (3), la venta queda creada igual (no hay
+  // rollback del lado del front).
   const handleConfirmVenta = async () => {
+    setSubmitError("");
     try {
       setSaving(true);
 
@@ -364,6 +405,8 @@ export default function NuevaVentaPage() {
       });
 
       navigate(workType === "orden_laboratorio" ? "/opticas/laboratorio" : "/opticas/ventas");
+    } catch {
+      setSubmitError("No se pudo registrar la venta. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -402,6 +445,7 @@ export default function NuevaVentaPage() {
           <VentaStepper step={step} />
         </div>
 
+        {/* ===== PASO 1: elegir sucursal (si aplica), paciente y armar el carrito de productos/servicios ===== */}
         {step === 1 && (
           <div className="grid gap-6 lg:grid-cols-3">
 
@@ -607,6 +651,7 @@ export default function NuevaVentaPage() {
           </div>
         )}
 
+        {/* ===== PASO 2a: tipo de trabajo, variante "venta_directa" (sin columna de detalle, centrado) ===== */}
         {step === 2 && workType === "venta_directa" && (
           <div className="mx-auto max-w-2xl space-y-6">
 
@@ -657,6 +702,7 @@ export default function NuevaVentaPage() {
           </div>
         )}
 
+        {/* ===== PASO 2b: tipo de trabajo, variante "trabajo_interno"/"orden_laboratorio" (con columna de detalle: subtipo, receta, indicaciones) ===== */}
         {step === 2 && workType !== "venta_directa" && (
           <div className="grid gap-6 lg:grid-cols-3">
 
@@ -761,6 +807,7 @@ export default function NuevaVentaPage() {
           </div>
         )}
 
+        {/* ===== PASO 3: resumen (paciente, trabajo, articulos) y pago - handleConfirmVenta se dispara desde el boton "Confirmar venta" de aqui abajo ===== */}
         {step === 3 && (
           <div className="grid gap-6 lg:grid-cols-3">
 
@@ -902,6 +949,7 @@ export default function NuevaVentaPage() {
               )}
 
               <div className="space-y-2 pt-2">
+                {submitError && <p className="text-sm text-error">{submitError}</p>}
                 <Button
                   className="w-full justify-center bg-success hover:opacity-90"
                   disabled={saving || (paymentMode === "partial" && montoPagado <= 0)}

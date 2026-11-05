@@ -6,18 +6,18 @@ import KpiRow from "../../../shared/components/KpiRow";
 import Button from "../../../shared/components/Button";
 import DashboardGrid from "../../../shared/dashboard/DashboardGrid";
 import ChartContainer from "../../../shared/charts/ChartContainer";
+import SalesPerformanceChart from "../../../shared/charts/SalesPerformanceChart";
 import LoadingSpinner from "../../../shared/components/LoadingSpinner";
 import ErrorState from "../../../shared/components/ErrorState";
 import SidePanel from "../../../shared/components/SidePanel";
 import { useAuth } from "../../../shared/context/AuthContext";
 import usePermissions from "../../../shared/hooks/usePermissions";
+import { buildPeriodWindows } from "../../../shared/utils/periodWindows";
 
 import useBranches from "../../branches/hooks/useBranches";
 import useLaboratoryJobs from "../../laboratory/hooks/useLaboratoryJobs";
 import PriorityBadge from "../../laboratory/components/PriorityBadge";
-import SalesPerformanceChart from "../components/SalesPerformanceChart";
 import LabJobDetailPanel from "../../lab/components/LabJobDetailPanel";
-import { buildPeriodWindows } from "../../reports/utils";
 
 
 function formatDeliveryDay(value) {

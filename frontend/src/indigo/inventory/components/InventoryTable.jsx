@@ -3,9 +3,7 @@ import DataTable from "../../../shared/components/DataTable";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import IconButton from "../../../shared/components/IconButton";
 import { getStockStatus } from "../stockStatus";
-
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
+import { currency } from "../../../shared/utils/format";
 
 
 export default function InventoryTable({ items = [], onView }) {

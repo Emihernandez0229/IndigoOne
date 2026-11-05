@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
 import { useFormValidation } from "../../../shared/hooks/useFormValidation";
 import { onlyDigits, textWithSpecialChars } from "../../../shared/utils/textInput";
@@ -26,7 +27,7 @@ const EMPTY = { tipo: "", cantidad: "", motivo: "" };
 export default function StockMovementModal({ open, producto, branchName, onClose, onSubmit }) {
 
   const [form, setForm] = useState(EMPTY);
-  const { errors, validate, clearError, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
 
@@ -61,6 +62,8 @@ export default function StockMovementModal({ open, producto, branchName, onClose
       setSaving(true);
       await onSubmit({ tipo: form.tipo, cantidad: Number(form.cantidad), motivo: form.motivo.trim() });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo registrar el movimiento. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -77,10 +80,10 @@ export default function StockMovementModal({ open, producto, branchName, onClose
 
         <div>
           <label className="mb-2 block text-sm font-medium text-text-primary">Tipo</label>
-          <select value={form.tipo} onChange={set("tipo")} className={selectClass}>
+          <Select value={form.tipo} onChange={set("tipo")}>
             <option value="">Selecciona...</option>
             {MOVEMENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+          </Select>
           {errors.tipo && <p className="mt-1.5 text-sm text-error">{errors.tipo}</p>}
         </div>
 
@@ -104,6 +107,8 @@ export default function StockMovementModal({ open, producto, branchName, onClose
           <p className="mt-1 text-right text-xs text-text-secondary">{form.motivo.length}/{MOTIVO_MAX}</p>
           {errors.motivo && <p className="mt-1.5 text-sm text-error">{errors.motivo}</p>}
         </div>
+
+        {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

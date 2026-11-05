@@ -11,6 +11,7 @@ import {
 export default function useServicios() {
   const { data: servicios, ...rest } = useCrudResource({
     list: listServicios,
+    numbered: true,
     mutations: {
       create: { fn: createServicio, apply: prepend },
       update: { fn: updateServicio, apply: mergeById },

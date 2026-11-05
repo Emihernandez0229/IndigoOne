@@ -3,6 +3,8 @@ import { Building2, Users, UserCog, Package, FlaskConical, Info, UserCircle, Lay
 
 import StatusBadge from "../../../shared/components/StatusBadge";
 import TabBar from "../../../shared/components/TabBar";
+import SectionTitle from "../../../shared/components/SectionTitle";
+import Field from "../../../shared/components/DetailField";
 import { kpiColors } from "../../../shared/constants/kpiColors";
 
 
@@ -10,26 +12,6 @@ const TABS = [
   { value: "info", label: "Información general" },
   { value: "staff", label: "Personal" },
 ];
-
-
-function SectionTitle({ icon: Icon, children }) {
-  return (
-    <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-text-primary">
-      <Icon className="h-4 w-4 text-indigo-primary" />
-      {children}
-    </h3>
-  );
-}
-
-
-function Field({ label, value }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</dt>
-      <dd className="mt-1 text-sm font-bold text-text-primary">{value || "—"}</dd>
-    </div>
-  );
-}
 
 
 function MiniKpi({ icon: Icon, label, value, color }) {

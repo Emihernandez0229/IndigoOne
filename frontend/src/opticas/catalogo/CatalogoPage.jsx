@@ -15,6 +15,7 @@ import SidePanel from "../../shared/components/SidePanel";
 import Can from "../../shared/security/Can";
 import usePermissions from "../../shared/hooks/usePermissions";
 import useBranchScope from "../../shared/hooks/useBranchScope";
+import { useAuth } from "../../shared/context/AuthContext";
 import { ROLES } from "../../shared/security/roles";
 
 import { listBranches } from "../branches/services/branchService";
@@ -30,15 +31,11 @@ import ServicioDetailPanel from "./components/ServicioDetailPanel";
 import StockMovementModal from "./components/StockMovementModal";
 
 
-function withDisplayIds(list) {
-  return list.map((row, index) => ({ ...row, displayId: index + 1 }));
-}
-
-
 export default function CatalogoPage() {
 
   const { can } = usePermissions();
   const canManage = can("optica.catalog.update");
+  const { user: currentUser } = useAuth();
 
   // El catalogo de productos y servicios es compartido (no depende de
   // sucursal: el dueno no da de alta por sucursal), pero el selector se
@@ -72,7 +69,7 @@ export default function CatalogoPage() {
   // no afecta al resto); el Dueño sigue viendo el estado global.
   const productos = useMemo(
     () =>
-      withDisplayIds(productosHook.productos).map((p) => {
+      productosHook.productos.map((p) => {
         const branchEntry = p.stockPorSucursal?.find((s) => s.branchId === selectedBranch);
         return {
           ...p,
@@ -84,7 +81,7 @@ export default function CatalogoPage() {
       }),
     [productosHook.productos, selectedBranch, isOwner]
   );
-  const servicios = withDisplayIds(serviciosHook.servicios);
+  const servicios = serviciosHook.servicios;
 
   // Igual que Dueño/Encargado: el Dueño edita el producto completo, el
   // Jefe de sucursal solo registra movimientos de stock de su sucursal.
@@ -328,7 +325,7 @@ export default function CatalogoPage() {
         producto={movementModal.producto}
         branchName={branches.find((b) => b.id === selectedBranch)?.name}
         onClose={() => setMovementModal({ open: false, producto: null })}
-        onSubmit={(payload) => productosHook.registerMovimiento(movementModal.producto.id, selectedBranch, payload)}
+        onSubmit={(payload) => productosHook.registerMovimiento(movementModal.producto.id, selectedBranch, { ...payload, createdBy: currentUser?.id })}
       />
 
       <ConfirmDialog

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
 import { onlyLetters, onlyDigits, alphanumericDash } from "../../../shared/utils/textInput";
 import { PRODUCT_CATEGORIES } from "../constants";
@@ -79,6 +80,8 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
         stockMin: form.stockMin === "" ? 0 : Number(form.stockMin),
       });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar el producto. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -103,10 +106,10 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="w-full">
             <label htmlFor="prod-category" className="mb-2 block text-sm font-medium text-text-primary">Categoría</label>
-            <select id="prod-category" value={form.category} onChange={set("category")} className={selectClass}>
+            <Select id="prod-category" value={form.category} onChange={set("category")}>
               <option value="">Selecciona...</option>
               {PRODUCT_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
+            </Select>
             {errors.category && <p className="mt-1.5 text-sm text-error">{errors.category}</p>}
           </div>
           <Input label="Marca" value={form.brand} onChange={set("brand", (v) => onlyLetters(v, BRAND_MAX))} />
@@ -116,6 +119,8 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
           <Input label="Precio de venta" value={form.salePrice} onChange={set("salePrice", (v) => onlyDigits(v, NUMBER_MAX))} error={errors.salePrice} placeholder="Máx. 999" />
           <Input label="Stock mínimo" value={form.stockMin} onChange={set("stockMin", (v) => onlyDigits(v, NUMBER_MAX))} placeholder="Máx. 999" />
         </div>
+
+        {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

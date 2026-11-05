@@ -14,6 +14,9 @@ import { listInventory } from "../inventory/services/inventoryService";
 import usePatients from "../pacientes/hooks/usePatients";
 import useCitas from "../citas/hooks/useCitas";
 import useVentas from "../ventas/hooks/useVentas";
+import OwnerReportesPage from "./OwnerReportesPage";
+import BranchReportesPage from "./BranchReportesPage";
+import { currency } from "../../shared/utils/format";
 
 
 const PERIODS = [
@@ -22,8 +25,6 @@ const PERIODS = [
   { value: "month", label: "Mes" },
   { value: "year", label: "Año" },
 ];
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
 
 function withinPeriod(dateStr, period) {
   if (!dateStr) return false;
@@ -48,6 +49,23 @@ function withinPeriod(dateStr, period) {
 
 
 export default function ReportesPage() {
+
+  const { user: currentUser } = useAuth();
+
+  if (currentUser?.role === ROLES.OPTICA_DUENO) {
+    return <OwnerReportesPage />;
+  }
+
+  if (currentUser?.role === ROLES.OPTICA_ENCARGADO) {
+    return <BranchReportesPage />;
+  }
+
+  return <ReportesList />;
+
+}
+
+
+function ReportesList() {
 
   const { user: currentUser } = useAuth();
   const isEmployee = currentUser?.role === ROLES.OPTICA_EMPLEADO;

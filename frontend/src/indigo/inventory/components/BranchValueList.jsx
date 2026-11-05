@@ -1,3 +1,5 @@
+import { currency } from "../../../shared/utils/format";
+
 /**
  * Lista de barras horizontales con el valor de inventario ($ ) por
  * sucursal, usado en el aside de Inventario.
@@ -9,7 +11,6 @@ export default function BranchValueList({ branches = [] }) {
   }
 
   const maxValue = Math.max(...branches.map((b) => b.value), 1);
-  const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
 
   return (
     <div className="space-y-4">

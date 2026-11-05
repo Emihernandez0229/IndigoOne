@@ -3,9 +3,10 @@ import { Wallet, User, Banknote } from "lucide-react";
 
 import StatusBadge from "../../../shared/components/StatusBadge";
 import Button from "../../../shared/components/Button";
+import { currency as formatCurrency } from "../../../shared/utils/format";
 
 
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const currency = (value) => formatCurrency(value, { decimals: true });
 
 
 /**
@@ -18,6 +19,7 @@ export default function LiquidarSaldoPanel({ venta, onCancel, onConfirm }) {
 
   const [amount, setAmount] = useState(() => String(venta?.saldoPendiente ?? 0));
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   if (!venta) return null;
 
@@ -27,9 +29,12 @@ export default function LiquidarSaldoPanel({ venta, onCancel, onConfirm }) {
   const pagoDespues = saldoRestante <= 0 ? "liquidada" : "en_adeudo";
 
   const handleConfirm = async () => {
+    setError("");
     try {
       setSaving(true);
       await onConfirm(monto);
+    } catch {
+      setError("No se pudo registrar el pago. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -139,6 +144,8 @@ export default function LiquidarSaldoPanel({ venta, onCancel, onConfirm }) {
           <StatusBadge status={pagoDespues} />
         </div>
       </div>
+
+      {error && <p className="text-sm text-error">{error}</p>}
 
       <div className="flex gap-3">
         <Button variant="outline" className="flex-1 justify-center" onClick={onCancel}>

@@ -3,7 +3,9 @@ import { CalendarPlus, Search, User, Clock, MessageSquare, Building2, ShieldChec
 
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
+import SectionTitle from "../../../shared/components/SectionTitle";
 import { useAuth } from "../../../shared/context/AuthContext";
 import { ROLES } from "../../../shared/security/roles";
 import { useFormValidation } from "../../../shared/hooks/useFormValidation";
@@ -52,24 +54,6 @@ function crearFormDesdeCita(cita) {
     reason: cita.reason ?? "",
     branchId: cita.branchId ?? "",
   };
-}
-
-
-function SectionTitle({ icon: Icon, children, subtitle, step }) {
-  return (
-    <div className="mb-5 flex items-start gap-3">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-light text-sm font-bold text-indigo-primary">
-        {step}
-      </span>
-      <div>
-        <h3 className="flex items-center gap-2 text-base font-bold text-text-primary">
-          <Icon className="h-4 w-4 text-indigo-primary" />
-          {children}
-        </h3>
-        {subtitle && <p className="text-sm text-text-secondary">{subtitle}</p>}
-      </div>
-    </div>
-  );
 }
 
 
@@ -177,7 +161,7 @@ export default function CitaFormModal({
   const isOwner = currentUser?.role === ROLES.OPTICA_DUENO;
 
   const [form, setForm] = useState(() => crearFormDesdeCita(cita));
-  const { errors, validate, clearError, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [branches, setBranches] = useState([]);
   const [branchPatients, setBranchPatients] = useState(patients);
@@ -297,6 +281,8 @@ export default function CitaFormModal({
         branchId: form.branchId || defaultBranchId,
       });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar la cita. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -322,12 +308,12 @@ export default function CitaFormModal({
                   <label htmlFor="cita-branch" className="mb-2 block text-sm font-medium text-text-primary">
                     Sucursal
                   </label>
-                  <select id="cita-branch" value={form.branchId} onChange={handleBranchChange} className={selectClass}>
+                  <Select id="cita-branch" value={form.branchId} onChange={handleBranchChange}>
                     <option value="">Sin sucursal</option>
                     {branches.map((branch) => (
                       <option key={branch.id} value={branch.id}>{branch.name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               )}
 
@@ -368,6 +354,8 @@ export default function CitaFormModal({
 
             </div>
           </div>
+
+          {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

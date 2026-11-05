@@ -23,11 +23,13 @@ export default function ResetPasswordModal({ open, user, onClose, onConfirm }) {
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
+  const [error, setError] = useState("");
 
   if (open && !wasOpen) {
     setWasOpen(true);
     setStep("confirm");
     setShowPassword(false);
+    setError("");
   } else if (!open && wasOpen) {
     setWasOpen(false);
   }
@@ -35,11 +37,14 @@ export default function ResetPasswordModal({ open, user, onClose, onConfirm }) {
   if (!open || !user) return null;
 
   const handleConfirm = async () => {
+    setError("");
     setSaving(true);
     try {
       await onConfirm(user);
       setTempPassword(generatePassword());
       setStep("done");
+    } catch {
+      setError("No se pudo restablecer la contraseña. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -57,6 +62,8 @@ export default function ResetPasswordModal({ open, user, onClose, onConfirm }) {
               Nunca es posible ver su contraseña actual; deberá cambiarla en su siguiente inicio de sesión.
             </p>
           </div>
+
+          {error && <p className="text-sm text-error">{error}</p>}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

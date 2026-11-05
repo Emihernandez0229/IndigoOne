@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
 import { onlyLetters } from "../../../shared/utils/textInput";
 import { listAvailableManagers } from "../services/branchService";
@@ -49,7 +50,7 @@ export default function BranchFormModal({
 }) {
 
   const [form, setForm] = useState(() => crearFormDesdeSucursal(branch));
-  const { errors, validate, clearError, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [managers, setManagers] = useState([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
@@ -151,6 +152,8 @@ export default function BranchFormModal({
         managerMode: form.managerMode,
       });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar la sucursal. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -193,12 +196,11 @@ export default function BranchFormModal({
             </>
           ) : (
             <>
-              <select
+              <Select
                 id="branch-manager"
                 value={form.managerId ?? ""}
                 onChange={handleManagerChange}
                 disabled={loadingManagers}
-                className={selectClass}
               >
                 <option value="">
                   {loadingManagers ? "Cargando..." : "Selecciona un jefe de sucursal..."}
@@ -206,7 +208,7 @@ export default function BranchFormModal({
                 {managers.map((manager) => (
                   <option key={manager.id} value={manager.id}>{manager.nombre}</option>
                 ))}
-              </select>
+              </Select>
 
               {errors.managerId && <p className="mt-1.5 text-sm text-error">{errors.managerId}</p>}
 
@@ -226,6 +228,8 @@ export default function BranchFormModal({
           )}
         </div>
 
+        {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
+
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
           <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar"}</Button>
@@ -235,21 +239,3 @@ export default function BranchFormModal({
   );
 }
 
-
-const selectClass = `
-  w-full
-  rounded-xl
-  border
-  border-gray-200
-  bg-surface
-  px-4
-  py-3
-  text-text-primary
-  outline-none
-  transition
-  focus:border-indigo-primary
-  focus:ring-2
-  focus:ring-indigo-light
-  disabled:cursor-not-allowed
-  disabled:opacity-50
-`;

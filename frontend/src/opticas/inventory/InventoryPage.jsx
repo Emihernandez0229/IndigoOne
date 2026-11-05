@@ -13,9 +13,7 @@ import useInventory from "./hooks/useInventory";
 import { filterInventory } from "./filterInventory";
 import { getStockStatus } from "./stockStatus";
 import { PRODUCT_TYPES, LENS_TREATMENTS } from "./constants";
-
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
+import { currency } from "../../shared/utils/format";
 
 
 /**

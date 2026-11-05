@@ -15,9 +15,7 @@ import { ROLES } from "../../shared/security/roles";
 import useInventory from "./hooks/useInventory";
 import { getStockStatus } from "./stockStatus";
 import { PRODUCT_TYPES, GENDERS } from "./constants";
-
-
-const currency = (value) => `$${Number(value ?? 0).toLocaleString("es-MX")}`;
+import { currency } from "../../shared/utils/format";
 
 const labelFrom = (options, value) =>
   options.find((option) => option.value === value)?.label ?? value ?? "—";

@@ -1,6 +1,6 @@
 import { ResponsiveContainer, ComposedChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
-import { CHART_COLORS, chartAxisProps, chartTooltipProps } from "../../../shared/charts/chartTheme";
+import { CHART_COLORS, chartAxisProps, chartTooltipProps } from "./chartTheme";
 
 
 function formatCurrency(value) {

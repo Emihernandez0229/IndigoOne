@@ -5,7 +5,8 @@ import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
 import { useFormValidation } from "../../../shared/hooks/useFormValidation";
-import { onlyLetters, onlyDigits, isValidEmail, isValidPhone } from "../../../shared/utils/textInput";
+import { onlyLetters, onlyDigits, isValidPhone } from "../../../shared/utils/textInput";
+import { isValidEmail } from "../../../shared/utils/validators";
 import { EMPLOYEE_ROLES, generatePersonalUsername } from "../constants";
 import { ROLES } from "../../../shared/security/roles";
 
@@ -61,7 +62,7 @@ export default function PersonnelFormModal({
 }) {
 
   const [form, setForm] = useState(EMPTY);
-  const { errors, validate, clearError, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [requirePasswordChange, setRequirePasswordChange] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -123,6 +124,8 @@ export default function PersonnelFormModal({
         branchName: resolvedBranchName,
       });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo crear el empleado. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -243,6 +246,8 @@ export default function PersonnelFormModal({
               Deberá cambiar su contraseña al iniciar sesión por primera vez.
             </label>
           </div>
+
+          {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
           <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

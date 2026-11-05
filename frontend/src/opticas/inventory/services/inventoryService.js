@@ -18,3 +18,27 @@ export async function listInventory() {
 export async function listIndigoCatalog() {
   return httpClient.get("/api/indigo/inventario");
 }
+
+function mapMovimiento(raw) {
+  if (!raw) return null;
+  return {
+    id: raw.id,
+    productId: raw.producto_id ?? raw.productId ?? null,
+    branchId: raw.sucursal_id ?? raw.branchId ?? null,
+    tipo: raw.tipo ?? "entrada",
+    cantidad: Number(raw.cantidad ?? 0),
+    motivo: raw.motivo ?? "",
+    createdBy: raw.creado_por ?? raw.createdBy ?? null,
+    createdAt: raw.created_at ?? raw.createdAt ?? null,
+  };
+}
+
+/**
+ * Historial de entradas/salidas de stock, para el reporte de Inventario
+ * del Dueño (ver Reportes). Se alimenta de cada movimiento que registra el
+ * Jefe de sucursal desde el catálogo.
+ */
+export async function listMovimientos() {
+  const data = await httpClient.get("/api/opticas/inventario/movimientos");
+  return (Array.isArray(data) ? data : []).map(mapMovimiento);
+}

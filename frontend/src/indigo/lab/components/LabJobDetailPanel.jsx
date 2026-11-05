@@ -5,6 +5,7 @@ import PriorityBadge from "../../laboratory/components/PriorityBadge";
 import JobTimeline from "../../laboratory/components/JobTimeline";
 import { SERVICE_TYPE_LABELS } from "../../laboratory/constants";
 import BigStatusBadge from "./BigStatusBadge";
+import { formatDuration } from "../../../shared/utils/format";
 
 
 function SectionTitle({ icon: Icon, children }) {
@@ -53,6 +54,7 @@ export default function LabJobDetailPanel({
   const [lossReason, setLossReason] = useState("");
   const [detailText, setDetailText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   if (!job) return null;
 
@@ -66,30 +68,28 @@ export default function LabJobDetailPanel({
     ? Math.round((new Date(job.deliveredAt ?? job.completedAt) - new Date(job.entryAt)) / 60000)
     : null;
 
-  const formatDuration = (minutes) => {
-    if (minutes == null) return "—";
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return h > 0 ? `${h} h ${m} min` : `${m} min`;
-  };
-
   const handleAccept = async () => {
+    setError("");
     setSaving(true);
-    try { await onAccept?.(job); } finally { setSaving(false); }
+    try { await onAccept?.(job); } catch { setError("No se pudo aceptar el trabajo. Intenta de nuevo."); } finally { setSaving(false); }
   };
 
   const handleComplete = async () => {
+    setError("");
     setSaving(true);
-    try { await onComplete?.(job); } finally { setSaving(false); }
+    try { await onComplete?.(job); } catch { setError("No se pudo marcar como terminado. Intenta de nuevo."); } finally { setSaving(false); }
   };
 
   const handleConfirmLoss = async () => {
     if (!lossReason.trim()) return;
+    setError("");
     setSaving(true);
     try {
       await onRegisterLoss?.(job, lossReason.trim());
       setLossMode(false);
       setLossReason("");
+    } catch {
+      setError("No se pudo registrar la merma. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -97,10 +97,13 @@ export default function LabJobDetailPanel({
 
   const handleAddDetail = async () => {
     if (!detailText.trim()) return;
+    setError("");
     setSaving(true);
     try {
       await onAddDetail?.(job, detailText.trim());
       setDetailText("");
+    } catch {
+      setError("No se pudo añadir el detalle. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -117,6 +120,8 @@ export default function LabJobDetailPanel({
         </div>
         <BigStatusBadge status={job.status} />
       </div>
+
+      {error && <p className="text-sm text-error">{error}</p>}
 
       {canAccept && job.status === "pending" && (
         <button

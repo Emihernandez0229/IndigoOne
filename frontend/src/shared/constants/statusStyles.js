@@ -130,6 +130,22 @@ export const statusStyles = {
     className: "bg-warning/10 text-warning",
   },
 
+  // Movimientos de inventario (Opticas)
+  entrada: {
+    label: "Entrada",
+    className: "bg-success/10 text-success",
+  },
+
+  salida: {
+    label: "Salida",
+    className: "bg-error/10 text-error",
+  },
+
+  ajustes: {
+    label: "Ajuste",
+    className: "bg-indigo-light text-indigo-primary",
+  },
+
   // Trabajos de laboratorio (Indigo)
   warranty: {
     label: "Garantía",

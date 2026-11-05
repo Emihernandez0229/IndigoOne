@@ -130,6 +130,7 @@ export default function UsersPage() {
           <UserTable
             users={filtered}
             canDeactivate={can("user.deactivate")}
+            restrictDeactivateToRole={ROLES.INDIGO_GERENTE_SUCURSAL}
             onView={(user) => setViewingUserId(user.id)}
             onDeactivate={(user) => setConfirmAction({ type: "deactivate", user })}
             onActivate={(user) => setConfirmAction({ type: "activate", user })}

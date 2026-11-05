@@ -14,6 +14,7 @@ import {
 export default function useProductos() {
   const { data: productos, ...rest } = useCrudResource({
     list: listProductos,
+    numbered: true,
     mutations: {
       create: { fn: createProducto, apply: prepend },
       update: { fn: updateProducto, apply: mergeById },
