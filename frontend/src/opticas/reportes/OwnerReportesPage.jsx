@@ -13,7 +13,6 @@ import useServicios from "../catalogo/hooks/useServicios";
 import usePatients from "../pacientes/hooks/usePatients";
 import useCitas from "../citas/hooks/useCitas";
 import useUsers from "../users/hooks/useUsers";
-import useMovimientos from "../inventory/hooks/useMovimientos";
 
 import VentasReportTab from "./tabs/VentasReportTab";
 import InventarioReportTab from "./tabs/InventarioReportTab";
@@ -42,7 +41,6 @@ export default function OwnerReportesPage() {
   const { patients, loading: loadingPatients } = usePatients("", { scopeToAll: true });
   const { citas, loading: loadingCitas } = useCitas("");
   const { users, loading: loadingUsers } = useUsers();
-  const { movimientos, loading: loadingMovimientos } = useMovimientos();
 
   const [tab, setTab] = useState("ventas");
   const [quickRange, setQuickRange] = useState("30d");
@@ -79,7 +77,7 @@ export default function OwnerReportesPage() {
   };
 
   const loading = loadingBranches || loadingVentas || loadingProductos || loadingServicios ||
-    loadingPatients || loadingCitas || loadingUsers || loadingMovimientos;
+    loadingPatients || loadingCitas || loadingUsers;
   const error = errorBranches || errorVentas;
 
   const sharedProps = {
@@ -132,7 +130,7 @@ export default function OwnerReportesPage() {
               <VentasReportTab key={resetKey} ventas={ventas} productos={productos} servicios={servicios} {...sharedProps} />
             )}
             {tab === "inventario" && (
-              <InventarioReportTab key={resetKey} productos={productos} movimientos={movimientos} users={users} {...sharedProps} />
+              <InventarioReportTab key={resetKey} productos={productos} users={users} {...sharedProps} />
             )}
             {tab === "pacientes" && (
               <ClientesReportTab key={resetKey} patients={patients} ventas={ventas} citas={citas} {...sharedProps} />

@@ -9,7 +9,6 @@ import KpiRow from "../../../shared/components/KpiRow";
 import SalesComparisonList from "../components/SalesComparisonList";
 import SalesDetailTable from "../components/SalesDetailTable";
 import SalesLineItemsTable from "../components/SalesLineItemsTable";
-import { PRODUCT_CATEGORIES, SERVICE_CATEGORIES } from "../../catalogo/constants";
 import {
   QUICK_RANGES, inDateRange, unidadesDeVenta,
   buildDailyBuckets, groupByBranch, groupBySeller, groupByItem, itemTotalConIva,
@@ -63,14 +62,36 @@ export default function VentasReportTab({
   const productosById = useMemo(() => new Map(productos.map((p) => [p.id, p])), [productos]);
   const serviciosById = useMemo(() => new Map(servicios.map((s) => [s.id, s])), [servicios]);
 
+  // Las categorías ya no son una lista fija: salen de los productos y
+  // servicios que realmente llegaron (categoryId/categoryName reales del
+  // back, ver catalogoService.js).
+  const productCategoryOptions = useMemo(() => {
+    const map = new Map();
+    productos.forEach((p) => {
+      if (p.categoryId != null && !map.has(p.categoryId)) {
+        map.set(p.categoryId, { value: String(p.categoryId), label: p.categoryName });
+      }
+    });
+    return [...map.values()];
+  }, [productos]);
+  const serviceCategoryOptions = useMemo(() => {
+    const map = new Map();
+    servicios.forEach((s) => {
+      if (s.categoryId != null && !map.has(s.categoryId)) {
+        map.set(s.categoryId, { value: String(s.categoryId), label: s.categoryName });
+      }
+    });
+    return [...map.values()];
+  }, [servicios]);
+
   const scopedVentas = useMemo(
     () => ventas.filter((venta) => {
       if (venta.status === "cancelada") return false;
       if (!inDateRange(venta.createdAt, dateFrom, dateTo)) return false;
       if (branchId && venta.branchId !== branchId) return false;
       if (sellerName && venta.sellerName !== sellerName) return false;
-      if (productCategory && !venta.items.some((item) => item.itemType === "producto" && productosById.get(item.productId)?.category === productCategory)) return false;
-      if (serviceCategory && !venta.items.some((item) => item.itemType === "servicio" && serviciosById.get(item.productId)?.category === serviceCategory)) return false;
+      if (productCategory && !venta.items.some((item) => item.itemType === "producto" && String(productosById.get(item.productId)?.categoryId) === productCategory)) return false;
+      if (serviceCategory && !venta.items.some((item) => item.itemType === "servicio" && String(serviciosById.get(item.productId)?.categoryId) === serviceCategory)) return false;
       return true;
     }),
     [ventas, dateFrom, dateTo, branchId, sellerName, productCategory, serviceCategory, productosById, serviciosById]
@@ -156,8 +177,8 @@ export default function VentasReportTab({
             <SelectFilter label="Sucursal" value={branchId} onChange={setBranchId} placeholder="Todas" options={branchOptions} />
           )}
           <SelectFilter label="Empleado" value={sellerName} onChange={setSellerName} placeholder="Todos" options={sellerOptions} />
-          <SelectFilter label="Producto" value={productCategory} onChange={setProductCategory} placeholder="Todos" options={PRODUCT_CATEGORIES} />
-          <SelectFilter label="Servicios" value={serviceCategory} onChange={setServiceCategory} placeholder="Todos" options={SERVICE_CATEGORIES} />
+          <SelectFilter label="Producto" value={productCategory} onChange={setProductCategory} placeholder="Todos" options={productCategoryOptions} />
+          <SelectFilter label="Servicios" value={serviceCategory} onChange={setServiceCategory} placeholder="Todos" options={serviceCategoryOptions} />
         </div>
 
         <div className="flex flex-wrap items-end justify-between gap-4">

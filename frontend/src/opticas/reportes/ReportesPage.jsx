@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import PageContainer from "../../shared/layouts/PageContainer";
 import KpiRow from "../../shared/components/KpiRow";
@@ -10,7 +10,6 @@ import useBranchScope from "../../shared/hooks/useBranchScope";
 import { ROLES } from "../../shared/security/roles";
 
 import { listBranches } from "../branches/services/branchService";
-import { listInventory } from "../inventory/services/inventoryService";
 import usePatients from "../pacientes/hooks/usePatients";
 import useCitas from "../citas/hooks/useCitas";
 import useVentas from "../ventas/hooks/useVentas";
@@ -80,34 +79,6 @@ function ReportesList() {
   const { patients, loading: loadingPatients } = usePatients(selectedBranch);
   const { citas, loading: loadingCitas } = useCitas(selectedBranch);
 
-  const [inventory, setInventory] = useState([]);
-  const [loadingInventory, setLoadingInventory] = useState(true);
-
-  useEffect(() => {
-    if (!selectedBranch) {
-      setInventory([]);
-      setLoadingInventory(false);
-      return;
-    }
-    let active = true;
-    (async () => {
-      try {
-        setLoadingInventory(true);
-        const data = await listInventory();
-        if (!active) return;
-        setInventory((Array.isArray(data) ? data : []).filter((i) => i.branchId === selectedBranch));
-      } catch (error) {
-        console.error("Error al cargar inventario:", error);
-      } finally {
-        if (active) setLoadingInventory(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [selectedBranch]);
-
-
   const ventasEmpleado = useMemo(
     () => ventas.filter((v) => v.createdBy === currentUser?.id),
     [ventas, currentUser?.id]
@@ -151,19 +122,9 @@ function ReportesList() {
     { id: "new", type: "confirmed", title: "Nuevos", value: String(clientesEnPeriodo.length), description: "En el período" },
   ];
 
-  const lowStock = inventory.filter((i) => i.active && i.stockAvailable > 0 && i.stockAvailable <= i.stockMin);
-  const outOfStock = inventory.filter((i) => i.active && i.stockAvailable === 0);
-
-  const inventoryKpis = [
-    { id: "total", type: "products", title: "Existencias", value: String(inventory.reduce((sum, i) => sum + (i.stockAvailable || 0), 0)), description: "Unidades disponibles" },
-    { id: "low", type: "lowStock", title: "Stock bajo", value: String(lowStock.length), description: "Productos por reabastecer" },
-    { id: "out", type: "outOfStock", title: "Agotados", value: String(outOfStock.length), description: "Sin unidades" },
-  ];
-
-
   if (loadingBranches) return <LoadingSpinner />;
 
-  const loading = loadingVentas || loadingPatients || loadingCitas || loadingInventory;
+  const loading = loadingVentas || loadingPatients || loadingCitas;
 
   return (
 
@@ -213,11 +174,6 @@ function ReportesList() {
                 <section>
                   <h2 className="mb-3 font-semibold text-text-primary">Clientes</h2>
                   <KpiRow items={clientesKpis} />
-                </section>
-
-                <section>
-                  <h2 className="mb-3 font-semibold text-text-primary">Inventario</h2>
-                  <KpiRow items={inventoryKpis} />
                 </section>
               </>
             )}

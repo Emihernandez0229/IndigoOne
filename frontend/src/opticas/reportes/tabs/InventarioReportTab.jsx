@@ -8,8 +8,8 @@ import DataTable from "../../../shared/components/DataTable";
 import StatusBadge from "../../../shared/components/StatusBadge";
 
 import { QUICK_RANGES, inDateRange } from "../salesReportUtils";
-import { PRODUCT_CATEGORIES } from "../../catalogo/constants";
 import { MOVIMIENTO_META } from "../../inventory/constants";
+import useMovimientos from "../../inventory/hooks/useMovimientos";
 import { formatFecha } from "../../../shared/utils/format";
 
 const ESTADO_OPTIONS = [
@@ -20,17 +20,39 @@ const ESTADO_OPTIONS = [
 
 
 export default function InventarioReportTab({
-  productos, movimientos, users, branches, branchesById,
+  productos, branches, branchesById,
   branchId, setBranchId, dateFrom, dateTo, quickRange, onQuickRange, onDateFromChange, onDateToChange,
   onClearFilters, branchLocked = false,
 }) {
 
   const [category, setCategory] = useState("");
   const [estado, setEstado] = useState("");
+  const [movimientoProductId, setMovimientoProductId] = useState("");
 
   const branchOptions = useMemo(() => branches.map((b) => ({ value: b.id, label: b.name })), [branches]);
   const productosById = useMemo(() => new Map(productos.map((p) => [p.id, p])), [productos]);
-  const usersById = useMemo(() => new Map((users ?? []).map((u) => [u.id, u.name])), [users]);
+
+  // Las categorías ya no son una lista fija: se sacan de los productos
+  // que realmente llegaron (cada uno ya trae su categoryId/categoryName
+  // reales del back, ver catalogoService.js).
+  const categoryOptions = useMemo(() => {
+    const map = new Map();
+    productos.forEach((p) => {
+      if (p.categoryId != null && !map.has(p.categoryId)) {
+        map.set(p.categoryId, { value: String(p.categoryId), label: p.categoryName });
+      }
+    });
+    return [...map.values()];
+  }, [productos]);
+
+  const productOptions = useMemo(
+    () => productos.filter((p) => p.active).map((p) => ({ value: p.id, label: p.name })),
+    [productos]
+  );
+
+  // El back solo da movimientos de UN producto a la vez (no existe un
+  // "todos los movimientos" plano) - por eso aquí hay que elegir uno.
+  const { movimientos, loading: loadingMovimientos } = useMovimientos(movimientoProductId, branchId);
 
   // Filtradas por Sucursal/Categoría pero sin Estado, para que los KPIs
   // reflejen el alcance completo (el Estado solo recorta la tabla de
@@ -40,13 +62,13 @@ export default function InventarioReportTab({
     productos.filter((p) => p.active).forEach((p) => {
       (p.stockPorSucursal ?? []).forEach((s) => {
         if (branchId && s.branchId !== branchId) return;
-        if (category && p.category !== category) return;
+        if (category && String(p.categoryId) !== category) return;
         const status = s.stock <= 0 ? "out_of_stock" : s.stock <= p.stockMin ? "low_stock" : "available";
         rows.push({
           id: `${p.id}-${s.branchId}`,
           productId: p.id,
           productName: p.name,
-          category: p.category,
+          category: p.categoryName,
           branchId: s.branchId,
           branchName: branchesById.get(s.branchId) ?? "",
           stock: s.stock,
@@ -76,28 +98,28 @@ export default function InventarioReportTab({
     ];
   }, [baseRows]);
 
+  // "movimientos" ya viene filtrado por producto+sucursal desde el hook
+  // (eso lo exige el back); aquí solo falta acotar por fecha.
+  const movimientoProductName = productosById.get(movimientoProductId)?.name ?? "";
   const movimientoRows = useMemo(() => {
     return movimientos
       .filter((m) => inDateRange(m.createdAt, dateFrom, dateTo))
-      .filter((m) => !branchId || m.branchId === branchId)
-      .filter((m) => !category || productosById.get(m.productId)?.category === category)
       .map((m) => {
         const meta = MOVIMIENTO_META[m.tipo] ?? MOVIMIENTO_META.entrada;
         return {
           id: m.id,
           fecha: m.createdAt,
-          productName: productosById.get(m.productId)?.name ?? "Producto eliminado",
-          branchName: branchesById.get(m.branchId) ?? "",
+          productName: movimientoProductName,
           motivo: m.motivo ?? "",
           tipo: m.tipo,
           badge: meta.badge,
           tipoLabel: meta.label,
           cantidadMostrada: `${meta.sign > 0 ? "+" : "-"}${m.cantidad}`,
-          realizadoPor: usersById.get(m.createdBy) ?? "—",
+          realizadoPor: m.createdByName || "—",
         };
       })
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-  }, [movimientos, dateFrom, dateTo, branchId, category, productosById, branchesById, usersById]);
+  }, [movimientos, dateFrom, dateTo, movimientoProductName]);
 
   const existenciaColumns = [
     {
@@ -118,16 +140,6 @@ export default function InventarioReportTab({
 
   const movimientoColumns = [
     { key: "fecha", label: "Fecha", render: (row) => formatFecha(row.fecha) },
-    {
-      key: "producto",
-      label: "Producto",
-      render: (row) => (
-        <div>
-          <p className="font-medium text-text-primary">{row.productName}</p>
-          {!branchLocked && <p className="text-xs text-text-secondary">{row.branchName}</p>}
-        </div>
-      ),
-    },
     { key: "motivo", label: "Motivo", render: (row) => row.motivo || "" },
     { key: "tipo", label: "Tipo", render: (row) => <StatusBadge status={row.badge} label={row.tipoLabel} /> },
     {
@@ -159,7 +171,7 @@ export default function InventarioReportTab({
           {!branchLocked && (
             <SelectFilter label="Sucursal" value={branchId} onChange={setBranchId} placeholder="Todas" options={branchOptions} />
           )}
-          <SelectFilter label="Categoría" value={category} onChange={setCategory} placeholder="Todas" options={PRODUCT_CATEGORIES} />
+          <SelectFilter label="Categoría" value={category} onChange={setCategory} placeholder="Todas" options={categoryOptions} />
           <SelectFilter label="Estado" value={estado} onChange={setEstado} placeholder="Todos" options={ESTADO_OPTIONS} />
         </div>
 
@@ -193,8 +205,28 @@ export default function InventarioReportTab({
           <DataTable columns={existenciaColumns} data={existenciaRows} emptyMessage="Sin productos que coincidan con los filtros." pageSize={8} />
         </ChartContainer>
 
-        <ChartContainer title="Movimientos de inventario" subtitle="Entradas y salidas registradas en el período." align="start">
-          <DataTable columns={movimientoColumns} data={movimientoRows} emptyMessage="Sin movimientos registrados en el período." pageSize={8} />
+        <ChartContainer title="Movimientos de inventario" subtitle="Entradas, salidas y ajustes de un producto." align="start">
+          <div className="space-y-3">
+            <SelectFilter
+              label="Producto"
+              value={movimientoProductId}
+              onChange={setMovimientoProductId}
+              placeholder="Elige un producto para ver su historial"
+              options={productOptions}
+            />
+            {movimientoProductId ? (
+              <DataTable
+                columns={movimientoColumns}
+                data={movimientoRows}
+                emptyMessage={loadingMovimientos ? "Cargando..." : "Sin movimientos registrados en el período."}
+                pageSize={8}
+              />
+            ) : (
+              <p className="py-6 text-center text-sm text-text-secondary">
+                Elige un producto para ver sus entradas, salidas y ajustes.
+              </p>
+            )}
+          </div>
         </ChartContainer>
 
       </div>
