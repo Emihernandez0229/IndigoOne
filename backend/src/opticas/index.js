@@ -18,7 +18,9 @@ const stockRoutes = require('./stock/routes/stock.routes');
 
 const configuracionRoutes = require('./configuracion/routes/configuracion.routes');
 
-const ventasRoutes = require('./ventas/routes/ventas.routes')
+const ventasRoutes = require('./ventas/routes/ventas.routes');
+
+const reportesRoutes = require('./reportes/routes/reportes.routes');
 
 // /api/optica/usuarios/...
 router.use('/usuarios', usuariosRoutes);
@@ -43,5 +45,7 @@ router.use('/stock', stockRoutes);
 router.use('/configuracion', configuracionRoutes);
 
 router.use('/ventas', ventasRoutes);
+
+router.use('/reportes', reportesRoutes);
 
 module.exports = router;
