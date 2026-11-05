@@ -18,3 +18,11 @@ export function formatHora(dateStr, { emptyValue = "—" } = {}) {
   if (Number.isNaN(date.getTime())) return emptyValue;
   return date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
+
+
+export function formatDuration(minutes) {
+  if (minutes == null) return "—";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h} h ${m} min` : `${m} min`;
+}

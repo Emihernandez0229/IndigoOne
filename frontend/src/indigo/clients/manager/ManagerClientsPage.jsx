@@ -20,7 +20,7 @@ import useClients from "../hooks/useClients";
 import useBranches from "../../branches/hooks/useBranches";
 import { filterClients } from "../filterClients";
 import { CLIENT_STATUSES } from "../constants";
-import ManagerClientTable from "./components/ManagerClientTable";
+import ClientTable from "../components/ClientTable";
 import ClientDetailPanel from "../components/ClientDetailPanel";
 
 
@@ -120,7 +120,8 @@ export default function ManagerClientsPage() {
             />
           </FilterBar>
 
-          <ManagerClientTable
+          <ClientTable
+            variant="branch"
             clients={filtered}
             canEdit={can("client.update")}
             canDeactivate={can("client.deactivate")}

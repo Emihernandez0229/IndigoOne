@@ -30,7 +30,7 @@ function formFromBranch(branch) {
 export default function MyBranchEditModal({ open, branch, onClose, onSubmit }) {
 
   const [form, setForm] = useState(() => formFromBranch(branch));
-  const { errors, validate, clearError, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [loadedBranch, setLoadedBranch] = useState(branch);
 
@@ -70,6 +70,8 @@ export default function MyBranchEditModal({ open, branch, onClose, onSubmit }) {
       setSaving(true);
       await onSubmit({ address, phone, managerPhone, subManager, subManagerPhone });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar la sucursal. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -116,6 +118,8 @@ export default function MyBranchEditModal({ open, branch, onClose, onSubmit }) {
             error={errors.subManagerPhone}
           />
         </div>
+
+        {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

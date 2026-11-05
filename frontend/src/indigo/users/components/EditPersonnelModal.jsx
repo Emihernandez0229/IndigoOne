@@ -65,7 +65,7 @@ export default function EditPersonnelModal({
 }) {
 
   const [form, setForm] = useState(() => formFromUser(user));
-  const { errors, validate, clearError, resetErrors } = useFormValidation();
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [loadedUser, setLoadedUser] = useState(user);
 
@@ -108,6 +108,8 @@ export default function EditPersonnelModal({
       setSaving(true);
       await onSubmit(payload);
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar el empleado. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -198,6 +200,8 @@ export default function EditPersonnelModal({
               </div>
             </div>
           </div>
+
+          {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
           <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

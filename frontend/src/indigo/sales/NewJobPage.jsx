@@ -64,7 +64,7 @@ export default function NewJobPage() {
   const { users, loading: loadingUsers, error: errorUsers } = useUsers();
 
   const [form, setForm] = useState(EMPTY);
-  const { errors, validate, clearError } = useFormValidation();
+  const { errors, validate, clearError, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [lastFolio, setLastFolio] = useState(null);
 
@@ -156,6 +156,8 @@ export default function NewJobPage() {
       });
       setLastFolio(created.folio);
       setForm(EMPTY);
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo registrar el trabajo. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -279,6 +281,8 @@ export default function NewJobPage() {
               error={errors.deliveryTime}
             />
           </div>
+
+          {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
           <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
             <Button type="button" variant="outline" onClick={() => navigate("/indigo/trabajos")}>Cancelar</Button>

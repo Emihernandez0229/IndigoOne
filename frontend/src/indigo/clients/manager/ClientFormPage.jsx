@@ -104,7 +104,7 @@ export default function ClientFormPage() {
   );
 
   const [form, setForm] = useState(() => formFromClient(existingClient));
-  const { errors, validate, clearError } = useFormValidation();
+  const { errors, validate, clearError, setErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
   const [loadedClient, setLoadedClient] = useState(existingClient);
@@ -160,6 +160,8 @@ export default function ClientFormPage() {
         await create({ ...form, branchId: myBranch?.id, branchName: myBranch?.name });
       }
       navigate("/indigo/clientes");
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar el cliente. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -266,6 +268,8 @@ export default function ClientFormPage() {
               <span className="text-xs text-text-secondary">Asignada automáticamente según tu sucursal.</span>
             </div>
           </div>
+
+          {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => navigate("/indigo/clientes")}>Cancelar</Button>

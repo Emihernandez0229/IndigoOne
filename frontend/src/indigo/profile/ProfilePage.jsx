@@ -60,12 +60,12 @@ export default function ProfilePage() {
 
   const [editingInfo, setEditingInfo] = useState(false);
   const [infoForm, setInfoForm] = useState(null);
-  const { errors: infoErrors, validate: validateInfo, resetErrors: resetInfoErrors } = useFormValidation();
+  const { errors: infoErrors, validate: validateInfo, resetErrors: resetInfoErrors, setErrors: setInfoErrors } = useFormValidation();
   const [savingInfo, setSavingInfo] = useState(false);
 
   const [editingContact, setEditingContact] = useState(false);
   const [contactForm, setContactForm] = useState(null);
-  const { errors: contactErrors, validate: validateContact, resetErrors: resetContactErrors } = useFormValidation();
+  const { errors: contactErrors, validate: validateContact, resetErrors: resetContactErrors, setErrors: setContactErrors } = useFormValidation();
   const [savingContact, setSavingContact] = useState(false);
 
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
@@ -109,6 +109,8 @@ export default function ProfilePage() {
     try {
       await updateMyProfile(me.id, infoForm);
       setEditingInfo(false);
+    } catch {
+      setInfoErrors((prev) => ({ ...prev, submit: "No se pudo guardar tu información. Intenta de nuevo." }));
     } finally {
       setSavingInfo(false);
     }
@@ -138,6 +140,8 @@ export default function ProfilePage() {
     try {
       await updateMyEmergencyContact(me.id, contactForm);
       setEditingContact(false);
+    } catch {
+      setContactErrors((prev) => ({ ...prev, submit: "No se pudo guardar el contacto de emergencia. Intenta de nuevo." }));
     } finally {
       setSavingContact(false);
     }
@@ -278,6 +282,8 @@ export default function ProfilePage() {
                 </FormField>
               </div>
 
+              {infoErrors.submit && <p className="mt-4 text-sm text-error">{infoErrors.submit}</p>}
+
             </section>
 
             <section className="rounded-2xl border border-gray-200 bg-surface p-6">
@@ -318,6 +324,8 @@ export default function ProfilePage() {
                   <Input value={contactForm?.relation} onChange={setContactField("relation", (v) => onlyLetters(v, 30))} />
                 </FormField>
               </div>
+
+              {contactErrors.submit && <p className="mt-4 text-sm text-error">{contactErrors.submit}</p>}
 
             </section>
 

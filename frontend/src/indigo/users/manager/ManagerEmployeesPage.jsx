@@ -19,7 +19,7 @@ import useBranches from "../../branches/hooks/useBranches";
 import { filterUsers } from "../filterUsers";
 import { getEmployeeRoleOptions } from "../constants";
 import UserDetailPanel from "../components/UserDetailPanel";
-import ManagerEmployeeTable from "./components/ManagerEmployeeTable";
+import UserTable from "../components/UserTable";
 import PersonnelFormModal from "../components/PersonnelFormModal";
 import EditPersonnelModal from "../components/EditPersonnelModal";
 
@@ -145,8 +145,11 @@ export default function ManagerEmployeesPage() {
             />
           </FilterBar>
 
-          <ManagerEmployeeTable
+          <UserTable
             users={filtered}
+            showBranchColumn={false}
+            canEdit
+            canDeactivate
             onView={(user) => setViewingUserId(user.id)}
             onEdit={(user) => setEditingUser(user)}
             onDeactivate={(user) => setConfirmAction({ type: "deactivate", user })}

@@ -16,6 +16,21 @@ import {
 import { useFormValidation } from "../../../shared/hooks/useFormValidation";
 
 
+// ============================================================================
+// InventoryFormModal - formulario de alta/edición de producto de Indigo
+// (~550 líneas, el componente más largo del módulo). La auditoría de
+// arquitectura (04 nov 2026) lo señaló como candidato a partirse, pero se
+// decidió posponerlo. Mapa rápido para quien lo vea primero:
+//   - Carga de sucursales (líneas ~111-142): un efecto aparte, solo corre
+//     si quien edita NO tiene su sucursal ya fija (ver `isBranchScoped`).
+//   - Fotos (líneas ~159-197): 3 funciones juntas (`handlePhotoSelect`,
+//     `removePhoto`, `readFileAsDataUrl` arriba del componente) - podrían
+//     vivir en su propio componente de "subir fotos" si esto se separa.
+//   - El resto del formulario (código, modelo, color, tipo/material,
+//     género, medidas, stock/costo, sucursal) es estado plano, sin nada
+//     particular - es la parte que menos necesita separarse.
+// ============================================================================
+
 const EMPTY = {
   code: "",
   model: "",
@@ -33,6 +48,9 @@ const EMPTY = {
 };
 
 
+// Convierte un archivo de imagen (del <input type="file">) a un data URL
+// base64 - así las fotos se guardan como texto en `form.photos`, sin subir
+// nada a un servidor de archivos todavía.
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -43,6 +61,9 @@ function readFileAsDataUrl(file) {
 }
 
 
+// Arma el estado del formulario: vacío para "Nuevo producto", o con los
+// datos del item para "Editar producto". Siempre parte de EMPTY primero
+// para que ningún campo quede undefined si el item no lo trae.
 function crearFormDesdeItem(item) {
 
   if (!item) {
@@ -78,19 +99,33 @@ export default function InventoryFormModal({
 
   const { user: currentUser } = useAuth();
 
+  // Estado del formulario en sí - todos los campos, planos (ver EMPTY).
   const [form, setForm] = useState(() => crearFormDesdeItem(item));
+  // Errores de validación por campo, más `errors.submit` para el error
+  // general si falla el guardado (ver handleSubmit más abajo).
   const { errors, setErrors, validate, clearError, clearErrors, resetErrors } = useFormValidation();
   const [saving, setSaving] = useState(false);
+  // Sucursales para el <select> de abajo - solo se usan si NO es un
+  // Gerente de sucursal (ver `isBranchScoped`: su sucursal ya está fija).
   const [branches, setBranches] = useState([]);
   const [loadingBranches, setLoadingBranches] = useState(false);
 
+  // Referencia al <input type="file"> oculto - se "hace clic" en él desde
+  // el botón "Agregar" de la sección de fotos, en vez de mostrar el input
+  // feo por default del navegador.
   const fileInputRef = useRef(null);
 
   const isEdit = mode === "edit";
 
+  // Un Gerente de sucursal solo administra el inventario de SU sucursal -
+  // no elige sucursal al crear/editar, y por eso tampoco ve esa sección
+  // del formulario (ver el JSX más abajo, `{!isBranchScoped && (...)}`).
   const isBranchScoped =
     currentUser?.role === ROLES.INDIGO_GERENTE_SUCURSAL;
 
+  // Las opciones de "Material" dependen del "Tipo" elegido (ej. los
+  // materiales de un armazón no son los mismos que los de una mica) - por
+  // eso se recalculan cada vez que cambia `form.type`.
   const materialOptions = MATERIALS_BY_TYPE[form.type] ?? [];
 
   const titles = {
@@ -99,6 +134,9 @@ export default function InventoryFormModal({
   };
 
 
+  // Cada vez que se abre el modal (o cambia a qué item apunta), se vuelve
+  // a armar el formulario desde cero - así no se queda con datos de la
+  // última vez que se usó para otro producto.
   useEffect(() => {
     if (!open) {
       return;
@@ -108,6 +146,10 @@ export default function InventoryFormModal({
   }, [open, item, resetErrors]);
 
 
+  // ----- Carga de sucursales (solo si quien edita no tiene la suya fija) -----
+  // `active` evita la clásica carrera: si el modal se cierra (o cambia el
+  // rol) antes de que la petición termine, la respuesta tardía ya no pisa
+  // el estado de un modal que ni sigue abierto.
   useEffect(() => {
 
     if (!open || isBranchScoped) {
@@ -142,6 +184,9 @@ export default function InventoryFormModal({
   }, [open, isBranchScoped]);
 
 
+  // Helper genérico para cualquier campo de texto/select: actualiza
+  // `form[field]` y borra su error de validación en cuanto la persona
+  // empieza a corregirlo (en vez de esperar al siguiente submit).
   const set = (field) => (event) => {
     const value = event?.target ? event.target.value : event;
     setForm((prev) => ({ ...prev, [field]: value ?? "" }));
@@ -149,6 +194,9 @@ export default function InventoryFormModal({
   };
 
 
+  // Cambiar el "Tipo" invalida el "Material" elegido (las opciones de
+  // material dependen del tipo, ver `materialOptions` arriba) - por eso
+  // aquí se limpia `material` además de actualizar `type`.
   const handleTypeChange = (event) => {
     const value = event.target.value;
     setForm((prev) => ({ ...prev, type: value, material: "" }));
@@ -156,15 +204,23 @@ export default function InventoryFormModal({
   };
 
 
+  // ----- Fotos: seleccionar, validar tipo/cantidad, y quitar -----
+  // Se puede seleccionar más de un archivo a la vez (el input tiene
+  // `multiple`), así que todo este flujo trabaja con arreglos.
   const handlePhotoSelect = async (event) => {
     const files = Array.from(event.target.files || []);
+    // Se limpia el input de inmediato - si no, elegir el mismo archivo dos
+    // veces seguidas no dispara `onChange` la segunda vez.
     event.target.value = "";
 
+    // Si ya no hay espacio (o no se eligió nada), no hay nada que hacer.
     const remainingSlots = MAX_PRODUCT_PHOTOS - form.photos.length;
     if (remainingSlots <= 0 || files.length === 0) {
       return;
     }
 
+    // Solo se aceptan los tipos de imagen permitidos, y hasta donde
+    // alcance el espacio restante.
     const validFiles = files.filter((file) => ACCEPTED_PHOTO_TYPES.includes(file.type));
     const accepted = validFiles.slice(0, remainingSlots);
 
@@ -180,6 +236,8 @@ export default function InventoryFormModal({
       return;
     }
 
+    // Cada archivo aceptado se convierte a data URL (readFileAsDataUrl) y
+    // se agrega al final de las fotos que ya había.
     const dataUrls = await Promise.all(accepted.map(readFileAsDataUrl));
 
     setForm((prev) => ({
@@ -189,6 +247,8 @@ export default function InventoryFormModal({
   };
 
 
+  // Quita una foto por su posición en el arreglo - el botón "X" de cada
+  // miniatura llama a esto con su propio índice.
   const removePhoto = (index) => {
     setForm((prev) => ({
       ...prev,
@@ -200,11 +260,15 @@ export default function InventoryFormModal({
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    // Los campos de texto se limpian (trim) antes de validar y de
+    // mandarse - un campo con solo espacios no debe contar como lleno.
     const code = String(form.code ?? "").trim();
     const model = String(form.model ?? "").trim();
     const color = String(form.color ?? "").trim();
     const measurements = String(form.measurements ?? "").trim();
 
+    // `branchId` solo es obligatorio al crear (no al editar) y solo si
+    // quien edita no tiene su sucursal ya fija (`isBranchScoped`).
     const isValid = validate([
       ["code", !code, "El código es obligatorio."],
       ["model", !model, "El modelo es obligatorio."],
@@ -225,6 +289,10 @@ export default function InventoryFormModal({
 
     try {
       setSaving(true);
+      // Los campos numéricos (stock, costo) se mandan como Number, no
+      // como el string que guarda el <input> - y `branchId` se manda como
+      // null (no como "") si no aplica, para que el backend lo trate como
+      // "sin sucursal" y no como un valor vacío.
       await onSubmit({
         code,
         model,
@@ -241,6 +309,11 @@ export default function InventoryFormModal({
         photos: form.photos,
       });
       onClose();
+    } catch {
+      // Si `onSubmit` falla, el modal se queda abierto con este mensaje -
+      // antes no había ningún aviso aquí (ver auditoría, sección "manejo
+      // de errores").
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar el producto. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -252,6 +325,7 @@ export default function InventoryFormModal({
 
       <form onSubmit={handleSubmit} className="space-y-4">
 
+        {/* Código + modelo */}
         <div className="grid gap-4 sm:grid-cols-2">
 
           <Input
@@ -270,6 +344,7 @@ export default function InventoryFormModal({
 
         </div>
 
+        {/* Descripción - único campo libre, sin validación de obligatorio */}
         <div className="w-full">
           <label
             htmlFor="inventory-description"
@@ -286,6 +361,7 @@ export default function InventoryFormModal({
           />
         </div>
 
+        {/* Color + tipo (el tipo decide qué materiales aparecen abajo) */}
         <div className="grid gap-4 sm:grid-cols-2">
 
           <Input
@@ -322,6 +398,7 @@ export default function InventoryFormModal({
 
         </div>
 
+        {/* Material (depende del tipo, deshabilitado hasta elegir uno) + género */}
         <div className="grid gap-4 sm:grid-cols-2">
 
           <div className="w-full">
@@ -379,6 +456,7 @@ export default function InventoryFormModal({
 
         </div>
 
+        {/* Medidas - texto libre, ej. "52-18-140" (ancho-puente-varilla) */}
         <Input
           label="Medidas"
           value={form.measurements}
@@ -387,6 +465,7 @@ export default function InventoryFormModal({
           placeholder="Ej. 52-18-140"
         />
 
+        {/* Fotos - miniaturas de lo ya agregado + botón para subir más, hasta MAX_PRODUCT_PHOTOS */}
         <div className="w-full">
           <label className="mb-2 block text-sm font-medium text-text-primary">
             Fotos (máximo {MAX_PRODUCT_PHOTOS})
@@ -428,6 +507,7 @@ export default function InventoryFormModal({
 
           </div>
 
+          {/* Input real, oculto - el botón "Agregar" de arriba lo activa por su ref */}
           <input
             ref={fileInputRef}
             type="file"
@@ -442,6 +522,7 @@ export default function InventoryFormModal({
           )}
         </div>
 
+        {/* Stock disponible, stock mínimo y costo - los 3 numéricos */}
         <div className="grid gap-4 sm:grid-cols-3">
 
           <Input
@@ -474,6 +555,8 @@ export default function InventoryFormModal({
 
         </div>
 
+        {/* Sucursal - oculto para Gerente de sucursal (la suya ya está fija).
+            Al editar se muestra como texto fijo, no se puede reasignar. */}
         {!isBranchScoped && (
           <div className="w-full">
             <label
@@ -513,6 +596,9 @@ export default function InventoryFormModal({
           </div>
         )}
 
+        {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
+
+        {/* Cancelar/Guardar - "Guardar" se deshabilita mientras `saving` sea true */}
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancelar
@@ -528,6 +614,8 @@ export default function InventoryFormModal({
 }
 
 
+// Clase compartida por todos los <select> del formulario, para que se
+// vean igual que los <Input> de shared/components/Input.
 const selectClass = `
   w-full
   rounded-xl
