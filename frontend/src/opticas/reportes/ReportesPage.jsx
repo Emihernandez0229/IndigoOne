@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import PageContainer from "../../shared/layouts/PageContainer";
 import KpiRow from "../../shared/components/KpiRow";
@@ -6,13 +6,9 @@ import FilterBar from "../../shared/filters/FilterBar";
 import SelectFilter from "../../shared/filters/SelectFilter";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import { useAuth } from "../../shared/context/AuthContext";
-import useBranchScope from "../../shared/hooks/useBranchScope";
 import { ROLES } from "../../shared/security/roles";
 
-import { listBranches } from "../branches/services/branchService";
-import usePatients from "../pacientes/hooks/usePatients";
-import useCitas from "../citas/hooks/useCitas";
-import useVentas from "../ventas/hooks/useVentas";
+import { getResumenReporte } from "./services/reportesService";
 import OwnerReportesPage from "./OwnerReportesPage";
 import BranchReportesPage from "./BranchReportesPage";
 import { currency } from "../../shared/utils/format";
@@ -25,26 +21,9 @@ const PERIODS = [
   { value: "year", label: "Año" },
 ];
 
-function withinPeriod(dateStr, period) {
-  if (!dateStr) return false;
-  const date = new Date(dateStr);
-  const now = new Date();
-  if (period === "day") {
-    return date.toDateString() === now.toDateString();
-  }
-  if (period === "week") {
-    const start = new Date(now);
-    start.setDate(now.getDate() - 7);
-    return date >= start;
-  }
-  if (period === "month") {
-    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
-  }
-  if (period === "year") {
-    return date.getFullYear() === now.getFullYear();
-  }
-  return true;
-}
+// Mismo valor que acepta GET /api/opticas/reportes/resumen en `periodo`
+// ("week" ahí ya significa "últimos 7 días", igual que aquí).
+const PERIOD_TO_BACKEND = { day: "day", week: "week", month: "month", year: "year" };
 
 
 export default function ReportesPage() {
@@ -64,120 +43,63 @@ export default function ReportesPage() {
 }
 
 
+/**
+ * Vista de Reportes para Ventas (empleado) - el único rol que llega aquí
+ * (Dueño/Encargado se van a Owner/BranchReportesPage arriba). El back solo
+ * le da el resumen de sus propias ventas (citas/clientes/inventario le
+ * llegan en null desde GET /resumen, ver reportes.service.js), así que no
+ * hay nada que mostrar fuera de esa sección.
+ */
 function ReportesList() {
 
   const { user: currentUser } = useAuth();
-  const isEmployee = currentUser?.role === ROLES.OPTICA_EMPLEADO;
-
-  const { isOwner, branches, selectedBranch, setSelectedBranch, loadingBranches } = useBranchScope({
-    listBranches,
-    ownerRoles: [ROLES.OPTICA_DUENO],
-  });
+  const hasBranch = Boolean(currentUser?.sucursalId);
   const [period, setPeriod] = useState("month");
+  const [resumen, setResumen] = useState(null);
+  const [loading, setLoading] = useState(hasBranch);
 
-  const { ventas, loading: loadingVentas } = useVentas(selectedBranch);
-  const { patients, loading: loadingPatients } = usePatients(selectedBranch);
-  const { citas, loading: loadingCitas } = useCitas(selectedBranch);
-
-  const ventasEmpleado = useMemo(
-    () => ventas.filter((v) => v.createdBy === currentUser?.id),
-    [ventas, currentUser?.id]
-  );
-
-  const ventasEnPeriodo = useMemo(
-    () => (isEmployee ? ventasEmpleado : ventas).filter((v) => withinPeriod(v.createdAt, period)),
-    [ventas, ventasEmpleado, isEmployee, period]
-  );
-
-  // Para ingresos cuenta el pago (liquidada), no el estado del trabajo -
-  // son independientes.
-  const ventasCompletadas = ventasEnPeriodo.filter((v) => v.paymentStatus === "liquidada");
-  const totalVentas = ventasCompletadas.reduce((sum, v) => sum + v.total, 0);
-  const ticketPromedio = ventasCompletadas.length > 0 ? totalVentas / ventasCompletadas.length : 0;
+  useEffect(() => {
+    if (!hasBranch) return;
+    let active = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await getResumenReporte({ branchId: currentUser.sucursalId, periodo: PERIOD_TO_BACKEND[period] });
+        if (active) setResumen(data);
+      } catch {
+        if (active) setResumen(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [hasBranch, currentUser?.sucursalId, period]);
 
   const salesKpis = [
-    { id: "total", type: "sales", title: "Ventas totales", value: currency(totalVentas), description: "En el período" },
-    { id: "count", type: "orders", title: "Transacciones", value: String(ventasCompletadas.length), description: "Completadas" },
-    { id: "avg", type: "revenue", title: "Ticket promedio", value: currency(ticketPromedio), description: "Por venta" },
+    { id: "total", type: "sales", title: "Ventas totales", value: currency(resumen?.ventas.total ?? 0), description: "En el período" },
+    { id: "count", type: "orders", title: "Transacciones", value: String(resumen?.ventas.operaciones ?? 0), description: "Completadas" },
+    { id: "avg", type: "revenue", title: "Ticket promedio", value: currency(resumen?.ventas.ticketPromedio ?? 0), description: "Por venta" },
   ];
-
-  const citasEnPeriodo = useMemo(
-    () => citas.filter((c) => withinPeriod(c.createdAt, period)),
-    [citas, period]
-  );
-
-  const citasKpis = [
-    { id: "total", type: "appointments", title: "Citas", value: String(citasEnPeriodo.length), description: "En el período" },
-    { id: "attended", type: "available", title: "Atendidas", value: String(citasEnPeriodo.filter((c) => c.status === "atendida").length), description: "Completadas" },
-    { id: "cancelled", type: "canceled", title: "Canceladas", value: String(citasEnPeriodo.filter((c) => c.status === "cancelada" || c.status === "no_asistio").length), description: "No concretadas" },
-  ];
-
-  const clientesEnPeriodo = useMemo(
-    () => patients.filter((p) => withinPeriod(p.createdAt, period)),
-    [patients, period]
-  );
-
-  const clientesKpis = [
-    { id: "total", type: "patients", title: "Total de clientes", value: String(patients.length), description: "En tu alcance" },
-    { id: "new", type: "confirmed", title: "Nuevos", value: String(clientesEnPeriodo.length), description: "En el período" },
-  ];
-
-  if (loadingBranches) return <LoadingSpinner />;
-
-  const loading = loadingVentas || loadingPatients || loadingCitas;
 
   return (
 
-    <PageContainer
-      title="Reportes"
-      description={isEmployee ? "Resumen de tus ventas." : "Qué ocurrió y cómo se comportó tu óptica."}
-    >
+    <PageContainer title="Reportes" description="Resumen de tus ventas.">
 
       <div className="space-y-8">
 
         <FilterBar>
-          <SelectFilter
-            label="Período"
-            value={period}
-            onChange={setPeriod}
-            options={PERIODS}
-          />
-          {isOwner && (
-            <SelectFilter
-              label="Sucursal"
-              value={selectedBranch}
-              onChange={setSelectedBranch}
-              placeholder="Selecciona una sucursal"
-              options={branches.map((b) => ({ value: b.id, label: b.name }))}
-            />
-          )}
+          <SelectFilter label="Período" value={period} onChange={setPeriod} options={PERIODS} />
         </FilterBar>
 
-        {!selectedBranch ? (
-          <p className="text-sm text-text-secondary">Selecciona una sucursal para ver sus reportes.</p>
+        {!hasBranch ? (
+          <p className="text-sm text-text-secondary">No tienes una sucursal asignada.</p>
         ) : loading ? (
           <LoadingSpinner />
         ) : (
-          <>
-            <section>
-              <h2 className="mb-3 font-semibold text-text-primary">Ventas</h2>
-              <KpiRow items={salesKpis} />
-            </section>
-
-            {!isEmployee && (
-              <>
-                <section>
-                  <h2 className="mb-3 font-semibold text-text-primary">Citas</h2>
-                  <KpiRow items={citasKpis} />
-                </section>
-
-                <section>
-                  <h2 className="mb-3 font-semibold text-text-primary">Clientes</h2>
-                  <KpiRow items={clientesKpis} />
-                </section>
-              </>
-            )}
-          </>
+          <section>
+            <h2 className="mb-3 font-semibold text-text-primary">Ventas</h2>
+            <KpiRow items={salesKpis} />
+          </section>
         )}
 
       </div>

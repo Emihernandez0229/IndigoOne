@@ -242,9 +242,7 @@ export const PERMISSIONS = {
 
     "optica.appointment.manage",
 
-    "optica.lab.view",
-    "optica.lab.create",
-    "optica.lab.manage",
+    "optica.consulta.manage",
 
     "optica.inventory.view",
     "optica.inventory.manage",
@@ -282,9 +280,7 @@ export const PERMISSIONS = {
 
     "optica.appointment.manage",
 
-    "optica.lab.view",
-    "optica.lab.create",
-    "optica.lab.manage",
+    "optica.consulta.manage",
 
     "optica.inventory.view",
     "optica.inventory.manage",
@@ -302,11 +298,10 @@ export const PERMISSIONS = {
 
     "optica.appointment.manage",
 
+    "optica.consulta.manage",
+
     "optica.sales.view",
     "optica.sales.create",
-
-    "optica.lab.view",
-    "optica.lab.create",
 
     "optica.inventory.view",
   ],

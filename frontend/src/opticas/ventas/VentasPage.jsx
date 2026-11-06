@@ -19,14 +19,13 @@ import { ROLES } from "../../shared/security/roles";
 
 import { listBranches } from "../branches/services/branchService";
 import usePatients from "../pacientes/hooks/usePatients";
-import useLaboratorio from "../laboratorio/hooks/useLaboratorio";
 import useVentas from "./hooks/useVentas";
 import { filterVentas } from "./filterVentas";
 import { SALE_STATUSES, WORK_TYPES, PAYMENT_METHODS } from "./constants";
 import VentaTable from "./components/VentaTable";
 import VentaDetailPanel from "./components/VentaDetailPanel";
 import LiquidarSaldoPanel from "./components/LiquidarSaldoPanel";
-import { downloadPaymentReceipt } from "./pdfReceipt";
+import { downloadPaymentReceipt, buildReceiptData } from "./pdfReceipt";
 
 
 export default function VentasPage() {
@@ -44,15 +43,12 @@ export default function VentasPage() {
   // "" (Todas) trae pacientes de todas las sucursales, igual que el
   // modulo Clientes del dueno.
   const { patients } = usePatients(selectedBranch, { scopeToAll: !selectedBranch });
-  const { orders: labOrders } = useLaboratorio(selectedBranch);
   const { ventas, loading, error, liquidar, changeStatus, cancel } = useVentas(selectedBranch);
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [date, setDate] = useState("");
   const [workType, setWorkType] = useState("");
-  // Laboratorio enlaza aqui (SidePanel, ya no es una ruta por id) para
-  // abrir directo el detalle de la venta relacionada a una orden.
   const [viewingId, setViewingId] = useState(() => location.state?.viewVentaId ?? null);
   const [confirmAction, setConfirmAction] = useState(null);
   const [liquidatingId, setLiquidatingId] = useState(null);
@@ -72,16 +68,13 @@ export default function VentasPage() {
 
   // Con "Todas" cada venta puede ser de una sucursal distinta, asi que el
   // nombre se busca por fila (no por la sucursal elegida en el filtro).
-  // "receta" sale de la orden de laboratorio ligada (solo aplica cuando
-  // workType es "orden_laboratorio").
   const ventasEnriched = useMemo(
     () => ventas.map((venta) => ({
       ...venta,
       patientName: patientsById.get(venta.patientId),
       branchName: branchesById.get(venta.branchId) ?? "",
-      receta: labOrders.find((o) => o.saleId === venta.id)?.receta ?? null,
     })),
-    [ventas, patientsById, branchesById, labOrders]
+    [ventas, patientsById, branchesById]
   );
 
   const filtered = useMemo(
@@ -95,10 +88,8 @@ export default function VentasPage() {
   const handleConfirmLiquidar = async (monto) => {
     const updated = await liquidar(liquidatingVenta.id, monto);
     downloadPaymentReceipt({
-      folio: liquidatingVenta.folio,
+      ...buildReceiptData(liquidatingVenta),
       date: new Date().toLocaleString("es-MX", { dateStyle: "full", timeStyle: "short" }),
-      patientName: liquidatingVenta.patientName || "Público general",
-      sellerName: liquidatingVenta.sellerName,
       paymentMethodLabel: PAYMENT_METHODS.find((m) => m.value === "efectivo")?.label,
       montoPagado: monto,
       saldoPendiente: updated.saldoPendiente,
@@ -174,7 +165,7 @@ export default function VentasPage() {
             className="w-full sm:max-w-xs"
             value={query}
             onChange={setQuery}
-            placeholder="Buscar por folio, paciente o producto"
+            placeholder="Buscar por folio, paciente, vendedor o producto"
           />
           <SelectFilter
             label="Estado"
@@ -241,7 +232,6 @@ export default function VentasPage() {
         ) : (
           <VentaDetailPanel
             venta={viewingVenta}
-            receta={viewingVenta?.receta}
             onLiquidar={(venta) => setLiquidatingId(venta.id)}
             onChangeStatus={(venta, transition) => setConfirmAction({ action: "changeStatus", venta, transition })}
             onCancel={(venta) => setConfirmAction({ action: "cancel", venta })}

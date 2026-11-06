@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Building2, Pencil, MapPin, User, Phone, Home,
-  Users, UserRound, Package, Clock, Settings, CheckCircle2, BarChart3,
+  Users, UserRound, Package, BarChart3,
 } from "lucide-react";
 
 import PageContainer from "../../shared/layouts/PageContainer";
@@ -19,7 +19,8 @@ import { kpiColors } from "../../shared/constants/kpiColors";
 import useBranches from "./hooks/useBranches";
 import useUsers from "../users/hooks/useUsers";
 import usePatients from "../pacientes/hooks/usePatients";
-import useLaboratorio from "../laboratorio/hooks/useLaboratorio";
+import useProductos from "../catalogo/hooks/useProductos";
+import { withManagerInfo, withBranchCounts } from "./services/branchService";
 import MyBranchEditModal from "./components/MyBranchEditModal";
 import { OpticaCardDecoration } from "../optica/components/OpticaCardParts";
 
@@ -48,25 +49,27 @@ function MiniKpi({ icon: Icon, label, value, color }) {
 export default function MyBranchPage() {
 
   const { user: currentUser } = useAuth();
-  const { branches, loading: loadingBranches, error: errorBranches, updateContact } = useBranches();
+  const { branches: rawBranches, loading: loadingBranches, error: errorBranches, updateContact } = useBranches();
   const { users, loading: loadingUsers, error: errorUsers } = useUsers();
   const { patients, loading: loadingPatients, error: errorPatients } = usePatients(currentUser?.sucursalId);
-  const { orders, loading: loadingOrders, error: errorOrders } = useLaboratorio(currentUser?.sucursalId);
+  const { productos, loading: loadingProductos } = useProductos();
 
   const [editOpen, setEditOpen] = useState(false);
+
+  // El back no manda gerente/personal/productos pegados a la sucursal -
+  // se resuelven cruzando con Personal y Catálogo (ver branchService.js).
+  const branches = useMemo(
+    () => withBranchCounts(withManagerInfo(rawBranches, users), { users, patients, productos }),
+    [rawBranches, users, patients, productos]
+  );
 
   const myBranch = useMemo(
     () => branches.find((b) => b.id === currentUser?.sucursalId),
     [branches, currentUser?.sucursalId]
   );
 
-  const staff = useMemo(
-    () => users.filter((u) => u.branchId === myBranch?.id),
-    [users, myBranch]
-  );
-
-  const loading = loadingBranches || loadingUsers || loadingPatients || loadingOrders;
-  const error = errorBranches || errorUsers || errorPatients || errorOrders;
+  const loading = loadingBranches || loadingUsers || loadingPatients || loadingProductos;
+  const error = errorBranches || errorUsers || errorPatients;
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState />;
@@ -86,11 +89,7 @@ export default function MyBranchPage() {
     await updateContact(myBranch.id, payload);
   };
 
-  const operationalCount = staff.filter((u) => u.role === ROLES.OPTICA_EMPLEADO).length;
-
-  const pending = orders.filter((o) => o.status === "pendiente").length;
-  const processing = orders.filter((o) => o.status === "en_proceso").length;
-  const completed = orders.filter((o) => o.status === "listo" || o.status === "entregado").length;
+  const operationalCount = (myBranch.staffList ?? []).filter((u) => u.role === ROLES.OPTICA_EMPLEADO).length;
 
   return (
 
@@ -158,7 +157,7 @@ export default function MyBranchPage() {
               <SectionTitle icon={Users} className="">Personal de la sucursal</SectionTitle>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <MiniKpi icon={Users} label="Total de empleados" color="green" value={staff.length} />
+              <MiniKpi icon={Users} label="Total de empleados" color="green" value={myBranch.staff ?? 0} />
               <MiniKpi icon={UserRound} label="Personal operativo" color="blue" value={operationalCount} />
             </div>
           </div>
@@ -170,12 +169,9 @@ export default function MyBranchPage() {
           <div className="relative mb-4">
             <SectionTitle icon={BarChart3} className="">Operación de la sucursal</SectionTitle>
           </div>
-          <div className="relative grid grid-cols-2 gap-4 sm:grid-cols-5">
+          <div className="relative grid grid-cols-2 gap-4">
             <MiniKpi icon={UserRound} label="Clientes" color="green" value={patients.length} />
             <MiniKpi icon={Package} label="Productos" color="blue" value={myBranch.products ?? 0} />
-            <MiniKpi icon={Clock} label="Trabajos pendientes" color="orange" value={pending} />
-            <MiniKpi icon={Settings} label="Trabajos en proceso" color="purple" value={processing} />
-            <MiniKpi icon={CheckCircle2} label="Trabajos terminados" color="green" value={completed} />
           </div>
         </div>
 

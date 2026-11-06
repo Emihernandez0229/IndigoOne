@@ -45,10 +45,12 @@ function mapVenta(raw) {
 }
 
 
+// "Todas las sucursales" se pide con todas=true (igual que Reportes) en vez
+// de mandar sucursalId vacío - el back (una vez que soporte este parámetro)
+// así sabe que es "trae todo", no "sucursalId inválido".
 export async function listVentas(branchId) {
-  const ventas = await httpClient.get(
-    `/api/opticas/ventas?sucursalId=${branchId ?? ""}`
-  );
+  const query = branchId ? `sucursalId=${branchId}` : "todas=true";
+  const ventas = await httpClient.get(`/api/opticas/ventas?${query}`);
   return (ventas ?? []).map(mapVenta);
 }
 

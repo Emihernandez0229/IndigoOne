@@ -49,6 +49,13 @@ export function textWithSpecialChars(value, maxLength) {
   return maxLength ? clean.slice(0, maxLength) : clean;
 }
 
+// Letras, numeros, espacios y solo / ° : , . ; - _ - para "Observaciones"
+// de Nueva consulta (notas clinicas: medidas, grados, fechas abreviadas).
+export function clinicalNotes(value, maxLength) {
+  const clean = value.replace(new RegExp(`[^${LETTERS}0-9\\s/°:,.;_-]`, "g"), "");
+  return maxLength ? clean.slice(0, maxLength) : clean;
+}
+
 // Valores de graduacion (esfera, cilindro, eje, adicion, DP): solo
 // digitos, un signo +/- al inicio y un punto decimal.
 export function diopterValue(value, maxLength) {

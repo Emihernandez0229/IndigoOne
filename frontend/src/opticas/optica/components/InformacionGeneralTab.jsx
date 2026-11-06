@@ -10,7 +10,7 @@ import { OpticaCardHeader, OpticaFieldChip, OpticaCardDecoration } from "./Optic
 const NAME_MAX = 50;
 
 
-export default function InformacionGeneralTab({ info, canManage, onSave, onCancel }) {
+export default function InformacionGeneralTab({ info, fullInfo = true, canManage, onSave, onCancel }) {
 
   const [form, setForm] = useState(info);
   const [errors, setErrors] = useState({});
@@ -19,6 +19,21 @@ export default function InformacionGeneralTab({ info, canManage, onSave, onCance
   useEffect(() => setForm(info), [info]);
 
   if (!canManage) {
+    // El Encargado solo puede pedir la configuración "operativa" del back
+    // (nombre_comercial, logo, colores, eslogan) - razón social, teléfono,
+    // correo y responsable sanitario no le llegan en absoluto, así que no
+    // tiene sentido mostrarle esos chips vacíos.
+    if (!fullInfo) {
+      return (
+        <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6">
+          <OpticaCardDecoration />
+          <OpticaCardHeader icon={Building2} title="Información de la empresa" description="Datos básicos que identifican a tu empresa." tone="blue" />
+          <div className="relative space-y-5">
+            <OpticaFieldChip icon={Building2} label="Nombre comercial" value={info.nombreComercial} tone="blue" />
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6">
         <OpticaCardDecoration />

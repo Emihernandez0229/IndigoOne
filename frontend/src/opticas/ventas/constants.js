@@ -7,8 +7,8 @@ export const SALE_STATUSES = [
   { value: "cancelada", label: "Cancelada" },
 ];
 
-// Transiciones permitidas desde cada estado - mismo patron que
-// laboratorio/constants.js. Cancelar es aparte (solo desde "pendiente").
+// Transiciones permitidas desde cada estado - cancelar es aparte (solo
+// desde "pendiente").
 export const STATUS_TRANSITIONS = {
   pendiente: [
     { value: "en_proceso", label: "Iniciar proceso", variant: "secondary" },
@@ -31,21 +31,16 @@ export const PAYMENT_STATUSES = [
 export const WORK_TYPES = [
   { value: "venta_directa", label: "Venta directa" },
   { value: "trabajo_interno", label: "Trabajo interno" },
-  { value: "orden_laboratorio", label: "Orden de laboratorio" },
 ];
 
 export const WORK_TYPE_INFO = {
   venta_directa: {
     label: "Venta directa",
-    description: "Sin orden de trabajo ni solicitud de laboratorio.",
+    description: "Sin orden de trabajo asociada.",
   },
   trabajo_interno: {
     label: "Trabajo interno",
     description: "Montaje de lentes, ajuste de armazón, preparación o revisión.",
-  },
-  orden_laboratorio: {
-    label: "Orden de laboratorio · Índigo",
-    description: "Solicitar fabricación, tallado u otro proceso técnico al laboratorio.",
   },
 };
 
@@ -53,12 +48,6 @@ export const INTERNAL_WORK_SUBTYPES = [
   { value: "consultas", label: "Consultas" },
   { value: "ajuste_alineacion", label: "Ajuste y alineación" },
   { value: "reparaciones", label: "Reparaciones" },
-];
-
-export const LAB_WORK_SUBTYPES = [
-  { value: "fabricacion_lentes", label: "Fabricación de lentes" },
-  { value: "tallado_montaje", label: "Tallado y montaje especializado" },
-  { value: "otro_proceso", label: "Otro proceso técnico" },
 ];
 
 export const PRIORITIES = [

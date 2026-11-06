@@ -20,10 +20,14 @@ import { ROLES } from "../../shared/security/roles";
 
 import useBranches from "./hooks/useBranches";
 import useUsers from "../users/hooks/useUsers";
+import usePatients from "../pacientes/hooks/usePatients";
+import useProductos from "../catalogo/hooks/useProductos";
+import { withManagerInfo, withBranchCounts } from "./services/branchService";
 import { filterBranches } from "./filterBranches";
 import BranchTable from "./components/BranchTable";
 import BranchFormModal from "./components/BranchFormModal";
 import BranchDetailPanel from "./components/BranchDetailPanel";
+import AssignManagerModal from "./components/AssignManagerModal";
 import MyBranchPage from "./MyBranchPage";
 import { BRANCH_STATUSES } from "./constants";
 
@@ -44,21 +48,34 @@ export default function BranchesPage() {
 function BranchesList() {
 
   const { can } = usePermissions();
-  const { branches, loading, error, create, update, deactivate, activate } = useBranches();
-  const { users } = useUsers();
+  const { branches: rawBranches, loading, error, create, update, deactivate, activate, assignManager, changeManager } = useBranches();
+  const { users, reload: reloadUsers } = useUsers();
+  const { patients } = usePatients("", { scopeToAll: true });
+  const { productos } = useProductos();
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [modal, setModal] = useState({ open: false, mode: "create", branch: null });
-  const [viewingBranch, setViewingBranch] = useState(null);
+  const [viewingBranchId, setViewingBranchId] = useState(null);
+  const [managerModalBranch, setManagerModalBranch] = useState(null);
   const [branchToDeactivate, setBranchToDeactivate] = useState(null);
   const [branchToActivate, setBranchToActivate] = useState(null);
 
+
+  // El back no manda gerente/personal/pacientes/productos pegados a la
+  // sucursal - se resuelven aquí cruzando con lo que ya cargan los demás
+  // módulos (ver withManagerInfo/withBranchCounts).
+  const branches = useMemo(
+    () => withBranchCounts(withManagerInfo(rawBranches, users), { users, patients, productos }),
+    [rawBranches, users, patients, productos]
+  );
 
   const filtered = useMemo(
     () => filterBranches(branches, { query, status }),
     [branches, query, status]
   );
+
+  const viewingBranch = branches.find((b) => b.id === viewingBranchId) ?? null;
 
 
   const kpis = useMemo(() => {
@@ -66,9 +83,8 @@ function BranchesList() {
     const inactiveStaff = users.filter((u) => u.status === "inactive").length;
     const activeBranches = branches.filter((b) => b.status === "active").length;
     const inactiveBranches = branches.filter((b) => b.status !== "active").length;
-    const states = [...new Set(branches.map((b) => b.state).filter(Boolean))];
-    const municipalities = [...new Set(branches.map((b) => b.municipality).filter(Boolean))];
-    const joinList = (list) => list.length > 3 ? `${list.slice(0, 3).join(", ")}...` : list.join(", ");
+    const conGerente = branches.filter((b) => b.managerId).length;
+    const sinGerente = branches.length - conGerente;
 
     return [
       {
@@ -82,14 +98,14 @@ function BranchesList() {
         description: `Activos: ${activeStaff}  ·  Inactivos: ${inactiveStaff}`,
       },
       {
-        id: "states", type: "cities", title: "Estados", color: "purple",
-        value: String(states.length),
-        description: states.length ? joinList(states) : "Sin estados registrados",
+        id: "withManager", type: "cities", title: "Con gerente asignado", color: "purple",
+        value: String(conGerente),
+        description: "De todas las sucursales",
       },
       {
-        id: "municipalities", type: "cities", title: "Municipios", color: "orange",
-        value: String(municipalities.length),
-        description: municipalities.length ? joinList(municipalities) : "Sin municipios registrados",
+        id: "withoutManager", type: "cities", title: "Sin gerente asignado", color: "orange",
+        value: String(sinGerente),
+        description: "Pendientes de asignar",
       },
     ];
   }, [branches, users]);
@@ -102,7 +118,17 @@ function BranchesList() {
       await update(modal.branch.id, payload);
     } else {
       await create(payload);
+      reloadUsers();
     }
+  };
+
+  const handleAssignManager = async (managerId) => {
+    if (managerModalBranch.managerId) {
+      await changeManager(managerModalBranch.id, managerId);
+    } else {
+      await assignManager(managerModalBranch.id, managerId);
+    }
+    reloadUsers();
   };
 
 
@@ -154,7 +180,7 @@ function BranchesList() {
             branches={filtered}
             canEdit={can("optica.branch.update")}
             canDeactivate={can("optica.branch.deactivate")}
-            onView={(branch) => setViewingBranch(branch)}
+            onView={(branch) => setViewingBranchId(branch.id)}
             onEdit={(branch) => setModal({ open: true, mode: "edit", branch })}
             onDeactivate={(branch) => setBranchToDeactivate(branch)}
             onActivate={(branch) => setBranchToActivate(branch)}
@@ -164,10 +190,14 @@ function BranchesList() {
 
         <SidePanel
           isOpen={Boolean(viewingBranch)}
-          onClose={() => setViewingBranch(null)}
+          onClose={() => setViewingBranchId(null)}
           title="Detalle de sucursal"
         >
-          <BranchDetailPanel branch={viewingBranch} />
+          <BranchDetailPanel
+            branch={viewingBranch}
+            canManage={can("optica.branch.update")}
+            onAssignManager={() => setManagerModalBranch(viewingBranch)}
+          />
         </SidePanel>
 
       </div>
@@ -179,6 +209,13 @@ function BranchesList() {
         branch={modal.branch}
         onClose={closeModal}
         onSubmit={handleSubmit}
+      />
+
+      <AssignManagerModal
+        open={Boolean(managerModalBranch)}
+        branch={managerModalBranch}
+        onClose={() => setManagerModalBranch(null)}
+        onSubmit={handleAssignManager}
       />
 
       <ConfirmDialog

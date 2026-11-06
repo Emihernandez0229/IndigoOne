@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Input from "../../../shared/components/Input";
 import SelectFilter from "../../../shared/filters/SelectFilter";
@@ -11,8 +11,9 @@ import SalesDetailTable from "../components/SalesDetailTable";
 import SalesLineItemsTable from "../components/SalesLineItemsTable";
 import {
   QUICK_RANGES, inDateRange, unidadesDeVenta,
-  buildDailyBuckets, groupByBranch, groupBySeller, groupByItem, itemTotalConIva,
+  buildDailyBuckets, fillDailyBuckets, groupByBranch, groupBySeller, groupByItem, itemTotalConIva,
 } from "../salesReportUtils";
+import { getVentasReporte } from "../services/reportesService";
 import { currency } from "../../../shared/utils/format";
 
 const ALL_DIMENSIONS = [
@@ -97,11 +98,72 @@ export default function VentasReportTab({
     [ventas, dateFrom, dateTo, branchId, sellerName, productCategory, serviceCategory, productosById, serviciosById]
   );
 
+  // "Ventas totales/Operaciones/Ticket promedio" vienen de
+  // GET /api/opticas/reportes/ventas (el back ya hace la suma) cuando no
+  // hay filtros extra que el back no soporta (empleado/categoría de
+  // producto o servicio no son parámetros de ese endpoint) - con alguno
+  // activo, se sigue calculando del lado del cliente como antes, para no
+  // mostrar un número que no corresponde al filtro elegido. "Unidades
+  // vendidas" no existe en el back todavía, siempre se calcula aquí.
+  const sinFiltrosExtra = !sellerName && !productCategory && !serviceCategory;
+  const [reporteVentas, setReporteVentas] = useState(null);
+
+  useEffect(() => {
+    if (!sinFiltrosExtra) return;
+    let active = true;
+    getVentasReporte({ branchId, dateFrom, dateTo })
+      .then((data) => { if (active) setReporteVentas(data); })
+      .catch(() => { if (active) setReporteVentas(null); });
+    return () => { active = false; };
+  }, [sinFiltrosExtra, branchId, dateFrom, dateTo]);
+
+  // El comparativo (gráfica) sí puede venir del back para cualquiera de las
+  // 4 dimensiones (agrupar=sucursal/empleado/producto/servicio en GET
+  // /ventas), porque solo necesita el total por grupo. La tabla de Detalle
+  // de abajo sigue calculándose aquí: esa necesita Operaciones Y Unidades
+  // juntas, y el back nunca regresa las dos para la misma dimensión
+  // (sucursal/empleado trae operaciones sin unidades; producto/servicio
+  // trae unidades sin operaciones) - conectarla dejaría una columna vacía.
+  // Se guarda junto con la dimensión a la que corresponde, para no mostrar
+  // por un instante el desglose de la dimensión anterior mientras llega el
+  // de la recién elegida.
+  const [comparisonBackend, setComparisonBackend] = useState(null);
+
+  useEffect(() => {
+    if (!sinFiltrosExtra) return;
+    let active = true;
+    getVentasReporte({ branchId, dateFrom, dateTo, agrupar: comparisonDim, limit: 50 })
+      .then((data) => { if (active) setComparisonBackend({ dim: comparisonDim, rows: data.desglose }); })
+      .catch(() => { if (active) setComparisonBackend(null); });
+    return () => { active = false; };
+  }, [sinFiltrosExtra, branchId, dateFrom, dateTo, comparisonDim]);
+
+  // "Ventas por día" también puede venir del back (agrupar=dia) - el único
+  // relleno que sigue haciendo el front es poner $0 en los días sin venta,
+  // porque el back solo manda los días que sí tuvieron movimiento. Con
+  // "Anual" ya no es una opción (ver QUICK_RANGES), el rango más largo
+  // posible es de 90 días, dentro del tope de 100 resultados del endpoint.
+  const [dailyBackend, setDailyBackend] = useState(null);
+
+  useEffect(() => {
+    if (!sinFiltrosExtra) return;
+    let active = true;
+    getVentasReporte({ branchId, dateFrom, dateTo, agrupar: "dia", limit: 100 })
+      .then((data) => { if (active) setDailyBackend({ from: dateFrom, to: dateTo, rows: data.desglose }); })
+      .catch(() => { if (active) setDailyBackend(null); });
+    return () => { active = false; };
+  }, [sinFiltrosExtra, branchId, dateFrom, dateTo]);
+
   const kpis = useMemo(() => {
-    const totalVentas = scopedVentas.reduce((sum, v) => sum + v.total, 0);
-    const operaciones = scopedVentas.length;
-    const ticketPromedio = operaciones > 0 ? totalVentas / operaciones : 0;
+    const totalCliente = scopedVentas.reduce((sum, v) => sum + v.total, 0);
+    const operacionesCliente = scopedVentas.length;
+    const ticketCliente = operacionesCliente > 0 ? totalCliente / operacionesCliente : 0;
     const unidadesVendidas = scopedVentas.reduce((sum, v) => sum + unidadesDeVenta(v), 0);
+
+    const usarBack = sinFiltrosExtra && reporteVentas;
+    const totalVentas = usarBack ? reporteVentas.total : totalCliente;
+    const operaciones = usarBack ? reporteVentas.operaciones : operacionesCliente;
+    const ticketPromedio = usarBack ? reporteVentas.ticketPromedio : ticketCliente;
 
     return [
       { id: "total", type: "sales", title: "Ventas totales", color: "blue", value: currency(totalVentas), description: "En el período" },
@@ -109,19 +171,22 @@ export default function VentasReportTab({
       { id: "avg", type: "revenue", title: "Ticket promedio", color: "green", value: currency(ticketPromedio), description: "Por operación" },
       { id: "units", type: "products", title: "Unidades vendidas", color: "orange", value: String(unidadesVendidas), description: "Solo productos" },
     ];
-  }, [scopedVentas]);
+  }, [scopedVentas, sinFiltrosExtra, reporteVentas]);
 
-  const dailyBuckets = useMemo(
-    () => buildDailyBuckets(scopedVentas, dateFrom, dateTo),
-    [scopedVentas, dateFrom, dateTo]
-  );
+  const dailyBuckets = useMemo(() => {
+    if (sinFiltrosExtra && dailyBackend && dailyBackend.from === dateFrom && dailyBackend.to === dateTo) {
+      return fillDailyBuckets(dailyBackend.rows, dateFrom, dateTo);
+    }
+    return buildDailyBuckets(scopedVentas, dateFrom, dateTo);
+  }, [sinFiltrosExtra, dailyBackend, scopedVentas, dateFrom, dateTo]);
 
   const comparisonItems = useMemo(() => {
+    if (sinFiltrosExtra && comparisonBackend?.dim === comparisonDim) return comparisonBackend.rows;
     if (comparisonDim === "sucursal") return groupByBranch(scopedVentas, branchesById);
     if (comparisonDim === "empleado") return groupBySeller(scopedVentas);
     if (comparisonDim === "producto") return groupByItem(scopedVentas, "producto");
     return groupByItem(scopedVentas, "servicio");
-  }, [comparisonDim, scopedVentas, branchesById]);
+  }, [comparisonDim, scopedVentas, branchesById, sinFiltrosExtra, comparisonBackend]);
 
   // Con una sola sucursal, el desglose por sucursal no aporta: se reemplaza
   // por el desglose por producto.

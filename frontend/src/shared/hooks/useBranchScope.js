@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
  * el dueno puede elegir cualquiera de su negocio, gerente/empleado
  * siempre quedan fijos en la suya. Reemplaza el bloque de isOwner +
  * listBranches() + estado selectedBranch que se repetia en Pacientes,
- * Citas, Ventas, Laboratorio y Reportes.
+ * Citas, Ventas y Reportes.
  *
  *   const { isOwner, branches, selectedBranch, setSelectedBranch, loadingBranches } =
  *     useBranchScope({ listBranches, ownerRoles: [ROLES.OPTICA_DUENO] });

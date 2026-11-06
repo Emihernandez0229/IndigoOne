@@ -11,33 +11,22 @@ import { useFormValidation } from "../../../shared/hooks/useFormValidation";
 const NAME_MAX_LENGTH = 40;
 
 
-const EMPTY = {
-  name: "",
-  managerId: "",
-  manager: "",
-  managerMode: "existing",
-};
+const EMPTY = { name: "", managerId: "" };
 
 
 function crearFormDesdeSucursal(branch) {
-
-  if (!branch) {
-    return { ...EMPTY };
-  }
-
-  return {
-    ...EMPTY,
-    name: branch.name ?? "",
-    managerId: branch.managerId ?? "",
-    manager: branch.manager ?? "",
-  };
+  if (!branch) return { ...EMPTY };
+  return { ...EMPTY, name: branch.name ?? "" };
 }
 
 
 /**
- * Alta y edición de sucursal para el Dueño de óptica - mismo patrón que
- * BranchFormModal de Indigo: nombre, responsable (jefe de sucursal
- * existente o nuevo) y ubicación en cascada (país/estado/municipio).
+ * Alta y edición de sucursal para el Dueño de óptica. El back no soporta
+ * crear un jefe de sucursal nuevo al mismo tiempo que la sucursal
+ * (crearSucursalSchema es estricto) - solo asignar uno que ya exista o
+ * dejarla sin asignar (se asigna después desde "Asignar gerente"). Tampoco
+ * soporta cambiar el gerente por esta misma ruta al editar - por eso el
+ * selector de jefe de sucursal solo aparece al crear.
  * Dirección y teléfono no se capturan aquí - los agrega el Encargado desde
  * "Mi sucursal" (MyBranchEditModal), igual que en Indigo.
  */
@@ -55,7 +44,7 @@ export default function BranchFormModal({
   const [managers, setManagers] = useState([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
 
-  const isEdit = mode === "edit";
+  const isCreate = mode === "create";
 
   const titles = {
     create: "Nueva sucursal",
@@ -71,18 +60,15 @@ export default function BranchFormModal({
 
 
   useEffect(() => {
-
-    if (!open) return;
+    if (!open || !isCreate) return;
 
     let active = true;
 
     (async () => {
       try {
         setLoadingManagers(true);
-        const data = await listAvailableManagers(isEdit ? branch?.managerId : null);
-        if (active) {
-          setManagers(Array.isArray(data) ? data : []);
-        }
+        const data = await listAvailableManagers();
+        if (active) setManagers(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Error al cargar jefes de sucursal:", error);
         if (active) setManagers([]);
@@ -94,7 +80,7 @@ export default function BranchFormModal({
     return () => {
       active = false;
     };
-  }, [open, isEdit, branch?.managerId]);
+  }, [open, isCreate]);
 
 
   const set = (field, transform) => (event) => {
@@ -105,52 +91,19 @@ export default function BranchFormModal({
   };
 
 
-  const handleManagerChange = (event) => {
-    const value = event.target.value;
-    const selected = managers.find((manager) => manager.id === value);
-
-    setForm((prev) => ({
-      ...prev,
-      managerId: value,
-      manager: selected?.nombre ?? "",
-    }));
-    clearError("managerId");
-  };
-
-
-  const startNewManager = () => {
-    setForm((prev) => ({ ...prev, managerMode: "new", managerId: "", manager: "" }));
-    clearError("managerId");
-  };
-
-
-  const cancelNewManager = () => {
-    setForm((prev) => ({ ...prev, managerMode: "existing", manager: "" }));
-    clearError("managerId");
-  };
-
-
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     const name = String(form.name ?? "").trim();
-    const newManagerName = String(form.manager ?? "").trim();
 
     const isValid = validate([
       ["name", !name, "El nombre es obligatorio."],
-      ["managerId", form.managerMode === "new" ? !newManagerName : !form.managerId,
-        form.managerMode === "new" ? "Escribe el nombre del nuevo jefe de sucursal." : "Selecciona un jefe de sucursal disponible."],
     ]);
     if (!isValid) return;
 
     try {
       setSaving(true);
-      await onSubmit({
-        name,
-        managerId: form.managerId,
-        manager: form.managerMode === "new" ? newManagerName : form.manager,
-        managerMode: form.managerMode,
-      });
+      await onSubmit({ name, managerId: isCreate ? form.managerId : undefined });
       onClose();
     } catch {
       setErrors((prev) => ({ ...prev, submit: "No se pudo guardar la sucursal. Intenta de nuevo." }));
@@ -172,61 +125,31 @@ export default function BranchFormModal({
           error={errors.name}
         />
 
-        <div className="w-full">
-          <label htmlFor="branch-manager" className="mb-2 block text-sm font-medium text-text-primary">
-            Responsable (Jefe de Sucursal)
-          </label>
+        {isCreate && (
+          <div className="w-full">
+            <label htmlFor="branch-manager" className="mb-2 block text-sm font-medium text-text-primary">
+              Responsable (Jefe de Sucursal)
+            </label>
 
-          {form.managerMode === "new" ? (
-            <>
-              <Input
-                id="branch-manager"
-                placeholder="Nombre del nuevo jefe de sucursal"
-                value={form.manager ?? ""}
-                onChange={set("manager", (v) => onlyLetters(v, NAME_MAX_LENGTH))}
-                error={errors.managerId}
-              />
-              <button
-                type="button"
-                onClick={cancelNewManager}
-                className="mt-1.5 text-xs font-medium text-indigo-primary hover:underline"
-              >
-                Elegir un jefe de sucursal existente
-              </button>
-            </>
-          ) : (
-            <>
-              <Select
-                id="branch-manager"
-                value={form.managerId ?? ""}
-                onChange={handleManagerChange}
-                disabled={loadingManagers}
-              >
-                <option value="">
-                  {loadingManagers ? "Cargando..." : "Selecciona un jefe de sucursal..."}
-                </option>
-                {managers.map((manager) => (
-                  <option key={manager.id} value={manager.id}>{manager.nombre}</option>
-                ))}
-              </Select>
+            <Select
+              id="branch-manager"
+              value={form.managerId ?? ""}
+              onChange={set("managerId")}
+              disabled={loadingManagers}
+            >
+              <option value="">{loadingManagers ? "Cargando..." : "Sin asignar (se asigna después)"}</option>
+              {managers.map((manager) => (
+                <option key={manager.id} value={manager.id}>{manager.nombre}</option>
+              ))}
+            </Select>
 
-              {errors.managerId && <p className="mt-1.5 text-sm text-error">{errors.managerId}</p>}
-
-              {!loadingManagers && (
-                <div className="mt-2">
-                  {managers.length === 0 && (
-                    <p className="mb-2 text-xs text-text-secondary">
-                      No hay jefes de sucursal disponibles para asignar.
-                    </p>
-                  )}
-                  <Button type="button" variant="outline" className="py-2 text-sm" onClick={startNewManager}>
-                    + Nuevo jefe de sucursal
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+            {!loadingManagers && managers.length === 0 && (
+              <p className="mt-1.5 text-xs text-text-secondary">
+                No hay jefes de sucursal disponibles - puedes asignar uno después desde el detalle de la sucursal.
+              </p>
+            )}
+          </div>
+        )}
 
         {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
 
@@ -238,4 +161,3 @@ export default function BranchFormModal({
     </Modal>
   );
 }
-

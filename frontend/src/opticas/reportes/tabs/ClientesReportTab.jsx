@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Input from "../../../shared/components/Input";
 import SelectFilter from "../../../shared/filters/SelectFilter";
@@ -8,6 +8,7 @@ import DataTable from "../../../shared/components/DataTable";
 
 import SalesComparisonList from "../components/SalesComparisonList";
 import { QUICK_RANGES, inDateRange, groupByCount } from "../salesReportUtils";
+import { getClientesReporte } from "../services/reportesService";
 
 const count = (value) => String(value ?? 0);
 
@@ -76,19 +77,36 @@ export default function ClientesReportTab({
     [patientsScoped, dateFrom, dateTo]
   );
 
+  // Nuevos/Recurrentes/Atendidos vienen de GET /api/opticas/reportes/
+  // clientes (este tab no tiene filtros extra que el back no soporte, asi
+  // que siempre se puede usar). "Clientes con compra" no existe en el back
+  // todavia, se sigue calculando aqui (los datos ya estan cargados para la
+  // tabla de actividad de abajo).
+  const [reporteClientes, setReporteClientes] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    getClientesReporte({ branchId, dateFrom, dateTo })
+      .then((data) => { if (active) setReporteClientes(data); })
+      .catch(() => { if (active) setReporteClientes(null); });
+    return () => { active = false; };
+  }, [branchId, dateFrom, dateTo]);
+
   const kpis = useMemo(() => {
     const clientesConCompra = purchasesByPatient.size;
-    const recurrentes = [...purchasesByPatient.values()].filter((e) => e.count >= 2).length;
+    const recurrentesCliente = [...purchasesByPatient.values()].filter((e) => e.count >= 2).length;
+    const recurrentes = reporteClientes?.recurrentes ?? recurrentesCliente;
     const pctRecurrentes = clientesConCompra ? Math.round((recurrentes / clientesConCompra) * 100) : 0;
-    const pacientesAtendidos = attendedPatientIds.size;
+    const nuevos = reporteClientes?.nuevos ?? nuevosPatients.length;
+    const pacientesAtendidos = reporteClientes?.atendidos ?? attendedPatientIds.size;
 
     return [
-      { id: "nuevos", type: "customers", title: "Nuevos registros", color: "blue", value: String(nuevosPatients.length), description: "En el período" },
+      { id: "nuevos", type: "customers", title: "Nuevos registros", color: "blue", value: String(nuevos), description: "En el período" },
       { id: "recurrentes", type: "patients", title: "Clientes recurrentes", color: "purple", value: String(recurrentes), description: `${pctRecurrentes}% de los que compraron` },
       { id: "atendidos", type: "confirmed", title: "Pacientes atendidos", color: "green", value: String(pacientesAtendidos), description: "Con cita atendida" },
       { id: "compra", type: "sales", title: "Clientes con compra", color: "orange", value: String(clientesConCompra), description: "En el período" },
     ];
-  }, [purchasesByPatient, attendedPatientIds, nuevosPatients]);
+  }, [purchasesByPatient, attendedPatientIds, nuevosPatients, reporteClientes]);
 
   const nuevosPorSucursal = useMemo(
     () => groupByCount(nuevosPatients, (p) => p.branchId, (p) => branchesById.get(p.branchId) ?? "Sin sucursal"),

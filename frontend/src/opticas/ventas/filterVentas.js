@@ -5,6 +5,7 @@ export function filterVentas(ventas = [], { query = "", status = "", date = "", 
     const matchesQuery =
       !term ||
       (venta.patientName ?? "").toLowerCase().includes(term) ||
+      (venta.sellerName ?? "").toLowerCase().includes(term) ||
       (venta.folio ?? "").toLowerCase().includes(term) ||
       venta.items.some((item) =>
         (item.code ?? "").toLowerCase().includes(term) ||

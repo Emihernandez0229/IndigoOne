@@ -16,8 +16,11 @@ function mapCita(raw) {
 }
 
 
+// "Todas las sucursales" se pide con todas=true (igual que Reportes) en vez
+// de mandar sucursalId vacío - el back (una vez que soporte este parámetro)
+// así sabe que es "trae todo", no "sucursalId inválido".
 export async function listCitas(branchId) {
-  const query = branchId ? `?sucursalId=${branchId}` : "";
+  const query = branchId ? `?sucursalId=${branchId}` : "?todas=true";
   const data = await httpClient.get(`/api/opticas/citas${query}`);
   return (data ?? []).map(mapCita);
 }

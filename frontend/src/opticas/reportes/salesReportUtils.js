@@ -1,9 +1,12 @@
+// Sin "Anual": el desglose por día de GET /ventas (agrupar=dia) tiene tope
+// de 100 resultados - un año con ventas en más de 100 días distintos se
+// recortaría. Se quitó la opción para no ofrecer un rango que el back no
+// puede cubrir completo.
 export const QUICK_RANGES = [
   { value: "today", label: "Hoy", days: 1 },
   { value: "7d", label: "7 días", days: 7 },
   { value: "30d", label: "30 días", days: 30 },
   { value: "90d", label: "90 días", days: 90 },
-  { value: "365d", label: "Anual", days: 365 },
 ];
 
 
@@ -44,6 +47,33 @@ export function buildDailyBuckets(ventas, from, to) {
     const day = (venta.createdAt ?? "").slice(0, 10);
     byDay.set(day, (byDay.get(day) ?? 0) + venta.total);
   });
+
+  const buckets = [];
+  const cursor = new Date(`${from}T00:00:00`);
+  const end = new Date(`${to}T00:00:00`);
+
+  while (cursor <= end) {
+    const day = toISODate(cursor);
+    buckets.push({
+      day,
+      label: cursor.toLocaleDateString("es-MX", { day: "2-digit", month: "short" }).replace(".", ""),
+      total: Math.round((byDay.get(day) ?? 0) * 100) / 100,
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return buckets;
+}
+
+
+// Igual que buildDailyBuckets, pero a partir del desglose por día que ya
+// regresa el back (GET /ventas?agrupar=dia) en vez de sumarlo aquí del lado
+// del cliente - el relleno de los días sin venta en $0 se sigue haciendo
+// aquí porque el back solo manda los días que sí tuvieron movimiento.
+export function fillDailyBuckets(rows, from, to) {
+  if (!from || !to) return [];
+
+  const byDay = new Map((rows ?? []).map((row) => [row.id, row.total]));
 
   const buckets = [];
   const cursor = new Date(`${from}T00:00:00`);

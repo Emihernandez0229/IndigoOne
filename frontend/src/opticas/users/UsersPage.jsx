@@ -20,6 +20,7 @@ import { ROLES } from "../../shared/security/roles";
 import useUsers from "./hooks/useUsers";
 import useBranches from "../branches/hooks/useBranches";
 import { filterUsers } from "./filterUsers";
+import { withBranchNames } from "./services/userService";
 import UserTable from "./components/UserTable";
 import UserDetailPanel from "./components/UserDetailPanel";
 import PersonnelFormModal from "./components/PersonnelFormModal";
@@ -50,7 +51,7 @@ export default function UsersPage() {
 function UsersList() {
 
   const { can } = usePermissions();
-  const { users: allUsers, loading: loadingUsers, error: errorUsers, create, update, deactivate, activate } = useUsers();
+  const { users: allUsers, loading: loadingUsers, error: errorUsers, createGerente, createEmpleado, update, deactivate, activate } = useUsers();
   const { branches, loading: loadingBranches, error: errorBranches } = useBranches();
 
   const [query, setQuery] = useState("");
@@ -62,10 +63,11 @@ function UsersList() {
   const [confirmAction, setConfirmAction] = useState(null);
 
   // El Personal nunca incluye al Dueño (no se administra a si mismo desde
-  // aqui) - mismo criterio que la "Personal" de Indigo.
+  // aqui) - mismo criterio que la "Personal" de Indigo. El back no manda
+  // el nombre de sucursal en /usuarios (solo el id) - se resuelve aquí.
   const personalUsers = useMemo(
-    () => allUsers.filter((user) => user.role !== ROLES.OPTICA_DUENO),
-    [allUsers]
+    () => withBranchNames(allUsers.filter((user) => user.role !== ROLES.OPTICA_DUENO), branches),
+    [allUsers, branches]
   );
 
   const viewingUser = personalUsers.find((user) => user.id === viewingUserId) ?? null;
@@ -106,9 +108,8 @@ function UsersList() {
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState />;
 
-  const handleCreate = async (payload) => {
-    await create(payload);
-  };
+  const handleCreate = (payload) =>
+    payload.role === ROLES.OPTICA_ENCARGADO ? createGerente(payload) : createEmpleado(payload);
 
   const handleEdit = async (payload) => {
     await update(editingUser.id, payload);
@@ -187,7 +188,6 @@ function UsersList() {
       <PersonnelFormModal
         open={createOpen}
         branches={branches}
-        existingUsers={allUsers}
         onClose={() => setCreateOpen(false)}
         onSubmit={handleCreate}
       />
@@ -196,8 +196,6 @@ function UsersList() {
         key={editingUser?.id ?? "none"}
         open={Boolean(editingUser)}
         user={editingUser}
-        branches={branches}
-        allowUsernameEdit={false}
         onClose={() => setEditingUser(null)}
         onSubmit={handleEdit}
       />
