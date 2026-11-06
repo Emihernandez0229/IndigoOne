@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
-import { Info, Building2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Info, Building2, Stethoscope } from "lucide-react";
 
 import StatusBadge from "../../../shared/components/StatusBadge";
 import TabBar from "../../../shared/components/TabBar";
 import SectionTitle from "../../../shared/components/SectionTitle";
 import Field from "../../../shared/components/DetailField";
+import Button from "../../../shared/components/Button";
+import Can from "../../../shared/security/Can";
 import { listVentas } from "../../ventas/services/ventaService";
+import useConsultas from "../../consultas/hooks/useConsultas";
 
 
 const TABS = [
   { value: "info", label: "Información general" },
   { value: "history", label: "Historial" },
+  { value: "consultas", label: "Consultas" },
 ];
 
 
@@ -35,9 +40,15 @@ function formatAmount(amount) {
  */
 export default function PatientDetailPanel({ patient }) {
 
+  const navigate = useNavigate();
   const [tab, setTab] = useState("info");
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const { consultas, loading: loadingConsultas } = useConsultas({
+    branchId: patient?.branchId,
+    patientId: patient?.id,
+  });
 
   useEffect(() => {
     if (!patient?.branchId) {
@@ -74,14 +85,26 @@ export default function PatientDetailPanel({ patient }) {
   return (
     <div className="space-y-6">
 
-      <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-light text-lg font-bold text-indigo-primary">
-          {(patient.name || "?").charAt(0).toUpperCase()}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-light text-lg font-bold text-indigo-primary">
+            {(patient.name || "?").charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-text-primary">{patient.name}</h2>
+            <StatusBadge status={patient.active ? "active" : "inactive"} label={patient.active ? "Activo" : "Inactivo"} />
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-bold text-text-primary">{patient.name}</h2>
-          <StatusBadge status={patient.active ? "active" : "inactive"} label={patient.active ? "Activo" : "Inactivo"} />
-        </div>
+
+        <Can permission="optica.consulta.manage">
+          <Button
+            className="inline-flex shrink-0 items-center gap-1.5 py-2 text-sm"
+            onClick={() => navigate(`/opticas/pacientes/${patient.id}/consultas/nueva`)}
+          >
+            <Stethoscope className="h-4 w-4" />
+            Nueva consulta
+          </Button>
+        </Can>
       </div>
 
       <TabBar tabs={TABS} active={tab} onChange={setTab} />
@@ -136,6 +159,36 @@ export default function PatientDetailPanel({ patient }) {
                 <div key={venta.id} className="flex items-center justify-between rounded-xl bg-background px-4 py-3">
                   <span className="text-sm text-text-secondary">{formatDate(venta.createdAt)}</span>
                   <span className="font-semibold text-text-primary">{formatAmount(venta.total)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "consultas" && (
+        <div className="rounded-2xl border border-gray-200 bg-surface p-5">
+          {loadingConsultas ? (
+            <p className="text-sm text-text-secondary">Cargando consultas...</p>
+          ) : consultas.length === 0 ? (
+            <p className="text-sm text-text-secondary">Sin consultas registradas.</p>
+          ) : (
+            <div className="space-y-3">
+              {consultas.map((consulta) => (
+                <div key={consulta.id} className="rounded-xl bg-background px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+                      <Stethoscope className="h-4 w-4 text-indigo-primary" />
+                      {formatDate(consulta.examDate, { day: "2-digit", month: "short", year: "numeric" })}
+                    </span>
+                  </div>
+                  <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-text-secondary sm:grid-cols-4">
+                    <div><dt className="font-medium text-text-primary">OD Esfera</dt><dd>{consulta.od.esfera || "—"}</dd></div>
+                    <div><dt className="font-medium text-text-primary">OD Cilindro</dt><dd>{consulta.od.cilindro || "—"}</dd></div>
+                    <div><dt className="font-medium text-text-primary">OI Esfera</dt><dd>{consulta.oi.esfera || "—"}</dd></div>
+                    <div><dt className="font-medium text-text-primary">OI Cilindro</dt><dd>{consulta.oi.cilindro || "—"}</dd></div>
+                  </dl>
+                  {consulta.notes && <p className="mt-2 text-sm text-text-secondary">{consulta.notes}</p>}
                 </div>
               ))}
             </div>

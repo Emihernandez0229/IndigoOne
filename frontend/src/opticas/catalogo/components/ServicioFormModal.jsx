@@ -4,7 +4,7 @@ import Input from "../../../shared/components/Input";
 import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
 import { onlyLetters, onlyDigits, alphanumericDash } from "../../../shared/utils/textInput";
-import { SERVICE_CATEGORIES } from "../constants";
+import { useCategoriasServicios } from "../hooks/useCategorias";
 
 
 const CODE_MAX = 10;
@@ -12,7 +12,7 @@ const NAME_MAX = 40;
 const DESCRIPTION_MAX = 100;
 
 const EMPTY = {
-  code: "", name: "", category: "", description: "", price: "",
+  code: "", name: "", categoryId: "", description: "", price: "",
 };
 
 function crearForm(servicio) {
@@ -21,7 +21,7 @@ function crearForm(servicio) {
     ...EMPTY,
     code: servicio.code ?? "",
     name: servicio.name ?? "",
-    category: servicio.category ?? "",
+    categoryId: servicio.categoryId != null ? String(servicio.categoryId) : "",
     description: servicio.description ?? "",
     price: servicio.price ?? "",
   };
@@ -33,6 +33,7 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
   const [form, setForm] = useState(() => crearForm(servicio));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const { categorias: categoryOptions } = useCategoriasServicios();
 
   const titles = { create: "Nuevo servicio", edit: "Editar servicio" };
 
@@ -58,7 +59,7 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
 
     if (!code) nextErrors.code = "El SKU es obligatorio.";
     if (!name) nextErrors.name = "El nombre es obligatorio.";
-    if (!form.category) nextErrors.category = "Selecciona una categoría.";
+    if (!form.categoryId) nextErrors.categoryId = "Selecciona una categoría.";
     if (form.price === "" || Number(form.price) < 0) nextErrors.price = "Indica el precio.";
 
     setErrors(nextErrors);
@@ -69,7 +70,7 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
       await onSubmit({
         code,
         name,
-        category: form.category,
+        categoryId: form.categoryId,
         description: String(form.description ?? "").trim(),
         price: Number(form.price),
       });
@@ -107,11 +108,11 @@ export default function ServicioFormModal({ open, mode = "create", servicio = nu
 
         <div className="w-full">
           <label htmlFor="serv-category" className="mb-2 block text-sm font-medium text-text-primary">Categoría</label>
-          <Select id="serv-category" value={form.category} onChange={set("category")}>
+          <Select id="serv-category" value={form.categoryId} onChange={set("categoryId")}>
             <option value="">Selecciona...</option>
-            {SERVICE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            {categoryOptions.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </Select>
-          {errors.category && <p className="mt-1.5 text-sm text-error">{errors.category}</p>}
+          {errors.categoryId && <p className="mt-1.5 text-sm text-error">{errors.categoryId}</p>}
         </div>
 
         <Input label="Precio" value={form.price} onChange={set("price", (v) => onlyDigits(v))} error={errors.price} />

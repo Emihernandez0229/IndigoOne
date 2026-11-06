@@ -6,7 +6,6 @@ import {
   Users,
   UserCog,
   Building2,
-  FlaskConical,
   Glasses,
   BarChart3,
   PackageSearch,
@@ -66,13 +65,6 @@ export const opticaNavigation = [
     path: "/opticas/ventas",
     icon: ShoppingCart,
     permission: "optica.sales.view",
-  },
-
-  {
-    label: "Laboratorio",
-    path: "/opticas/laboratorio",
-    icon: FlaskConical,
-    permission: "optica.lab.view",
   },
 
   {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-import { ArrowLeft, X, CircleCheck, Wrench, FlaskConical } from "lucide-react";
+import { ArrowLeft, X, CircleCheck, Wrench } from "lucide-react";
 
 import PageContainer from "../../shared/layouts/PageContainer";
 import Button from "../../shared/components/Button";
@@ -11,20 +11,16 @@ import { useAuth } from "../../shared/context/AuthContext";
 import { ROLES } from "../../shared/security/roles";
 
 import { listBranches } from "../branches/services/branchService";
-import { textWithSpecialChars } from "../../shared/utils/textInput";
 import usePatients from "../pacientes/hooks/usePatients";
 import useProductos from "../catalogo/hooks/useProductos";
 import useServicios from "../catalogo/hooks/useServicios";
-import useLaboratorio from "../laboratorio/hooks/useLaboratorio";
-import { EMPTY_RECETA } from "../laboratorio/constants";
 import useVentas from "./hooks/useVentas";
 import VentaStepper from "./components/VentaStepper";
-import GraduacionFields from "./components/GraduacionFields";
 import VentaPageDecoration from "./components/VentaPageDecoration";
 import { downloadVentaReceipt } from "./pdfReceipt";
 import {
   IVA_RATE, WORK_TYPES, WORK_TYPE_INFO, INTERNAL_WORK_SUBTYPES,
-  LAB_WORK_SUBTYPES, PRIORITIES, PAYMENT_METHODS,
+  PRIORITIES, PAYMENT_METHODS,
 } from "./constants";
 import { currency as formatCurrency } from "../../shared/utils/format";
 
@@ -32,13 +28,13 @@ import { currency as formatCurrency } from "../../shared/utils/format";
 // ============================================================================
 // NuevaVentaPage - wizard de 3 pasos (Paciente+carrito / Tipo de trabajo /
 // Pago) para registrar una venta. Todo el estado y los 3 pasos viven en este
-// mismo componente - es el archivo mas largo de Opticas (~940 lineas) y la
+// mismo componente - es el archivo mas largo de Opticas (~900 lineas) y la
 // auditoria de arquitectura (04 nov 2026) lo señalo como candidato a
 // partirse en 3 componentes (uno por paso), pero se decidio posponerlo: no
 // hay pruebas automatizadas para este flujo, asi que cualquier refactor
-// necesita probarse a mano, paso por paso, con los 3 tipos de trabajo
-// (venta_directa / trabajo_interno / orden_laboratorio) y los 2 modos de
-// pago (full / partial) antes de darse por bueno.
+// necesita probarse a mano, paso por paso, con los 2 tipos de trabajo
+// (venta_directa / trabajo_interno) y los 2 modos de pago (full / partial)
+// antes de darse por bueno.
 //
 // Mapa rapido para quien vea esto primero:
 //   - Componentes chicos de UI (Card, WorkTypeCard, SubtypeRadioList): solo
@@ -48,12 +44,8 @@ import { currency as formatCurrency } from "../../shared/utils/format";
 //     trabajo, pago) - ver mas abajo en el cuerpo del componente.
 //   - JSX: un wizard de 3 pasos, cada uno marcado con un comentario
 //     "===== PASO N ===== " mas abajo en el return.
-//   - handleConfirmVenta: hace 3 cosas encadenadas (crear venta, si aplica
-//     crear orden de laboratorio, generar/descargar el recibo en PDF) - ver
-//     el comentario justo arriba de esa funcion.
+//   - handleConfirmVenta: crea la venta y genera/descarga el recibo en PDF.
 // ============================================================================
-
-const INDICACIONES_MAX = 300;
 
 // Busqueda de paciente: por nombre (letras, hasta 50) o telefono (solo
 // digitos, hasta 10) - se detecta segun lo que ya se escribio.
@@ -79,7 +71,6 @@ const formatFullDate = (date) => {
 const WORK_TYPE_ICONS = {
   venta_directa: CircleCheck,
   trabajo_interno: Wrench,
-  orden_laboratorio: FlaskConical,
 };
 
 
@@ -98,23 +89,18 @@ function Card({ title, children }) {
 function WorkTypeCard({ value, selected, onSelect }) {
   const info = WORK_TYPE_INFO[value];
   const Icon = WORK_TYPE_ICONS[value];
-  const isLab = value === "orden_laboratorio";
 
   return (
     <button
       type="button"
       onClick={() => onSelect(value)}
       className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left transition ${
-        selected
-          ? isLab
-            ? "border-purple-400 bg-purple-50"
-            : "border-indigo-primary bg-indigo-light/40"
-          : "border-gray-200 hover:border-indigo-primary"
+        selected ? "border-indigo-primary bg-indigo-light/40" : "border-gray-200 hover:border-indigo-primary"
       }`}
     >
       <span
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-          selected ? (isLab ? "bg-purple-600 text-white" : "bg-indigo-primary text-white") : "bg-background text-text-secondary"
+          selected ? "bg-indigo-primary text-white" : "bg-background text-text-secondary"
         }`}
       >
         <Icon className="h-4 w-4" />
@@ -123,7 +109,7 @@ function WorkTypeCard({ value, selected, onSelect }) {
         <p className="font-semibold text-text-primary">{info.label}</p>
         <p className="text-sm text-text-secondary">{info.description}</p>
       </div>
-      {selected && <CircleCheck className={`h-5 w-5 shrink-0 ${isLab ? "text-purple-600" : "text-indigo-primary"}`} />}
+      {selected && <CircleCheck className="h-5 w-5 shrink-0 text-indigo-primary" />}
     </button>
   );
 }
@@ -174,6 +160,11 @@ export default function NuevaVentaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incomingBranchId]);
 
+  // "Finalizar y registrar venta" desde Nueva consulta: llega con el
+  // paciente ya elegido, solo falta encontrarlo en la lista una vez que
+  // cargue (no hay forma de preseleccionarlo sin el objeto completo).
+  const incomingPatientId = location.state?.patientId;
+
   const branchName = branches.find((b) => b.id === selectedBranch)?.name ?? "";
 
   // "Sin sucursal" (selectedBranch === "") no bloquea la busqueda: solo
@@ -182,13 +173,19 @@ export default function NuevaVentaPage() {
   const { productos } = useProductos();
   const { servicios } = useServicios();
   const { create } = useVentas(selectedBranch);
-  const { create: createLabOrder } = useLaboratorio(selectedBranch);
 
   const [step, setStep] = useState(1);
 
   // Paciente
   const [patientQuery, setPatientQuery] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
+
+  useEffect(() => {
+    if (!incomingPatientId) return;
+    const match = patients.find((p) => p.id === incomingPatientId);
+    if (match) setSelectedPatient(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingPatientId, patients]);
 
   // Catalogo: productos y servicios juntos, con existencia por sucursal
   // solo para productos (los servicios no tienen stock). Sin sucursal
@@ -299,21 +296,15 @@ export default function NuevaVentaPage() {
   const total = subtotal + iva;
 
   // Trabajo (paso 2) - "Venta directa" no necesita columna de detalle, se
-  // queda centrado; trabajo interno/orden de laboratorio sí la usan y
-  // pasan al layout de 2 columnas.
+  // queda centrado; "trabajo interno" sí la usa y pasa al layout de 2
+  // columnas.
   const [workType, setWorkType] = useState("venta_directa");
   const [workSubtype, setWorkSubtype] = useState("");
   const [priority, setPriority] = useState("normal");
-  const [indicaciones, setIndicaciones] = useState("");
-  const [receta, setReceta] = useState(EMPTY_RECETA);
 
   const handleWorkTypeChange = (value) => {
     setWorkType(value);
     setWorkSubtype("");
-  };
-
-  const handleRecetaChange = (field, value) => {
-    setReceta((prev) => ({ ...prev, [field]: value }));
   };
 
   // Pago (paso 3) - solo efectivo, total o parcial.
@@ -337,18 +328,13 @@ export default function NuevaVentaPage() {
   const step2MissingReason =
     workType === "trabajo_interno" && !workSubtype
       ? "Selecciona el tipo de trabajo interno"
-      : workType === "orden_laboratorio" && !workSubtype
-      ? "Selecciona el tipo de trabajo solicitado al laboratorio"
       : null;
 
 
-  // Submit del paso 3 - encadena 3 cosas: 1) crea la venta, 2) si el tipo
-  // de trabajo es "orden_laboratorio" crea tambien la orden en el modulo de
-  // laboratorio (enlazada por created.id), 3) genera y descarga el PDF del
-  // recibo. Si cualquiera de las 3 falla, ninguna navegacion ocurre y se
-  // muestra submitError - pero si la venta (1) ya se creo y falla la orden
-  // de laboratorio (2) o el PDF (3), la venta queda creada igual (no hay
-  // rollback del lado del front).
+  // Submit del paso 3: crea la venta y genera/descarga el PDF del recibo.
+  // Si falla cualquiera de las 2, no hay navegacion y se muestra
+  // submitError - pero si la venta (1) ya se creo y falla el PDF (2), la
+  // venta queda creada igual (no hay rollback del lado del front).
   const handleConfirmVenta = async () => {
     setSubmitError("");
     try {
@@ -369,19 +355,6 @@ export default function NuevaVentaPage() {
         saldoPendiente: paymentMode === "full" ? 0 : saldoPendiente,
       });
 
-      if (workType === "orden_laboratorio") {
-        await createLabOrder({
-          branchId: selectedBranch,
-          patientId: selectedPatient.id,
-          saleId: created.id,
-          createdBy: currentUser?.id,
-          workSubtype,
-          items: cart,
-          receta,
-          notes: indicaciones,
-        });
-      }
-
       downloadVentaReceipt({
         folio: created.folio,
         date: formatFullDate(new Date()),
@@ -392,8 +365,6 @@ export default function NuevaVentaPage() {
         workSubtypeLabel:
           workType === "trabajo_interno"
             ? INTERNAL_WORK_SUBTYPES.find((o) => o.value === workSubtype)?.label
-            : workType === "orden_laboratorio"
-            ? LAB_WORK_SUBTYPES.find((o) => o.value === workSubtype)?.label
             : "",
         items: cart,
         subtotal,
@@ -404,7 +375,7 @@ export default function NuevaVentaPage() {
         saldoPendiente: paymentMode === "full" ? 0 : saldoPendiente,
       });
 
-      navigate(workType === "orden_laboratorio" ? "/opticas/laboratorio" : "/opticas/ventas");
+      navigate("/opticas/ventas");
     } catch {
       setSubmitError("No se pudo registrar la venta. Intenta de nuevo.");
     } finally {
@@ -702,7 +673,7 @@ export default function NuevaVentaPage() {
           </div>
         )}
 
-        {/* ===== PASO 2b: tipo de trabajo, variante "trabajo_interno"/"orden_laboratorio" (con columna de detalle: subtipo, receta, indicaciones) ===== */}
+        {/* ===== PASO 2b: tipo de trabajo, variante "trabajo_interno" (con columna de detalle: subtipo) ===== */}
         {step === 2 && workType !== "venta_directa" && (
           <div className="grid gap-6 lg:grid-cols-3">
 
@@ -755,43 +726,6 @@ export default function NuevaVentaPage() {
               </Card>
             )}
 
-            {workType === "orden_laboratorio" && (
-              <>
-                <div className="rounded-2xl border border-purple-200 bg-purple-50/50 p-5">
-                  <div className="mb-1 flex items-center gap-2">
-                    <FlaskConical className="h-4 w-4 text-purple-600" />
-                    <p className="font-semibold text-text-primary">Orden de laboratorio</p>
-                  </div>
-                  <p className="mb-4 text-sm text-text-secondary">
-                    Solicitud para Índigo · no es un producto vendido por sí misma.
-                  </p>
-
-                  <p className="mb-2 text-sm font-medium text-text-primary">Tipo de trabajo solicitado</p>
-                  <SubtypeRadioList options={LAB_WORK_SUBTYPES} value={workSubtype} onChange={setWorkSubtype} />
-
-                  <div className="mt-4">
-                    <label htmlFor="indicaciones" className="mb-2 block text-sm font-medium text-text-primary">
-                      Indicaciones para laboratorio
-                    </label>
-                    <textarea
-                      id="indicaciones"
-                      value={indicaciones}
-                      onChange={(e) => setIndicaciones(textWithSpecialChars(e.target.value, INDICACIONES_MAX))}
-                      rows={3}
-                      maxLength={INDICACIONES_MAX}
-                      placeholder="Graduación, material, tratamiento, medidas y otras indicaciones..."
-                      className="w-full resize-none rounded-xl border border-gray-200 bg-surface px-4 py-3 text-text-primary outline-none transition focus:border-indigo-primary focus:ring-2 focus:ring-indigo-light"
-                    />
-                    <p className="mt-1 text-right text-xs text-text-secondary">{indicaciones.length}/{INDICACIONES_MAX}</p>
-                  </div>
-                </div>
-
-                <Card>
-                  <GraduacionFields receta={receta} onChange={handleRecetaChange} />
-                </Card>
-              </>
-            )}
-
           </div>
 
           <div className="flex items-center justify-end gap-2 lg:col-span-3">
@@ -836,7 +770,7 @@ export default function NuevaVentaPage() {
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">Detalle</dt>
                     <dd className="mt-1 text-sm font-bold text-text-primary">
-                      {(workType === "trabajo_interno" ? INTERNAL_WORK_SUBTYPES : LAB_WORK_SUBTYPES).find((o) => o.value === workSubtype)?.label}
+                      {INTERNAL_WORK_SUBTYPES.find((o) => o.value === workSubtype)?.label}
                     </dd>
                   </div>
                 )}
@@ -845,12 +779,6 @@ export default function NuevaVentaPage() {
                   <dd className="mt-1 text-sm font-bold text-text-primary">{PRIORITIES.find((p) => p.value === priority)?.label}</dd>
                 </div>
               </dl>
-              {indicaciones && (
-                <div className="mt-4 border-t border-gray-100 pt-4">
-                  <p className="mb-1 text-sm font-medium text-text-secondary">Indicaciones para laboratorio</p>
-                  <p className="text-sm text-text-primary">{indicaciones}</p>
-                </div>
-              )}
             </Card>
 
             <Card title="Artículo">

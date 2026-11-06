@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ShoppingCart, Package } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 
 import DashboardLayout from "../../../shared/dashboard/DashboardLayout";
 import DashboardGrid from "../../../shared/dashboard/DashboardGrid";
@@ -21,8 +21,6 @@ import useCitas from "../../citas/hooks/useCitas";
 import usePatients from "../../pacientes/hooks/usePatients";
 import useProductos from "../../catalogo/hooks/useProductos";
 import useUsers from "../../users/hooks/useUsers";
-import useMovimientos from "../../inventory/hooks/useMovimientos";
-import { MOVIMIENTO_META } from "../../inventory/constants";
 
 import TodayAgendaCalendar from "../components/TodayAgendaCalendar";
 import RecentActivityFeed from "../components/RecentActivityFeed";
@@ -59,7 +57,6 @@ export default function BranchManagerOpticas() {
   const { patients, loading: loadingPatients } = usePatients(selectedBranch);
   const { productos, loading: loadingProductos } = useProductos();
   const { users, loading: loadingUsers } = useUsers();
-  const { movimientos, loading: loadingMovimientos } = useMovimientos();
 
   const [period, setPeriod] = useState("week");
 
@@ -68,11 +65,8 @@ export default function BranchManagerOpticas() {
     [branches, selectedBranch]
   );
   const patientsById = useMemo(() => new Map(patients.map((p) => [p.id, p.name])), [patients]);
-  const usersById = useMemo(() => new Map(users.map((u) => [u.id, u.name])), [users]);
-  const productosById = useMemo(() => new Map(productos.map((p) => [p.id, p])), [productos]);
 
   const branchStaff = useMemo(() => users.filter((u) => u.branchId === selectedBranch), [users, selectedBranch]);
-  const branchMovimientos = useMemo(() => movimientos.filter((m) => m.branchId === selectedBranch), [movimientos, selectedBranch]);
 
   const { from, to } = useMemo(() => quickRangeDates(PERIOD_DAYS[period] ?? 1), [period]);
 
@@ -164,28 +158,20 @@ export default function BranchManagerOpticas() {
       });
     });
 
-    // Los movimientos tipo "ventas" son la contraparte de inventario de la
-    // misma venta de arriba - se omiten para no duplicar el evento.
-    branchMovimientos.filter((m) => m.tipo !== "ventas").forEach((m) => {
-      const meta = MOVIMIENTO_META[m.tipo] ?? MOVIMIENTO_META.entrada;
-      items.push({
-        id: `mov-${m.id}`,
-        icon: Package, iconBg: meta.iconBg, iconColor: meta.iconColor,
-        actor: usersById.get(m.createdBy) ?? "Sistema",
-        description: `registró ${meta.phrase} de ${m.cantidad} ${productosById.get(m.productId)?.name ?? "producto"}`,
-        timestamp: m.createdAt,
-      });
-    });
+    // Los movimientos de stock ya no entran a este feed: el back solo
+    // expone movimientos por producto individual, no una lista de "todos
+    // los movimientos recientes de la sucursal" (ver nota igual en
+    // OwnerDashboardOpticas.jsx).
 
     return items
       .filter((i) => i.timestamp)
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(0, 6);
-  }, [ventas, branchMovimientos, usersById, productosById]);
+  }, [ventas]);
 
 
   const loading = loadingBranches || loadingVentas || loadingCitas ||
-    loadingPatients || loadingProductos || loadingUsers || loadingMovimientos;
+    loadingPatients || loadingProductos || loadingUsers;
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState />;

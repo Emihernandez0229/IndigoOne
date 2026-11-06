@@ -11,6 +11,7 @@ import { useAuth } from "../../../shared/context/AuthContext";
 import useUsers from "../hooks/useUsers";
 import useBranches from "../../branches/hooks/useBranches";
 import { MANAGER_PERSONAL_ROLES } from "../constants";
+import { withBranchNames } from "../services/userService";
 import UserDetailPanel from "../components/UserDetailPanel";
 import PersonnelFormModal from "../components/PersonnelFormModal";
 import EditPersonnelModal from "../components/EditPersonnelModal";
@@ -28,7 +29,7 @@ import PersonalCard from "./components/PersonalCard";
 export default function ManagerPersonalPage() {
 
   const { user: currentUser } = useAuth();
-  const { users, loading: loadingUsers, error: errorUsers, create, update, deactivate, activate } = useUsers();
+  const { users, loading: loadingUsers, error: errorUsers, createEmpleado, update, deactivate, activate } = useUsers();
   const { branches, loading: loadingBranches, error: errorBranches } = useBranches();
 
   const [viewingUserId, setViewingUserId] = useState(null);
@@ -42,8 +43,8 @@ export default function ManagerPersonalPage() {
   );
 
   const team = useMemo(
-    () => users.filter((u) => u.branchId === myBranch?.id),
-    [users, myBranch]
+    () => withBranchNames(users.filter((u) => u.branchId === myBranch?.id), branches),
+    [users, myBranch, branches]
   );
 
   const viewingUser = team.find((u) => u.id === viewingUserId) ?? null;
@@ -54,9 +55,7 @@ export default function ManagerPersonalPage() {
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState />;
 
-  const handleCreate = async (payload) => {
-    await create(payload);
-  };
+  const handleCreate = (payload) => createEmpleado(payload);
 
   const handleEdit = async (payload) => {
     await update(editingUser.id, payload);
@@ -124,7 +123,6 @@ export default function ManagerPersonalPage() {
       <PersonnelFormModal
         open={createOpen}
         branch={myBranch}
-        existingUsers={users}
         roleOptions={MANAGER_PERSONAL_ROLES}
         title="Nuevo personal"
         submitLabel="Crear personal"
@@ -136,10 +134,7 @@ export default function ManagerPersonalPage() {
         key={editingUser?.id ?? "none"}
         open={Boolean(editingUser)}
         user={editingUser}
-        branch={myBranch}
-        roleOptions={MANAGER_PERSONAL_ROLES}
         title="Editar personal"
-        allowUsernameEdit={false}
         onClose={() => setEditingUser(null)}
         onSubmit={handleEdit}
       />

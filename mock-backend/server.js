@@ -5,6 +5,38 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// El back real envuelve toda respuesta exitosa en {success, data} y
+// httpClient.js del front solo desenvuelve si encuentra esa clave "data"
+// exacta. El mock histórico mezcla tres formas: ya corregidas a {success,
+// data} (citas), con su propio sobre viejo {ok, pacientes}/{ok, venta}/etc,
+// o el objeto tal cual sin sobre - sin normalizar esto, el front recibía
+// el sobre viejo completo donde esperaba el arreglo/objeto de adentro y
+// tronaba. Se normaliza aquí una sola vez en vez de tocar cada ruta vieja.
+function desenvolverSobreViejo(body) {
+  if (!body || typeof body !== "object" || !("ok" in body)) return body;
+  const otrasClaves = Object.keys(body).filter((k) => k !== "ok");
+  if (otrasClaves.length === 0) return body.ok;
+  if (otrasClaves.length === 1) return body[otrasClaves[0]];
+  return body; // forma inesperada con mas de una clave extra - no tocar
+}
+
+app.use((req, res, next) => {
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    const limpio = desenvolverSobreViejo(body);
+    // El back real a veces manda {success, data} y a veces {message, data}
+    // (ej. altas de usuarios) - cualquiera de las dos ya trae la clave
+    // "data" que httpClient.js busca, así que ambas cuentan como "ya en
+    // formato nuevo" y no se deben volver a envolver.
+    const yaEnvuelto = limpio && typeof limpio === "object" && ("success" in limpio || "data" in limpio);
+    if (res.statusCode >= 200 && res.statusCode < 300 && !yaEnvuelto) {
+      return originalJson({ success: true, data: limpio });
+    }
+    return originalJson(limpio);
+  };
+  next();
+});
+
 let nextId = 1000;
 const newId = () => String(nextId++);
 
@@ -47,6 +79,18 @@ app.post("/api/auth/login", (req, res) => {
       password_pendiente_cambio: false,
     },
   });
+});
+
+// "Mi perfil" (todos los roles, Indigo y Ópticas): cambio de contraseña -
+// el back real no pide la contraseña actual, solo la nueva (ver
+// login.service.js, POST /api/auth/login/cambiar-password). El mock no
+// guarda contraseñas reales, así que solo se simula el éxito.
+app.post("/api/auth/login/cambiar-password", (req, res) => {
+  const { passwordNueva } = req.body;
+  if (!passwordNueva || passwordNueva.length < 6) {
+    return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
+  }
+  res.json({ mensaje: "Contraseña actualizada correctamente" });
 });
 
 // =========================================================
@@ -1237,70 +1281,130 @@ registrarCrud("/api/indigo/inventario", () => indigoInventario, {
 
 // ---- Ópticas ----
 
-// Igual que crearGerenteParaSucursal (Indigo): si en el form de sucursal se
-// escribe un nombre en "nuevo jefe de sucursal", se da de alta ese usuario
-// de verdad en opticaUsuarios, para que tambien aparezca en el modulo de
-// Usuarios - no solo como texto suelto en la sucursal.
-function crearEncargadoParaSucursal(nombre, branchId, branchName) {
-  const id = newId();
-  opticaUsuarios.unshift({
-    id, displayId: opticaUsuarios.length + 1,
-    name: nombre, username: "NEW" + Math.floor(Math.random() * 10000),
-    role: "optica:encargado", branchId, branchName,
-    status: "active", phone: "",
-  });
-  return id;
+// opticaSucursales se queda en su shape viejo (camelCase, con manager/
+// staff/etc. pegados) porque Ventas/Pacientes/Reportes/Dashboard todavia
+// lo usan asi - estas rutas traducen al shape real del back en la
+// frontera (solo id/nombre/direccion/telefono/activo, SIN gerente ni
+// conteos pegados: eso lo resuelve el front cruzando con Personal/
+// Catálogo, ver withManagerInfo/withBranchCounts en branchService.js),
+// igual criterio que usuarioAFormatoBack.
+function sucursalAFormatoBack(s) {
+  return {
+    id: s.id,
+    optica_id: "opt-1",
+    nombre: s.name,
+    direccion: s.address || null,
+    telefono: s.phone || null,
+    activo: s.status !== "inactive",
+    created_at: s.created_at || new Date().toISOString(),
+  };
 }
 
-registrarCrud("/api/opticas/sucursales", () => opticaSucursales, {
-  crear: (body) => {
-    const id = newId();
-    const nombreSucursal = body.nombre;
+app.get("/api/opticas/sucursales", (req, res) => {
+  res.json(opticaSucursales.map(sucursalAFormatoBack));
+});
 
-    let managerId = body.gerente_optica_usuario_id || null;
-    let managerName = null;
+// Alta de sucursal - el back no soporta crear un gerente nuevo aquí
+// (crearSucursalSchema es estricto), solo asignar uno que ya exista.
+// Responde {sucursal, gerente_asignado}, no la sucursal sola.
+app.post("/api/opticas/sucursales", (req, res) => {
+  const { nombre, direccion, telefono, gerente_optica_usuario_id } = req.body;
+  const id = newId();
+  const managerId = gerente_optica_usuario_id || null;
+  const managerUser = managerId ? opticaUsuarios.find((u) => u.id === managerId) : null;
 
-    if (body.nuevo_gerente_nombre) {
-      managerId = crearEncargadoParaSucursal(body.nuevo_gerente_nombre, id, nombreSucursal);
-      managerName = body.nuevo_gerente_nombre;
-    } else if (managerId) {
-      managerName = opticaUsuarios.find((u) => u.id === managerId)?.name || null;
-    }
+  const nueva = {
+    id, displayId: opticaSucursales.length + 1,
+    name: nombre, image: "", address: direccion || "", phone: telefono || "",
+    country: "", state: "", municipality: "",
+    manager: managerUser?.name ?? null, managerId, managerPhone: managerUser?.phone ?? "",
+    staff: managerId ? 1 : 0, products: 0, customers: 0, status: "active",
+    staffList: managerUser ? [{ name: managerUser.name, role: "optica:encargado" }] : [],
+  };
+  opticaSucursales.push(nueva);
 
-    return {
-      id, displayId: opticaSucursales.length + 1,
-      name: nombreSucursal, image: body.imagen || "", address: "", phone: "",
-      country: body.pais || "", state: body.estado || "", municipality: body.municipio || "",
-      manager: managerName, managerId, managerPhone: "",
-      staff: managerId ? 1 : 0, products: 0, customers: 0, labJobs: 0, status: "active",
-      staffList: managerId ? [{ name: managerName, role: "Jefe de sucursal" }] : [],
-    };
-  },
-  // El PUT lo usan dos formularios distintos (edicion completa del Dueño, y
-  // la edicion acotada de "Mi sucursal" del Encargado), cada uno manda solo
-  // sus propios campos - por eso el patch se arma condicional, nunca
-  // pisando con `undefined` lo que el otro formulario no mando.
-  actualizar: (body, existingRow) => {
-    const patch = {};
+  if (managerUser) {
+    managerUser.branchId = id;
+    managerUser.branchName = nombre;
+  }
 
-    if (body.nombre !== undefined) patch.name = body.nombre;
-    if (body.pais !== undefined) patch.country = body.pais;
-    if (body.estado !== undefined) patch.state = body.estado;
-    if (body.municipio !== undefined) patch.municipality = body.municipio;
+  res.status(201).json({
+    message: "Sucursal creada correctamente",
+    data: { sucursal: sucursalAFormatoBack(nueva), gerente_asignado: managerId ? { sucursal_id: id, optica_usuario_id: managerId } : null },
+  });
+});
 
-    if (body.nuevo_gerente_nombre) {
-      patch.managerId = crearEncargadoParaSucursal(body.nuevo_gerente_nombre, existingRow.id, body.nombre || existingRow.name);
-      patch.manager = body.nuevo_gerente_nombre;
-    } else if (body.gerente_optica_usuario_id !== undefined) {
-      patch.managerId = body.gerente_optica_usuario_id || null;
-      patch.manager = body.manager ?? null;
-    }
+// Editar sucursal - el back solo acepta nombre/dirección/teléfono aquí,
+// el gerente se asigna/cambia por su propio endpoint (ver abajo).
+app.patch("/api/opticas/sucursales/:id", (req, res) => {
+  const sucursal = opticaSucursales.find((s) => s.id === req.params.id);
+  if (!sucursal) return res.status(404).json({ error: "Sucursal no encontrada" });
 
-    if (body.direccion !== undefined) patch.address = body.direccion;
-    if (body.telefono !== undefined) patch.phone = body.telefono;
+  if (req.body.nombre !== undefined) sucursal.name = req.body.nombre;
+  if (req.body.direccion !== undefined) sucursal.address = req.body.direccion;
+  if (req.body.telefono !== undefined) sucursal.phone = req.body.telefono;
 
-    return patch;
-  },
+  res.json({ message: "Sucursal actualizada correctamente", data: sucursalAFormatoBack(sucursal) });
+});
+
+app.patch("/api/opticas/sucursales/:id/desactivar", (req, res) => {
+  const sucursal = opticaSucursales.find((s) => s.id === req.params.id);
+  if (!sucursal) return res.status(404).json({ error: "Sucursal no encontrada" });
+  sucursal.status = "inactive";
+  res.json({ message: "Sucursal desactivada correctamente", data: sucursalAFormatoBack(sucursal) });
+});
+
+app.patch("/api/opticas/sucursales/:id/activar", (req, res) => {
+  const sucursal = opticaSucursales.find((s) => s.id === req.params.id);
+  if (!sucursal) return res.status(404).json({ error: "Sucursal no encontrada" });
+  sucursal.status = "active";
+  res.json({ message: "Sucursal activada correctamente", data: sucursalAFormatoBack(sucursal) });
+});
+
+// Asignar gerente - solo si la sucursal NO tiene uno todavía.
+app.post("/api/opticas/sucursales/gerente", (req, res) => {
+  const { sucursal_id, optica_usuario_id } = req.body;
+  const sucursal = opticaSucursales.find((s) => s.id === sucursal_id);
+  if (!sucursal) return res.status(404).json({ error: "La sucursal no existe" });
+  if (sucursal.managerId) return res.status(409).json({ error: "La sucursal ya tiene un gerente asignado" });
+
+  const usuario = opticaUsuarios.find((u) => u.id === optica_usuario_id);
+  if (!usuario) return res.status(404).json({ error: "El usuario no existe o no pertenece a esta óptica" });
+
+  sucursal.managerId = usuario.id;
+  sucursal.manager = usuario.name;
+  sucursal.managerPhone = usuario.phone || "";
+  usuario.branchId = sucursal.id;
+  usuario.branchName = sucursal.name;
+
+  res.status(201).json({
+    message: "Gerente asignado correctamente",
+    data: { sucursal_id, optica_usuario_id, created_at: new Date().toISOString() },
+  });
+});
+
+// Cambiar gerente - solo si la sucursal YA tiene uno (lo reemplaza).
+app.patch("/api/opticas/sucursales/:id/gerente", (req, res) => {
+  const sucursal = opticaSucursales.find((s) => s.id === req.params.id);
+  if (!sucursal) return res.status(404).json({ error: "Sucursal no encontrada" });
+  if (!sucursal.managerId) return res.status(409).json({ error: "La sucursal no tiene un gerente asignado" });
+
+  const usuario = opticaUsuarios.find((u) => u.id === req.body.optica_usuario_id);
+  if (!usuario) return res.status(404).json({ error: "El usuario no existe o no pertenece a esta óptica" });
+
+  const anterior = opticaUsuarios.find((u) => u.id === sucursal.managerId);
+  if (anterior) anterior.branchId = null;
+
+  sucursal.managerId = usuario.id;
+  sucursal.manager = usuario.name;
+  sucursal.managerPhone = usuario.phone || "";
+  usuario.branchId = sucursal.id;
+  usuario.branchName = sucursal.name;
+
+  res.json({
+    message: "Gerente cambiado correctamente",
+    data: { sucursal_id: sucursal.id, optica_usuario_id: usuario.id, created_at: new Date().toISOString() },
+  });
 });
 
 app.get("/api/opticas/sucursales/gerentes-disponibles", (req, res) => {
@@ -1313,72 +1417,85 @@ app.get("/api/opticas/sucursales/gerentes-disponibles", (req, res) => {
   res.json(disponibles.map((u) => ({ id: u.id, nombre: u.name })));
 });
 
-registrarCrud("/api/opticas/usuarios", () => opticaUsuarios, {
-  crear: (body) => {
-    const branch = opticaSucursales.find((s) => s.id === body.sucursal_id);
-    return {
-      id: newId(), displayId: opticaUsuarios.length + 1,
-      name: body.nombre, username: body.usuario || "NEW" + Math.floor(Math.random() * 10000),
-      role: body.rol || "optica:empleado", branchId: body.sucursal_id || null,
-      branchName: branch?.name || "Sin asignar",
-      status: "active", phone: body.telefono || "", email: body.correo || "",
-      password_pendiente_cambio: Boolean(body.requiere_cambio_password),
-    };
-  },
-  // Igual que /api/indigo/usuarios: el Dueño edita nombre, usuario, telefono,
-  // correo, puesto y puede reasignar la sucursal - el patch se arma
-  // condicional para no pisar con `undefined` lo que no se mando.
-  actualizar: (body) => {
-    const patch = {};
-    if (body.nombre !== undefined) patch.name = body.nombre;
-    if (body.usuario !== undefined) patch.username = body.usuario;
-    if (body.telefono !== undefined) patch.phone = body.telefono;
-    if (body.correo !== undefined) patch.email = body.correo;
-    if (body.rol !== undefined) patch.role = body.rol;
-    if (body.sucursal_id !== undefined) {
-      const branch = opticaSucursales.find((s) => s.id === body.sucursal_id);
-      patch.branchId = body.sucursal_id || null;
-      patch.branchName = branch?.name ?? "Sin sucursal";
-    }
-    // "Mi perfil" (todos los roles): contacto de emergencia.
-    if (body.contacto_nombre !== undefined || body.contacto_telefono !== undefined || body.contacto_parentesco !== undefined) {
-      patch.emergencyContact = {
-        name: body.contacto_nombre ?? "",
-        phone: body.contacto_telefono ?? "",
-        relation: body.contacto_parentesco ?? "",
-      };
-    }
-    return patch;
-  },
+// opticaUsuarios sigue guardándose en el shape viejo (name/username/role
+// con prefijo "optica:"/branchId) porque Sucursales y Ventas todavía
+// dependen de ese shape en este mock - estas rutas traducen al shape real
+// del back (nombre/telefono/email/usuario/rol/sucursal_id/activo) igual
+// que hace usuarios.repository.js. El usuario y la contraseña ya NO se
+// generan en el front: el back los genera al crear y los regresa una sola
+// vez en credencial_provisional (ver usuarios.service.js del back).
+function usuarioAFormatoBack(u) {
+  return {
+    id: u.id,
+    optica_id: "opt-1",
+    sucursal_id: u.branchId || null,
+    nombre: u.name,
+    telefono: u.phone || null,
+    email: u.email || null,
+    usuario: u.username,
+    rol: (u.role || "").split(":")[1] || u.role,
+    activo: u.status !== "inactive",
+    dado_de_alta_por: null,
+    created_at: u.created_at || new Date().toISOString(),
+  };
+}
+
+function generarCredencial(prefijo) {
+  return `${prefijo}${String(Math.floor(100000 + Math.random() * 900000))}`;
+}
+
+app.get("/api/opticas/usuarios", (req, res) => {
+  res.json(opticaUsuarios.map(usuarioAFormatoBack));
 });
 
-// "Mi perfil": cambio de contraseña - el backend mock no guarda contraseñas
-// reales (el login acepta cualquiera), asi que solo se simula el exito.
-app.patch("/api/opticas/usuarios/:id/password", (req, res) => {
+// Alta de Jefe de sucursal (solo Dueño) - nunca lleva sucursal: se asigna
+// después desde el módulo Sucursales.
+app.post("/api/opticas/usuarios/gerentes", (req, res) => {
+  const { nombre, telefono, email } = req.body;
+  const credencial = generarCredencial("GTE");
+  const nuevo = {
+    id: newId(), displayId: opticaUsuarios.length + 1,
+    name: nombre, username: credencial, role: "optica:encargado",
+    branchId: null, branchName: "Sin asignar", status: "active",
+    phone: telefono || "", email: email || "", created_at: new Date().toISOString(),
+  };
+  opticaUsuarios.unshift(nuevo);
+  res.status(201).json({
+    message: "Gerente creado con éxito",
+    data: { ...usuarioAFormatoBack(nuevo), credencial_provisional: credencial },
+  });
+});
+
+// Alta de Ventas (Dueño en cualquier sucursal, Jefe de sucursal solo en la suya).
+app.post("/api/opticas/usuarios/empleados", (req, res) => {
+  const { nombre, telefono, email, sucursal_id } = req.body;
+  const branch = opticaSucursales.find((s) => s.id === sucursal_id);
+  const credencial = generarCredencial("EMP");
+  const nuevo = {
+    id: newId(), displayId: opticaUsuarios.length + 1,
+    name: nombre, username: credencial, role: "optica:empleado",
+    branchId: sucursal_id || null, branchName: branch?.name || "Sin asignar", status: "active",
+    phone: telefono || "", email: email || "", created_at: new Date().toISOString(),
+  };
+  opticaUsuarios.unshift(nuevo);
+  res.status(201).json({
+    message: "Empleado creado con éxito",
+    data: { ...usuarioAFormatoBack(nuevo), credencial_provisional: credencial },
+  });
+});
+
+// Editar personal / "Mi perfil": el back solo permite nombre/teléfono/
+// correo/activo (ni el rol ni la sucursal se pueden cambiar aquí).
+app.patch("/api/opticas/usuarios/:id", (req, res) => {
   const user = opticaUsuarios.find((u) => u.id === req.params.id);
   if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
-  if (!req.body.actual || !req.body.nueva) {
-    return res.status(400).json({ error: "Faltan campos" });
-  }
-  res.json({ ok: true });
-});
 
-// Modulo "Personal" (Dueño): da de alta cualquier rol de personal
-// (encargado o ventas) en cualquier sucursal de la óptica.
-app.post("/api/opticas/usuarios/personal", (req, res) => {
-  const body = req.body;
-  const branch = opticaSucursales.find((s) => s.id === body.sucursal_id);
+  if (req.body.nombre !== undefined) user.name = req.body.nombre;
+  if (req.body.telefono !== undefined) user.phone = req.body.telefono;
+  if (req.body.email !== undefined) user.email = req.body.email;
+  if (req.body.activo !== undefined) user.status = req.body.activo ? "active" : "inactive";
 
-  const item = {
-    id: newId(), displayId: opticaUsuarios.length + 1,
-    name: body.nombre, username: body.usuario,
-    role: body.rol, branchId: body.sucursal_id || null,
-    branchName: branch?.name || "Sin asignar",
-    status: "active", phone: body.telefono || "", email: body.correo || "",
-    password_pendiente_cambio: Boolean(body.requiere_cambio_password),
-  };
-  opticaUsuarios.unshift(item);
-  res.status(201).json(item);
+  res.json({ message: "Usuario actualizado correctamente", data: usuarioAFormatoBack(user) });
 });
 
 app.get("/api/opticas/usuarios/opciones-formulario", (req, res) => {
@@ -1522,6 +1639,72 @@ app.patch("/api/opticas/pacientes/:id/activate", (req, res) => {
   if (idx === -1) return res.status(404).json({ error: "Paciente no encontrado" });
   opticaPacientes[idx] = { ...opticaPacientes[idx], active: true };
   res.json({ ok: true, paciente: withBranchName(opticaPacientes[idx]) });
+});
+
+let opticaConsultas = [
+  {
+    id: "ocons-1", sucursal_id: "osuc-1", cliente_final_id: "opac-1",
+    fecha_examen: "2026-09-15",
+    od_esfera: "-2.00", od_cilindro: "-0.50", od_eje: 90, od_adicion: null,
+    oi_esfera: "-2.25", oi_cilindro: "-0.25", oi_eje: 85, oi_adicion: null,
+    dip: "62.0", observaciones: "Paciente refiere fatiga visual al leer de cerca.",
+    registrado_por: "u-oenc-1", created_at: "2026-09-15T11:00:00.000Z",
+  },
+  {
+    id: "ocons-2", sucursal_id: "osuc-1", cliente_final_id: "opac-1",
+    fecha_examen: "2026-03-10",
+    od_esfera: "-1.75", od_cilindro: "-0.50", od_eje: 90, od_adicion: null,
+    oi_esfera: "-2.00", oi_cilindro: "-0.25", oi_eje: 85, oi_adicion: null,
+    dip: "62.0", observaciones: "",
+    registrado_por: "u-oemp-1", created_at: "2026-03-10T09:30:00.000Z",
+  },
+];
+
+function clienteNombreConsulta(id) {
+  return opticaPacientes.find((p) => p.id === id)?.nombre ?? "—";
+}
+
+// Modulo nuevo (no hay nada viejo que imitar) - ya en el formato real del
+// back: GET / regresa { success, data } directo, POST regresa
+// { success, data }. Filtros de query iguales a listarConsultasQuerySchema.
+app.get("/api/opticas/consultas", (req, res) => {
+  const { sucursalId, clienteId, desde, hasta } = req.query;
+  let consultas = opticaConsultas;
+  if (sucursalId) consultas = consultas.filter((c) => c.sucursal_id === sucursalId);
+  if (clienteId) consultas = consultas.filter((c) => c.cliente_final_id === clienteId);
+  if (desde) consultas = consultas.filter((c) => c.fecha_examen >= desde);
+  if (hasta) consultas = consultas.filter((c) => c.fecha_examen <= hasta);
+
+  const data = consultas
+    .slice()
+    .sort((a, b) => (a.fecha_examen < b.fecha_examen ? 1 : -1))
+    .map((c) => ({ ...c, cliente_nombre: clienteNombreConsulta(c.cliente_final_id) }));
+
+  res.json({ success: true, data });
+});
+
+app.get("/api/opticas/consultas/:consultaId", (req, res) => {
+  const consulta = opticaConsultas.find((c) => c.id === req.params.consultaId);
+  if (!consulta) return res.status(404).json({ error: "Consulta no encontrada" });
+  res.json({ success: true, data: { ...consulta, cliente_nombre: clienteNombreConsulta(consulta.cliente_final_id) } });
+});
+
+app.post("/api/opticas/consultas", (req, res) => {
+  const body = req.body;
+  const consulta = {
+    id: newId(),
+    sucursal_id: body.sucursalId || null,
+    cliente_final_id: body.clienteId,
+    fecha_examen: body.fechaExamen,
+    od_esfera: body.od?.esfera ?? null, od_cilindro: body.od?.cilindro ?? null, od_eje: body.od?.eje ?? null, od_adicion: body.od?.adicion ?? null,
+    oi_esfera: body.oi?.esfera ?? null, oi_cilindro: body.oi?.cilindro ?? null, oi_eje: body.oi?.eje ?? null, oi_adicion: body.oi?.adicion ?? null,
+    dip: body.dip ?? null,
+    observaciones: body.observaciones || null,
+    registrado_por: null,
+    created_at: new Date().toISOString(),
+  };
+  opticaConsultas.unshift(consulta);
+  res.status(201).json({ success: true, data: { ...consulta, cliente_nombre: clienteNombreConsulta(consulta.cliente_final_id) } });
 });
 
 function daysFromNow(days, hour = 10) {
@@ -1742,12 +1925,19 @@ app.post("/api/opticas/ventas", (req, res) => {
     };
   });
 
+  // El front (igual que el back real, ver backend/ventas/helpers/calculos.js)
+  // nunca manda iva/total/saldoPendiente ya calculados - solo manda tasaIva
+  // y montoPagado. Antes esto se tomaba de body.iva/body.total/
+  // body.saldoPendiente (siempre undefined) y por eso el IVA nunca se
+  // aplicaba y el saldo pendiente siempre quedaba en 0, aunque el pago
+  // fuera parcial.
   const subtotal = body.subtotal ?? items.reduce((sum, item) => sum + item.subtotal, 0);
-  const iva = body.iva ?? 0;
-  const total = body.total ?? subtotal + iva;
-  const saldoPendiente = body.saldoPendiente ?? 0;
+  const tasaIva = Number(body.tasaIva ?? 0);
+  const iva = body.iva ?? Math.round(subtotal * tasaIva) / 100;
+  const total = body.total ?? Math.round((subtotal + iva) * 100) / 100;
   const tipoTrabajo = body.tipoTrabajo || "venta_directa";
-  const montoPagado = body.montoPagado ?? total;
+  const montoPagado = Math.round(Number(body.montoPagado ?? total) * 100) / 100;
+  const saldoPendiente = Math.max(0, Math.round((total - montoPagado) * 100) / 100);
   const ahora = new Date().toISOString();
 
   const venta = {
@@ -1839,86 +2029,6 @@ app.patch("/api/opticas/ventas/:id/cancelar", (req, res) => {
   res.json({ ok: true, venta: withVendedorName(opticaVentas[idx]) });
 });
 
-let opticaLaboratorio = [
-  {
-    id: "olab-1", sucursal_id: "osuc-1", paciente_id: null, venta_id: "oven-2",
-    items: [{ producto_id: "oinv-3", codigo: "MIC-OPT-001", modelo: "Antireflejante Plus" }],
-    receta: { od_esfera: "-1.50", od_cilindro: "-0.50", od_eje: "90", oi_esfera: "-1.25", oi_cilindro: "-0.25", oi_eje: "85", adicion: "", dp: "62" },
-    observaciones: "Cliente pidió entrega antes del viernes.",
-    estado: "en_proceso", creado_por: "u-oemp-1", created_at: daysFromNow(0),
-  },
-  {
-    id: "olab-2", sucursal_id: "osuc-1", paciente_id: "opac-1", venta_id: "oven-1",
-    items: [{ producto_id: "oinv-1", codigo: "OPT-001", modelo: "Redonda Slim" }],
-    receta: { od_esfera: "-2.00", od_cilindro: "0.00", od_eje: "0", oi_esfera: "-2.25", oi_cilindro: "0.00", oi_eje: "0", adicion: "+1.00", dp: "60" },
-    observaciones: "",
-    estado: "pendiente", creado_por: "u-oenc-1", created_at: daysFromNow(-1),
-  },
-  {
-    id: "olab-3", sucursal_id: "osuc-1", paciente_id: "opac-2", venta_id: "oven-3",
-    items: [{ producto_id: "oinv-1", codigo: "OPT-001", modelo: "Redonda Slim" }],
-    receta: { od_esfera: "-0.75", od_cilindro: "-0.25", od_eje: "180", oi_esfera: "-0.75", oi_cilindro: "0.00", oi_eje: "0", adicion: "", dp: "61" },
-    observaciones: "",
-    estado: "listo", creado_por: "u-oenc-1", created_at: daysFromNow(-4),
-  },
-];
-
-// Contrato propuesto para laboratorio (modulo nuevo, sin nada en el back
-// real): respuestas { ok, orden } / { ok, ordenes }, con ?sucursalId= en
-// el listado igual que pacientes/citas/ventas. Cada orden nace ligada a
-// una venta (venta_id) desde el flujo de Ventas.
-
-app.get("/api/opticas/laboratorio", (req, res) => {
-  const { sucursalId } = req.query;
-  const ordenes = sucursalId ? opticaLaboratorio.filter((o) => o.sucursal_id === sucursalId) : opticaLaboratorio;
-  res.json({ ok: true, ordenes });
-});
-
-app.get("/api/opticas/laboratorio/:id", (req, res) => {
-  const orden = opticaLaboratorio.find((o) => o.id === req.params.id);
-  if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
-  res.json({ ok: true, orden });
-});
-
-app.post("/api/opticas/laboratorio", (req, res) => {
-  const body = req.body;
-  const orden = {
-    id: newId(),
-    sucursal_id: body.sucursalId,
-    paciente_id: body.pacienteId || null,
-    venta_id: body.ventaId || null,
-    items: (body.items || []).map((item) => ({
-      producto_id: item.productoId,
-      codigo: item.codigo,
-      modelo: item.modelo,
-    })),
-    receta: {
-      od_esfera: body.receta?.odEsfera || null,
-      od_cilindro: body.receta?.odCilindro || null,
-      od_eje: body.receta?.odEje || null,
-      oi_esfera: body.receta?.oiEsfera || null,
-      oi_cilindro: body.receta?.oiCilindro || null,
-      oi_eje: body.receta?.oiEje || null,
-      adicion: body.receta?.adicion || null,
-      dp: body.receta?.dp || null,
-    },
-    tipo_trabajo: body.tipoTrabajo || null,
-    observaciones: body.observaciones || null,
-    estado: "pendiente",
-    creado_por: body.creadoPor || null,
-    created_at: new Date().toISOString(),
-  };
-  opticaLaboratorio.unshift(orden);
-  res.status(201).json({ ok: true, orden });
-});
-
-app.patch("/api/opticas/laboratorio/:id/estado", (req, res) => {
-  const idx = opticaLaboratorio.findIndex((o) => o.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Orden no encontrada" });
-  opticaLaboratorio[idx] = { ...opticaLaboratorio[idx], estado: req.body.estado };
-  res.json({ ok: true, orden: opticaLaboratorio[idx] });
-});
-
 // ---- Optica (informacion general de la empresa) ----
 
 let opticaInfo = {
@@ -1944,166 +2054,555 @@ let opticaInfo = {
   eslogan: "Cuidando tu visión desde 1998",
 };
 
-app.get("/api/opticas/informacion", (req, res) => {
-  res.json({ ok: true, info: opticaInfo });
+// El front ya manda/espera snake_case (ver opticaService.js), así que aquí
+// no hace falta traducir nombres de campo, solo imitar las 4 rutas reales:
+// operativa (cualquier rol), completa/crear/actualizar (dueño).
+
+app.get("/api/opticas/configuracion/operativa", (req, res) => {
+  const { nombre_comercial, logo_url, color_principal, color_secundario, eslogan } = opticaInfo;
+  res.json({ nombre_comercial, logo_url, color_principal, color_secundario, eslogan });
 });
 
-app.put("/api/opticas/informacion", (req, res) => {
-  const body = req.body;
-  opticaInfo = {
-    logo_url: body.logoUrl ?? "",
-    nombre_comercial: body.nombreComercial,
-    razon_social: body.razonSocial,
-    rfc: body.rfc,
-    responsable_sanitario: body.responsableSanitario,
-    telefono: body.telefono,
-    correo: body.correo,
-    correo_fiscal: body.correoFiscal,
-    calle: body.calle,
-    numero_exterior: body.numeroExterior,
-    numero_interior: body.numeroInterior,
-    colonia: body.colonia,
-    codigo_postal: body.codigoPostal,
-    municipio: body.municipio,
-    estado_direccion: body.estadoDireccion,
-    pais: body.pais,
-    regimen_fiscal: body.regimenFiscal,
-    color_principal: body.colorPrincipal,
-    color_secundario: body.colorSecundario,
-    eslogan: body.eslogan,
+app.get("/api/opticas/configuracion", (req, res) => {
+  res.json(opticaInfo);
+});
+
+app.post("/api/opticas/configuracion", (req, res) => {
+  opticaInfo = { ...opticaInfo, ...req.body };
+  res.status(201).json(opticaInfo);
+});
+
+app.patch("/api/opticas/configuracion", (req, res) => {
+  opticaInfo = { ...opticaInfo, ...req.body };
+  res.json(opticaInfo);
+});
+
+// ---- Productos, Servicios y Stock (catalogo + existencias por sucursal) ----
+// Alineado con el back real: productos/servicios son por óptica (no por
+// sucursal), las existencias viven aparte en Stock, y las categorías son
+// catálogos fijos con id numérico (categorias_productos/categorias_servicios).
+
+const categoriasProductos = [
+  { id: 1, nombre: "Armazones" }, { id: 2, nombre: "Lentes oftálmicos" }, { id: 3, nombre: "Lentes de contacto" },
+  { id: 4, nombre: "Soluciones" }, { id: 5, nombre: "Estuches" }, { id: 6, nombre: "Paños" },
+  { id: 7, nombre: "Cadenas" }, { id: 8, nombre: "Accesorios" }, { id: 9, nombre: "Otros" },
+];
+const categoriasServicios = [
+  { id: 1, nombre: "Consulta" }, { id: 2, nombre: "Ajustes" }, { id: 3, nombre: "Reparaciones" }, { id: 4, nombre: "Otros" },
+];
+const categoriaProductoNombre = (id) => categoriasProductos.find((c) => c.id === id)?.nombre ?? "";
+const categoriaServicioNombre = (id) => categoriasServicios.find((c) => c.id === id)?.nombre ?? "";
+
+const CATEGORIA_PRODUCTO_POR_SLUG = {
+  armazones: 1, lentes_oftalmicos: 2, lentes_contacto: 3, soluciones: 4,
+  estuches: 5, panos: 6, cadenas: 7, accesorios: 8,
+};
+const CATEGORIA_SERVICIO_POR_SLUG = { consultas: 1, ajustes: 2, reparaciones: 3 };
+
+// Semilla con la forma vieja (categoria en texto, stock embebido por
+// producto) - se transforma abajo a la forma real: productos sin stock
+// embebido + un arreglo de Stock aparte por producto+sucursal.
+const opticaProductosSemilla = [
+  { id: "oprod-1", display_id: 1, codigo: "ARM-CAT-001", nombre: "Armazón Clásico", categoria: "armazones", marca: "OKI Eyewear", descripcion: "Armazón de acetato clásico.", precio_venta: 890, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 10 }, { sucursal_id: "osuc-2", stock: 4 }], stock_minimo: 5 },
+  { id: "oprod-2", display_id: 2, codigo: "MIC-CAT-001", nombre: "Mica Antireflejante", categoria: "lentes_oftalmicos", marca: "Resistant Flex", descripcion: "Mica con tratamiento antirreflejante.", precio_venta: 650, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 6 }, { sucursal_id: "osuc-1", stock: 3 }], stock_minimo: 5 },
+  { id: "oprod-3", display_id: 3, codigo: "SOL-CAT-001", nombre: "Solución multipropósito", categoria: "soluciones", marca: "OptiCare", descripcion: "Solución para lentes de contacto 355ml.", precio_venta: 180, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 31 }, { sucursal_id: "osuc-2", stock: 14 }], stock_minimo: 10 },
+  { id: "oprod-4", display_id: 4, codigo: "ARM-CAT-002", nombre: "Armazón Aviador Metal", categoria: "armazones", marca: "OKI Eyewear", descripcion: "Armazón metálico estilo aviador.", precio_venta: 920, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 8 }, { sucursal_id: "osuc-2", stock: 4 }], stock_minimo: 5 },
+  { id: "oprod-5", display_id: 5, codigo: "ARM-CAT-003", nombre: "Armazón Wayfarer", categoria: "armazones", marca: "JD Sport", descripcion: "Armazón compacto estilo wayfarer.", precio_venta: 780, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 2 }, { sucursal_id: "osuc-1", stock: 1 }], stock_minimo: 5 },
+  { id: "oprod-6", display_id: 6, codigo: "ARM-CAT-004", nombre: "Armazón Redondo Vintage", categoria: "armazones", marca: "Cactus", descripcion: "Armazón redondo de inspiración vintage.", precio_venta: 850, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0 }, { sucursal_id: "osuc-2", stock: 0 }], stock_minimo: 4 },
+  { id: "oprod-7", display_id: 7, codigo: "ARM-CAT-005", nombre: "Armazón Infantil", categoria: "armazones", marca: "Toki Kids", descripcion: "Armazón flexible resistente para niños.", precio_venta: 620, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 18 }, { sucursal_id: "osuc-1", stock: 7 }], stock_minimo: 8 },
+  { id: "oprod-8", display_id: 8, codigo: "MIC-CAT-002", nombre: "Mica Progresiva HD", categoria: "lentes_oftalmicos", marca: "Progresivos Superfit", descripcion: "Mica progresiva de alta definición.", precio_venta: 1800, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 6 }, { sucursal_id: "osuc-2", stock: 2 }], stock_minimo: 5 },
+  { id: "oprod-9", display_id: 9, codigo: "MIC-CAT-003", nombre: "Mica Fotocromática", categoria: "lentes_oftalmicos", marca: "Antibue Premium", descripcion: "Mica que se oscurece con la luz solar.", precio_venta: 1200, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 4 }, { sucursal_id: "osuc-1", stock: 2 }], stock_minimo: 5 },
+  { id: "oprod-10", display_id: 10, codigo: "MIC-CAT-004", nombre: "Mica Filtro Luz Azul", categoria: "lentes_oftalmicos", marca: "Photoflux", descripcion: "Mica con filtro de luz azul.", precio_venta: 950, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0 }, { sucursal_id: "osuc-2", stock: 0 }], stock_minimo: 5 },
+  { id: "oprod-11", display_id: 11, codigo: "LEN-CAT-001", nombre: "Lentes de contacto mensuales", categoria: "lentes_contacto", marca: "Acuvue", descripcion: "Caja de lentes de contacto de uso mensual.", precio_venta: 550, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 28 }, { sucursal_id: "osuc-1", stock: 12 }], stock_minimo: 10 },
+  { id: "oprod-12", display_id: 12, codigo: "LEN-CAT-002", nombre: "Lentes de contacto diarios", categoria: "lentes_contacto", marca: "Biofinity", descripcion: "Caja de 30 lentes de contacto diarios.", precio_venta: 680, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 11 }, { sucursal_id: "osuc-2", stock: 4 }], stock_minimo: 10 },
+  { id: "oprod-13", display_id: 13, codigo: "SOL-CAT-002", nombre: "Gotas humectantes", categoria: "soluciones", marca: "OptiFree", descripcion: "Gotas humectantes para ojo seco.", precio_venta: 150, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 35 }, { sucursal_id: "osuc-1", stock: 15 }], stock_minimo: 10 },
+  { id: "oprod-14", display_id: 14, codigo: "SOL-CAT-003", nombre: "Solución para lentes rígidos", categoria: "soluciones", marca: "Boston", descripcion: "Solución limpiadora para lentes rígidos.", precio_venta: 220, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 1 }, { sucursal_id: "osuc-2", stock: 1 }], stock_minimo: 5 },
+  { id: "oprod-15", display_id: 15, codigo: "EST-CAT-001", nombre: "Estuche rígido", categoria: "estuches", marca: "Genérico", descripcion: "Estuche rígido con cierre.", precio_venta: 150, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 21 }, { sucursal_id: "osuc-1", stock: 9 }], stock_minimo: 10 },
+  { id: "oprod-16", display_id: 16, codigo: "EST-CAT-002", nombre: "Estuche semirrígido", categoria: "estuches", marca: "Genérico", descripcion: "Estuche semirrígido con broche.", precio_venta: 120, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 13 }, { sucursal_id: "osuc-2", stock: 5 }], stock_minimo: 10 },
+  { id: "oprod-17", display_id: 17, codigo: "PAN-CAT-001", nombre: "Paño de microfibra", categoria: "panos", marca: "Zeiss", descripcion: "Paño de microfibra para limpieza.", precio_venta: 60, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 70 }, { sucursal_id: "osuc-1", stock: 30 }], stock_minimo: 20 },
+  { id: "oprod-18", display_id: 18, codigo: "PAN-CAT-002", nombre: "Paño antibacterial", categoria: "panos", marca: "Clean Optics", descripcion: "Paño antibacterial para limpieza de lentes.", precio_venta: 70, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0 }, { sucursal_id: "osuc-2", stock: 0 }], stock_minimo: 15 },
+  { id: "oprod-19", display_id: 19, codigo: "CAD-CAT-001", nombre: "Cadena deportiva", categoria: "cadenas", marca: "Genérico", descripcion: "Cadena deportiva ajustable para lentes.", precio_venta: 90, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 15 }, { sucursal_id: "osuc-1", stock: 7 }], stock_minimo: 10 },
+  { id: "oprod-20", display_id: 20, codigo: "CAD-CAT-002", nombre: "Cadena decorativa", categoria: "cadenas", marca: "Genérico", descripcion: "Cadena decorativa para lentes.", precio_venta: 110, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 4 }, { sucursal_id: "osuc-2", stock: 1 }], stock_minimo: 8 },
+  { id: "oprod-21", display_id: 21, codigo: "ACC-CAT-001", nombre: "Spray limpiador", categoria: "accesorios", marca: "OptiClean", descripcion: "Spray limpiador para lentes.", precio_venta: 85, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 42 }, { sucursal_id: "osuc-1", stock: 18 }], stock_minimo: 15 },
+  { id: "oprod-22", display_id: 22, codigo: "ACC-CAT-002", nombre: "Kit de ajuste de armazones", categoria: "accesorios", marca: "Genérico", descripcion: "Kit de mini herramientas para ajuste.", precio_venta: 200, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 7 }, { sucursal_id: "osuc-2", stock: 3 }], stock_minimo: 5 },
+  { id: "oprod-23", display_id: 23, codigo: "ACC-CAT-003", nombre: "Funda protectora", categoria: "accesorios", marca: "Genérico", descripcion: "Funda protectora acolchada.", precio_venta: 95, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 1 }, { sucursal_id: "osuc-1", stock: 0 }], stock_minimo: 5 },
+];
+
+let opticaStock = [];
+let opticaProductos = opticaProductosSemilla.map((p) => {
+  (p.stock_por_sucursal ?? []).forEach((s) => {
+    opticaStock.push({ producto_id: p.id, sucursal_id: s.sucursal_id, cantidad: s.stock });
+  });
+  const categoria_id = CATEGORIA_PRODUCTO_POR_SLUG[p.categoria] ?? 9;
+  return {
+    id: p.id, display_id: p.display_id, sku: p.codigo, nombre: p.nombre,
+    categoria_id, categoria_nombre: categoriaProductoNombre(categoria_id),
+    marca: p.marca, descripcion: p.descripcion,
+    precio_venta: p.precio_venta, stock_minimo: p.stock_minimo, activo: true,
   };
-  res.json({ ok: true, info: opticaInfo });
 });
 
-// ---- Productos y servicios (catalogo, no depende de sucursal) ----
-
-let opticaProductos = [
-  { id: "oprod-1", display_id: 1, codigo: "ARM-CAT-001", nombre: "Armazón Clásico", categoria: "armazones", marca: "OKI Eyewear", descripcion: "Armazón de acetato clásico.", precio_venta: 890, costo: 450, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 10, active: true }, { sucursal_id: "osuc-2", stock: 4, active: true }], stock_minimo: 5, imagen_url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23c9a15a'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='20' text-anchor='middle'%3EArmaz%C3%B3n%3C/text%3E%3C/svg%3E", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-2", display_id: 2, codigo: "MIC-CAT-001", nombre: "Mica Antireflejante", categoria: "lentes_oftalmicos", marca: "Resistant Flex", descripcion: "Mica con tratamiento antirreflejante.", precio_venta: 650, costo: 320, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 6, active: true }, { sucursal_id: "osuc-1", stock: 3, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-2", active: true },
-  { id: "oprod-3", display_id: 3, codigo: "SOL-CAT-001", nombre: "Solución multipropósito", categoria: "soluciones", marca: "OptiCare", descripcion: "Solución para lentes de contacto 355ml.", precio_venta: 180, costo: 90, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 31, active: true }, { sucursal_id: "osuc-2", stock: 14, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-4", display_id: 4, codigo: "ARM-CAT-002", nombre: "Armazón Aviador Metal", categoria: "armazones", marca: "OKI Eyewear", descripcion: "Armazón metálico estilo aviador.", precio_venta: 920, costo: 480, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 8, active: true }, { sucursal_id: "osuc-2", stock: 4, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-5", display_id: 5, codigo: "ARM-CAT-003", nombre: "Armazón Wayfarer", categoria: "armazones", marca: "JD Sport", descripcion: "Armazón compacto estilo wayfarer.", precio_venta: 780, costo: 390, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 2, active: true }, { sucursal_id: "osuc-1", stock: 1, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-2", active: true },
-  { id: "oprod-6", display_id: 6, codigo: "ARM-CAT-004", nombre: "Armazón Redondo Vintage", categoria: "armazones", marca: "Cactus", descripcion: "Armazón redondo de inspiración vintage.", precio_venta: 850, costo: 420, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0, active: true }, { sucursal_id: "osuc-2", stock: 0, active: true }], stock_minimo: 4, imagen_url: "", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-7", display_id: 7, codigo: "ARM-CAT-005", nombre: "Armazón Infantil", categoria: "armazones", marca: "Toki Kids", descripcion: "Armazón flexible resistente para niños.", precio_venta: 620, costo: 300, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 18, active: true }, { sucursal_id: "osuc-1", stock: 7, active: true }], stock_minimo: 8, imagen_url: "", sucursal_id: "osuc-2", active: true },
-  { id: "oprod-8", display_id: 8, codigo: "MIC-CAT-002", nombre: "Mica Progresiva HD", categoria: "lentes_oftalmicos", marca: "Progresivos Superfit", descripcion: "Mica progresiva de alta definición.", precio_venta: 1800, costo: 900, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 6, active: true }, { sucursal_id: "osuc-2", stock: 2, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-9", display_id: 9, codigo: "MIC-CAT-003", nombre: "Mica Fotocromática", categoria: "lentes_oftalmicos", marca: "Antibue Premium", descripcion: "Mica que se oscurece con la luz solar.", precio_venta: 1200, costo: 600, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 4, active: true }, { sucursal_id: "osuc-1", stock: 2, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-2", active: true },
-  { id: "oprod-10", display_id: 10, codigo: "MIC-CAT-004", nombre: "Mica Filtro Luz Azul", categoria: "lentes_oftalmicos", marca: "Photoflux", descripcion: "Mica con filtro de luz azul.", precio_venta: 950, costo: 480, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0, active: true }, { sucursal_id: "osuc-2", stock: 0, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-11", display_id: 11, codigo: "LEN-CAT-001", nombre: "Lentes de contacto mensuales", categoria: "lentes_contacto", marca: "Acuvue", descripcion: "Caja de lentes de contacto de uso mensual.", precio_venta: 550, costo: 280, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 28, active: true }, { sucursal_id: "osuc-1", stock: 12, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-2", active: true },
-  { id: "oprod-12", display_id: 12, codigo: "LEN-CAT-002", nombre: "Lentes de contacto diarios", categoria: "lentes_contacto", marca: "Biofinity", descripcion: "Caja de 30 lentes de contacto diarios.", precio_venta: 680, costo: 340, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 11, active: true }, { sucursal_id: "osuc-2", stock: 4, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-13", display_id: 13, codigo: "SOL-CAT-002", nombre: "Gotas humectantes", categoria: "soluciones", marca: "OptiFree", descripcion: "Gotas humectantes para ojo seco.", precio_venta: 150, costo: 70, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 35, active: true }, { sucursal_id: "osuc-1", stock: 15, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-2", active: true },
-  { id: "oprod-14", display_id: 14, codigo: "SOL-CAT-003", nombre: "Solución para lentes rígidos", categoria: "soluciones", marca: "Boston", descripcion: "Solución limpiadora para lentes rígidos.", precio_venta: 220, costo: 110, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 1, active: true }, { sucursal_id: "osuc-2", stock: 1, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-15", display_id: 15, codigo: "EST-CAT-001", nombre: "Estuche rígido", categoria: "estuches", marca: "Genérico", descripcion: "Estuche rígido con cierre.", precio_venta: 150, costo: 60, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 21, active: true }, { sucursal_id: "osuc-1", stock: 9, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-2", active: true },
-  { id: "oprod-16", display_id: 16, codigo: "EST-CAT-002", nombre: "Estuche semirrígido", categoria: "estuches", marca: "Genérico", descripcion: "Estuche semirrígido con broche.", precio_venta: 120, costo: 50, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 13, active: true }, { sucursal_id: "osuc-2", stock: 5, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-17", display_id: 17, codigo: "PAN-CAT-001", nombre: "Paño de microfibra", categoria: "panos", marca: "Zeiss", descripcion: "Paño de microfibra para limpieza.", precio_venta: 60, costo: 25, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 70, active: true }, { sucursal_id: "osuc-1", stock: 30, active: true }], stock_minimo: 20, imagen_url: "", sucursal_id: "osuc-2", active: true },
-  { id: "oprod-18", display_id: 18, codigo: "PAN-CAT-002", nombre: "Paño antibacterial", categoria: "panos", marca: "Clean Optics", descripcion: "Paño antibacterial para limpieza de lentes.", precio_venta: 70, costo: 30, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0, active: true }, { sucursal_id: "osuc-2", stock: 0, active: true }], stock_minimo: 15, imagen_url: "", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-19", display_id: 19, codigo: "CAD-CAT-001", nombre: "Cadena deportiva", categoria: "cadenas", marca: "Genérico", descripcion: "Cadena deportiva ajustable para lentes.", precio_venta: 90, costo: 40, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 15, active: true }, { sucursal_id: "osuc-1", stock: 7, active: true }], stock_minimo: 10, imagen_url: "", sucursal_id: "osuc-2", active: true },
-  { id: "oprod-20", display_id: 20, codigo: "CAD-CAT-002", nombre: "Cadena decorativa", categoria: "cadenas", marca: "Genérico", descripcion: "Cadena decorativa para lentes.", precio_venta: 110, costo: 50, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 4, active: true }, { sucursal_id: "osuc-2", stock: 1, active: true }], stock_minimo: 8, imagen_url: "", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-21", display_id: 21, codigo: "ACC-CAT-001", nombre: "Spray limpiador", categoria: "accesorios", marca: "OptiClean", descripcion: "Spray limpiador para lentes.", precio_venta: 85, costo: 35, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 42, active: true }, { sucursal_id: "osuc-1", stock: 18, active: true }], stock_minimo: 15, imagen_url: "", sucursal_id: "osuc-2", active: true },
-  { id: "oprod-22", display_id: 22, codigo: "ACC-CAT-002", nombre: "Kit de ajuste de armazones", categoria: "accesorios", marca: "Genérico", descripcion: "Kit de mini herramientas para ajuste.", precio_venta: 200, costo: 90, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 7, active: true }, { sucursal_id: "osuc-2", stock: 3, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-1", active: true },
-  { id: "oprod-23", display_id: 23, codigo: "ACC-CAT-003", nombre: "Funda protectora", categoria: "accesorios", marca: "Genérico", descripcion: "Funda protectora acolchada.", precio_venta: 95, costo: 40, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 1, active: true }, { sucursal_id: "osuc-1", stock: 0, active: true }], stock_minimo: 5, imagen_url: "", sucursal_id: "osuc-2", active: true },
+const opticaServiciosSemilla = [
+  { id: "oserv-1", display_id: 1, codigo: "SRV-001", nombre: "Examen de la vista", categoria: "consultas", descripcion: "Evaluación completa de agudeza visual.", precio: 300 },
+  { id: "oserv-2", display_id: 2, codigo: "SRV-002", nombre: "Ajuste de armazón", categoria: "ajustes", descripcion: "Ajuste y calibración de armazón.", precio: 0 },
+  { id: "oserv-3", display_id: 3, codigo: "SRV-003", nombre: "Reparación de armazón", categoria: "reparaciones", descripcion: "Reparación de bisagra o varilla.", precio: 150 },
 ];
-
-let opticaServicios = [
-  { id: "oserv-1", display_id: 1, codigo: "SRV-001", nombre: "Examen de la vista", categoria: "consultas", descripcion: "Evaluación completa de agudeza visual.", precio: 300, duracion_estimada: 30, sucursal_id: "osuc-1", active: true },
-  { id: "oserv-2", display_id: 2, codigo: "SRV-002", nombre: "Ajuste de armazón", categoria: "ajustes", descripcion: "Ajuste y calibración de armazón.", precio: 0, duracion_estimada: 10, sucursal_id: "osuc-2", active: true },
-  { id: "oserv-3", display_id: 3, codigo: "SRV-003", nombre: "Reparación de armazón", categoria: "reparaciones", descripcion: "Reparación de bisagra o varilla.", precio: 150, duracion_estimada: 20, sucursal_id: "osuc-1", active: true },
-];
-
-registrarCrud("/api/opticas/productos", () => opticaProductos, {
-  crear: (body) => ({
-    id: newId(), display_id: opticaProductos.length + 1,
-    codigo: body.codigo, nombre: body.nombre,
-    categoria: body.categoria, marca: body.marca, descripcion: body.descripcion || "",
-    precio_venta: Number(body.precio_venta), stock_minimo: Number(body.stock_minimo) || 0,
-    imagen_url: body.imagen_url || "",
-    stock_por_sucursal: [],
-    active: true,
-  }),
-  actualizar: (body) => ({
-    codigo: body.codigo, nombre: body.nombre,
-    categoria: body.categoria, marca: body.marca, descripcion: body.descripcion || "",
-    precio_venta: Number(body.precio_venta), stock_minimo: Number(body.stock_minimo) || 0,
-    imagen_url: body.imagen_url || "",
-  }),
+let opticaServicios = opticaServiciosSemilla.map((s) => {
+  const categoria_id = CATEGORIA_SERVICIO_POR_SLUG[s.categoria] ?? 4;
+  return {
+    id: s.id, display_id: s.display_id, codigo: s.codigo, nombre: s.nombre,
+    categoria_id, categoria_nombre: categoriaServicioNombre(categoria_id),
+    descripcion: s.descripcion, precio: s.precio, activo: true,
+  };
 });
 
-// El Jefe de sucursal no edita los datos del producto (nombre, precio,
-// etc. - eso es del Dueño): solo administra el stock y el alta/baja de
-// SU sucursal, sin tocar las demas. Si la sucursal todavia no tiene
-// entrada en stock_por_sucursal se crea una nueva (stock 0, activa).
-
-function getOrCreateStockSucursal(producto, sucursalId) {
-  let entry = producto.stock_por_sucursal?.find((s) => s.sucursal_id === sucursalId);
-  if (!entry) {
-    entry = { sucursal_id: sucursalId, stock: 0, active: true };
-    producto.stock_por_sucursal = [...(producto.stock_por_sucursal ?? []), entry];
-  }
-  return entry;
+function nombreUsuarioOptica(id) {
+  return opticaUsuarios.find((u) => u.id === id)?.name ?? "—";
 }
 
-app.patch("/api/opticas/productos/:id/sucursal/:sucursalId/baja", (req, res) => {
+// -- Productos --
+
+app.get("/api/opticas/productos/categorias", (req, res) => res.json(categoriasProductos));
+
+app.get("/api/opticas/productos", (req, res) => res.json(opticaProductos));
+
+app.get("/api/opticas/productos/:id", (req, res) => {
   const producto = opticaProductos.find((p) => p.id === req.params.id);
   if (!producto) return res.status(404).json({ error: "Producto no encontrado" });
-  getOrCreateStockSucursal(producto, req.params.sucursalId).active = false;
   res.json(producto);
 });
 
-app.patch("/api/opticas/productos/:id/sucursal/:sucursalId/alta", (req, res) => {
-  const producto = opticaProductos.find((p) => p.id === req.params.id);
-  if (!producto) return res.status(404).json({ error: "Producto no encontrado" });
-  getOrCreateStockSucursal(producto, req.params.sucursalId).active = true;
-  res.json(producto);
+app.post("/api/opticas/productos", (req, res) => {
+  const categoria_id = Number(req.body.categoriaId);
+  const nuevo = {
+    id: newId(), display_id: opticaProductos.length + 1,
+    sku: req.body.sku || null, nombre: req.body.nombre,
+    categoria_id, categoria_nombre: categoriaProductoNombre(categoria_id),
+    marca: req.body.marca || null, descripcion: req.body.descripcion || null,
+    precio_venta: Number(req.body.precioVenta), stock_minimo: Number(req.body.stockMinimo) || 0,
+    activo: true,
+  };
+  opticaProductos.unshift(nuevo);
+  res.status(201).json(nuevo);
 });
 
-// Historial de movimientos de inventario, para el reporte de Inventario
-// (Dueño). Se alimenta de cada alta/baja de stock que registra el Jefe de
-// sucursal en el catálogo.
+app.patch("/api/opticas/productos/:id", (req, res) => {
+  const idx = opticaProductos.findIndex((p) => p.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Producto no encontrado" });
+  const cambios = { ...req.body };
+  if (cambios.categoriaId !== undefined) {
+    cambios.categoria_id = Number(cambios.categoriaId);
+    cambios.categoria_nombre = categoriaProductoNombre(cambios.categoria_id);
+    delete cambios.categoriaId;
+  }
+  if (cambios.precioVenta !== undefined) { cambios.precio_venta = Number(cambios.precioVenta); delete cambios.precioVenta; }
+  if (cambios.stockMinimo !== undefined) { cambios.stock_minimo = Number(cambios.stockMinimo); delete cambios.stockMinimo; }
+  opticaProductos[idx] = { ...opticaProductos[idx], ...cambios };
+  res.json(opticaProductos[idx]);
+});
+
+app.patch("/api/opticas/productos/:id/estado", (req, res) => {
+  const idx = opticaProductos.findIndex((p) => p.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Producto no encontrado" });
+  opticaProductos[idx] = { ...opticaProductos[idx], activo: Boolean(req.body.activo) };
+  res.json(opticaProductos[idx]);
+});
+
+// -- Servicios --
+
+app.get("/api/opticas/servicios/categorias", (req, res) => res.json(categoriasServicios));
+
+app.get("/api/opticas/servicios", (req, res) => res.json(opticaServicios));
+
+app.post("/api/opticas/servicios", (req, res) => {
+  const categoria_id = Number(req.body.categoriaId);
+  const nuevo = {
+    id: newId(), display_id: opticaServicios.length + 1,
+    codigo: req.body.codigo || null, nombre: req.body.nombre,
+    categoria_id, categoria_nombre: categoriaServicioNombre(categoria_id),
+    descripcion: req.body.descripcion || null, precio: Number(req.body.precio), activo: true,
+  };
+  opticaServicios.unshift(nuevo);
+  res.status(201).json(nuevo);
+});
+
+app.patch("/api/opticas/servicios/:id", (req, res) => {
+  const idx = opticaServicios.findIndex((s) => s.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Servicio no encontrado" });
+  const cambios = { ...req.body };
+  if (cambios.categoriaId !== undefined) {
+    cambios.categoria_id = Number(cambios.categoriaId);
+    cambios.categoria_nombre = categoriaServicioNombre(cambios.categoria_id);
+    delete cambios.categoriaId;
+  }
+  if (cambios.precio !== undefined) cambios.precio = Number(cambios.precio);
+  opticaServicios[idx] = { ...opticaServicios[idx], ...cambios };
+  res.json(opticaServicios[idx]);
+});
+
+app.patch("/api/opticas/servicios/:id/estado", (req, res) => {
+  const idx = opticaServicios.findIndex((s) => s.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Servicio no encontrado" });
+  opticaServicios[idx] = { ...opticaServicios[idx], activo: Boolean(req.body.activo) };
+  res.json(opticaServicios[idx]);
+});
+
+// -- Stock (existencias + movimientos, separado del catálogo) --
+
 let opticaMovimientos = [
-  { id: "omov-1", producto_id: "oprod-11", sucursal_id: "osuc-1", tipo: "entrada", cantidad: 20, motivo: "Reabastecimiento de proveedor", creado_por: "u-oenc-1", created_at: daysFromNow(0) },
-  { id: "omov-2", producto_id: "oprod-3", sucursal_id: "osuc-1", tipo: "salida", cantidad: 2, motivo: "Venta mostrador", creado_por: "u-oemp-1", created_at: daysFromNow(0) },
-  { id: "omov-3", producto_id: "oprod-11", sucursal_id: "osuc-2", tipo: "salida", cantidad: 2, motivo: "Venta mostrador", creado_por: "u-odue-1", created_at: daysFromNow(0) },
-  { id: "omov-4", producto_id: "oprod-7", sucursal_id: "osuc-2", tipo: "salida", cantidad: 2, motivo: "Venta mostrador", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
-  { id: "omov-5", producto_id: "oprod-3", sucursal_id: "osuc-1", tipo: "salida", cantidad: 3, motivo: "Venta mostrador", creado_por: "u-oemp-1", created_at: daysFromNow(-1) },
-  { id: "omov-6", producto_id: "oprod-15", sucursal_id: "osuc-1", tipo: "entrada", cantidad: 10, motivo: "Reabastecimiento de proveedor", creado_por: "u-oenc-1", created_at: daysFromNow(-2) },
-  { id: "omov-7", producto_id: "oprod-1", sucursal_id: "osuc-2", tipo: "ajustes", cantidad: 1, motivo: "Conteo físico", creado_por: "u-odue-1", created_at: daysFromNow(-3) },
-  { id: "omov-8", producto_id: "oprod-9", sucursal_id: "osuc-1", tipo: "salida", cantidad: 1, motivo: "Producto dañado", creado_por: "u-oenc-1", created_at: daysFromNow(-4) },
+  { id: "omov-1", producto_id: "oprod-11", sucursal_id: "osuc-1", tipo: "entrada", cantidad: 20, cantidad_anterior: 0, cantidad_nueva: 20, motivo: "Reabastecimiento de proveedor", creado_por: "u-oenc-1", created_at: daysFromNow(0) },
+  { id: "omov-2", producto_id: "oprod-3", sucursal_id: "osuc-1", tipo: "salida", cantidad: 2, cantidad_anterior: 33, cantidad_nueva: 31, motivo: "Venta mostrador", creado_por: "u-oemp-1", created_at: daysFromNow(0) },
+  { id: "omov-3", producto_id: "oprod-11", sucursal_id: "osuc-2", tipo: "salida", cantidad: 2, cantidad_anterior: 30, cantidad_nueva: 28, motivo: "Venta mostrador", creado_por: "u-odue-1", created_at: daysFromNow(0) },
+  { id: "omov-4", producto_id: "oprod-7", sucursal_id: "osuc-2", tipo: "salida", cantidad: 2, cantidad_anterior: 20, cantidad_nueva: 18, motivo: "Venta mostrador", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
+  { id: "omov-5", producto_id: "oprod-3", sucursal_id: "osuc-1", tipo: "salida", cantidad: 3, cantidad_anterior: 34, cantidad_nueva: 31, motivo: "Venta mostrador", creado_por: "u-oemp-1", created_at: daysFromNow(-1) },
+  { id: "omov-6", producto_id: "oprod-15", sucursal_id: "osuc-1", tipo: "entrada", cantidad: 10, cantidad_anterior: 0, cantidad_nueva: 10, motivo: "Reabastecimiento de proveedor", creado_por: "u-oenc-1", created_at: daysFromNow(-2) },
+  { id: "omov-7", producto_id: "oprod-1", sucursal_id: "osuc-2", tipo: "ajuste", cantidad: 1, cantidad_anterior: 3, cantidad_nueva: 4, motivo: "Conteo físico", creado_por: "u-odue-1", created_at: daysFromNow(-3) },
+  { id: "omov-8", producto_id: "oprod-9", sucursal_id: "osuc-1", tipo: "salida", cantidad: 1, cantidad_anterior: 3, cantidad_nueva: 2, motivo: "Producto dañado", creado_por: "u-oenc-1", created_at: daysFromNow(-4) },
 ];
 
-app.get("/api/opticas/inventario/movimientos", (req, res) => {
-  const ordenado = [...opticaMovimientos].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  res.json(ordenado);
+app.get("/api/opticas/stock", (req, res) => {
+  const { sucursalId } = req.query;
+  const filas = opticaStock
+    .filter((s) => !sucursalId || s.sucursal_id === sucursalId)
+    .map((s) => {
+      const producto = opticaProductos.find((p) => p.id === s.producto_id);
+      if (!producto) return null;
+      return {
+        producto_id: s.producto_id, nombre: producto.nombre, sku: producto.sku, marca: producto.marca,
+        activo: producto.activo, categoria_id: producto.categoria_id, categoria_nombre: producto.categoria_nombre,
+        precio_venta: producto.precio_venta, cantidad: s.cantidad, stock_minimo: producto.stock_minimo,
+      };
+    })
+    .filter(Boolean);
+  res.json(filas);
 });
 
-app.patch("/api/opticas/productos/:id/sucursal/:sucursalId/movimiento", (req, res) => {
-  const producto = opticaProductos.find((p) => p.id === req.params.id);
-  if (!producto) return res.status(404).json({ error: "Producto no encontrado" });
+app.get("/api/opticas/stock/:productoId/movimientos", (req, res) => {
+  const { sucursalId } = req.query;
+  const filas = opticaMovimientos
+    .filter((m) => m.producto_id === req.params.productoId && (!sucursalId || m.sucursal_id === sucursalId))
+    .map((m) => ({
+      id: m.id, tipo: m.tipo, cantidad: m.cantidad,
+      cantidad_anterior: m.cantidad_anterior, cantidad_nueva: m.cantidad_nueva,
+      motivo: m.motivo, realizado_por: m.creado_por, realizado_por_nombre: nombreUsuarioOptica(m.creado_por),
+      created_at: m.created_at,
+    }))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  res.json(filas);
+});
 
-  const entry = getOrCreateStockSucursal(producto, req.params.sucursalId);
-  const cantidad = Math.max(0, Number(req.body.cantidad) || 0);
-  const suma = req.body.tipo === "entrada" || req.body.tipo === "ajustes";
-  entry.stock = Math.max(0, entry.stock + (suma ? cantidad : -cantidad));
+app.patch("/api/opticas/stock/:productoId", (req, res) => {
+  const { sucursalId, tipo, cantidad, motivo } = req.body;
+  let entry = opticaStock.find((s) => s.producto_id === req.params.productoId && s.sucursal_id === sucursalId);
+  if (!entry) {
+    entry = { producto_id: req.params.productoId, sucursal_id: sucursalId, cantidad: 0 };
+    opticaStock.push(entry);
+  }
 
-  opticaMovimientos.unshift({
-    id: newId(), producto_id: producto.id, sucursal_id: req.params.sucursalId,
-    tipo: req.body.tipo, cantidad, motivo: req.body.motivo || "",
-    creado_por: req.body.creadoPor || null,
-    created_at: new Date().toISOString(),
+  const cantidadAnterior = entry.cantidad;
+  const cantidadNum = Math.max(0, Number(cantidad) || 0);
+  let cantidadNueva;
+  if (tipo === "entrada") cantidadNueva = cantidadAnterior + cantidadNum;
+  else if (tipo === "salida") cantidadNueva = Math.max(0, cantidadAnterior - cantidadNum);
+  else cantidadNueva = cantidadNum; // ajuste: valor absoluto
+
+  entry.cantidad = cantidadNueva;
+
+  const movimiento = {
+    id: newId(), producto_id: req.params.productoId, sucursal_id: sucursalId,
+    tipo, cantidad: Math.abs(cantidadNueva - cantidadAnterior),
+    cantidad_anterior: cantidadAnterior, cantidad_nueva: cantidadNueva,
+    motivo: motivo || "", creado_por: null, created_at: new Date().toISOString(),
+  };
+  opticaMovimientos.unshift(movimiento);
+
+  res.json({
+    stock: { producto_id: req.params.productoId, sucursal_id: sucursalId, cantidad: cantidadNueva },
+    movimiento,
+  });
+});
+
+// =========================================================
+// REPORTES (modulo nuevo del back real, hecho por Leo) - resumenes
+// calculados aqui mismo en JS sobre los arreglos de arriba, imitando las
+// sumas/conteos que el back hace con SQL. No se implementa /inventario ni
+// /inventario/movimientos: el front no los usa (la pestaña Inventario de
+// Reportes sigue viendo datos reales via Catalogo/Stock) y, en el back
+// real, /inventario/movimientos hoy ademas es inalcanzable por un bug de
+// rutas (ver conversacion con Leo).
+// =========================================================
+
+function sucursalIdsDeQuery(req) {
+  const { sucursalId } = req.query;
+  if (sucursalId) return [sucursalId];
+  return opticaSucursales.map((s) => s.id);
+}
+
+function enRangoFecha(fechaIso, desde, hasta) {
+  if (!fechaIso) return false;
+  const t = new Date(fechaIso).getTime();
+  if (desde && t < new Date(desde).getTime()) return false;
+  if (hasta && t >= new Date(hasta).getTime()) return false;
+  return true;
+}
+
+// Mismo default que el back real (periodo="month") cuando no mandan
+// desde/hasta - ver reportes.schema.js/resolverRango.
+function periodoADesdeHasta(periodo) {
+  const ahora = new Date();
+  let desde;
+  if (periodo === "day") { desde = new Date(ahora); desde.setHours(0, 0, 0, 0); }
+  else if (periodo === "week") { desde = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000); }
+  else if (periodo === "year") { desde = new Date(ahora.getFullYear(), 0, 1); }
+  else { desde = new Date(ahora.getFullYear(), ahora.getMonth(), 1); }
+  return { desde: desde.toISOString(), hasta: ahora.toISOString() };
+}
+
+function resolverRangoQuery(query) {
+  if (query.desde || query.hasta) return { desde: query.desde, hasta: query.hasta };
+  return periodoADesdeHasta(query.periodo || "month");
+}
+
+function redondear(n) {
+  return Math.round((Number(n) || 0) * 100) / 100;
+}
+
+// Solo cuenta ventas totalmente pagadas, igual que `v.monto_pagado = v.total`
+// del back real (ver reporte.repository.js, #base).
+function ventasFiltradas(sucursalIds, desde, hasta) {
+  return opticaVentas.filter((v) =>
+    sucursalIds.includes(v.sucursal_id) &&
+    v.estado !== "cancelada" &&
+    v.monto_pagado === v.total &&
+    enRangoFecha(v.created_at, desde, hasta)
+  );
+}
+
+function contarCitas(citas) {
+  return {
+    total: citas.length,
+    programadas: citas.filter((c) => c.estado === "programada").length,
+    confirmadas: citas.filter((c) => c.estado === "confirmada").length,
+    atendidas: citas.filter((c) => c.estado === "atendida").length,
+    canceladas: citas.filter((c) => c.estado === "cancelada").length,
+    no_asistio: citas.filter((c) => c.estado === "no_asistio").length,
+  };
+}
+
+function agruparVentas(ventas, agrupar, limit) {
+  if (agrupar === "producto" || agrupar === "servicio") {
+    const map = new Map();
+    ventas.forEach((v) => {
+      (v.items || []).forEach((item) => {
+        const tipo = item.item_type || "producto";
+        if (tipo !== agrupar) return;
+        const key = item.modelo || item.codigo || "Sin nombre";
+        const entry = map.get(key) || { etiqueta: key, cantidad: 0, total: 0 };
+        entry.cantidad += Number(item.cantidad || 0);
+        entry.total += Number(item.subtotal || 0);
+        map.set(key, entry);
+      });
+    });
+    return [...map.values()]
+      .sort((a, b) => b.total - a.total)
+      .slice(0, limit)
+      .map((r) => ({ ...r, total: redondear(r.total) }));
+  }
+
+  const keyFn = agrupar === "sucursal" ? (v) => v.sucursal_id
+    : agrupar === "empleado" ? (v) => v.creado_por
+    : (v) => (v.created_at || "").slice(0, 10);
+
+  const labelFn = agrupar === "sucursal" ? (k) => opticaSucursales.find((s) => s.id === k)?.name ?? "—"
+    : agrupar === "empleado" ? (k) => nombreUsuarioOptica(k)
+    : (k) => k;
+
+  const map = new Map();
+  ventas.forEach((v) => {
+    const key = keyFn(v);
+    const entry = map.get(key) || { etiqueta: labelFn(key), operaciones: 0, total: 0 };
+    entry.operaciones += 1;
+    entry.total += Number(v.total || 0);
+    map.set(key, entry);
   });
 
-  res.json(producto);
+  return [...map.values()]
+    .map((e) => ({ ...e, total: redondear(e.total), ticket_promedio: redondear(e.total / e.operaciones) }))
+    .sort((a, b) => (agrupar === "dia" ? (a.etiqueta < b.etiqueta ? -1 : 1) : b.total - a.total))
+    .slice(0, limit);
+}
+
+app.get("/api/opticas/reportes/resumen", (req, res) => {
+  const { desde, hasta } = resolverRangoQuery(req.query);
+  const sucursalIds = sucursalIdsDeQuery(req);
+
+  const ventas = ventasFiltradas(sucursalIds, desde, hasta);
+  const total = ventas.reduce((sum, v) => sum + Number(v.total || 0), 0);
+  const operaciones = ventas.length;
+
+  const citas = opticaCitas.filter((c) => sucursalIds.includes(c.sucursal_id) && enRangoFecha(c.fecha_hora, desde, hasta));
+
+  const pacientesScope = opticaPacientes.filter((p) => sucursalIds.includes(p.sucursal_id));
+  const nuevos = pacientesScope.filter((p) => enRangoFecha(p.created_at, desde, hasta)).length;
+
+  const ventasRango = opticaVentas.filter((v) =>
+    sucursalIds.includes(v.sucursal_id) && v.estado !== "cancelada" && enRangoFecha(v.created_at, desde, hasta));
+  const comprasPorCliente = new Map();
+  ventasRango.forEach((v) => {
+    if (v.paciente_id) comprasPorCliente.set(v.paciente_id, (comprasPorCliente.get(v.paciente_id) || 0) + 1);
+  });
+  const recurrentes = [...comprasPorCliente.values()].filter((n) => n >= 2).length;
+
+  const citasAtendidas = opticaCitas.filter((c) =>
+    sucursalIds.includes(c.sucursal_id) && c.estado === "atendida" && enRangoFecha(c.fecha_hora, desde, hasta));
+  const atendidos = new Set(citasAtendidas.map((c) => c.cliente_final_id)).size;
+
+  res.json({
+    success: true,
+    data: {
+      periodo: req.query.desde || req.query.hasta ? "personalizado" : (req.query.periodo || "month"),
+      sucursales: sucursalIds.length,
+      ventas: { total: redondear(total), operaciones, ticket_promedio: operaciones > 0 ? redondear(total / operaciones) : 0 },
+      citas: contarCitas(citas),
+      clientes: { total: pacientesScope.length, nuevos, recurrentes, atendidos },
+      inventario: null,
+    },
+  });
 });
 
-registrarCrud("/api/opticas/servicios", () => opticaServicios, {
-  crear: (body) => ({
-    id: newId(), display_id: opticaServicios.length + 1,
-    codigo: body.codigo, nombre: body.nombre, categoria: body.categoria,
-    descripcion: body.descripcion || "", precio: Number(body.precio),
-    active: true,
-  }),
-  actualizar: (body) => ({
-    codigo: body.codigo, nombre: body.nombre, categoria: body.categoria,
-    descripcion: body.descripcion || "", precio: Number(body.precio),
-  }),
+app.get("/api/opticas/reportes/ventas", (req, res) => {
+  const { desde, hasta } = resolverRangoQuery(req.query);
+  const { agrupar, vendedorId, productoId, servicioId, limit } = req.query;
+  const sucursalIds = sucursalIdsDeQuery(req);
+
+  let ventas = ventasFiltradas(sucursalIds, desde, hasta);
+  if (vendedorId) ventas = ventas.filter((v) => v.creado_por === vendedorId);
+
+  let total;
+  let operaciones;
+  if (productoId || servicioId) {
+    let suma = 0;
+    const idsConMatch = new Set();
+    ventas.forEach((v) => {
+      (v.items || []).forEach((item) => {
+        const tipo = item.item_type || "producto";
+        if (productoId && tipo === "producto" && item.producto_id === productoId) {
+          suma += Number(item.subtotal || 0);
+          idsConMatch.add(v.id);
+        }
+        if (servicioId && tipo === "servicio" && item.producto_id === servicioId) {
+          suma += Number(item.subtotal || 0);
+          idsConMatch.add(v.id);
+        }
+      });
+    });
+    total = suma;
+    operaciones = idsConMatch.size;
+  } else {
+    total = ventas.reduce((sum, v) => sum + Number(v.total || 0), 0);
+    operaciones = ventas.length;
+  }
+
+  res.json({
+    success: true,
+    data: {
+      total: redondear(total),
+      operaciones,
+      ticket_promedio: operaciones > 0 ? redondear(total / operaciones) : 0,
+      agrupar: agrupar || null,
+      desglose: agrupar ? agruparVentas(ventas, agrupar, Number(limit) || 20) : null,
+    },
+  });
+});
+
+app.get("/api/opticas/reportes/servicios", (req, res) => {
+  const { desde, hasta } = resolverRangoQuery(req.query);
+  const { servicioId, limit } = req.query;
+  const sucursalIds = sucursalIdsDeQuery(req);
+  const ventas = ventasFiltradas(sucursalIds, desde, hasta);
+
+  const map = new Map();
+  let solicitados = 0, realizados = 0, ingreso = 0;
+
+  ventas.forEach((v) => {
+    (v.items || []).forEach((item) => {
+      if ((item.item_type || "producto") !== "servicio") return;
+      if (servicioId && item.producto_id !== servicioId) return;
+
+      const cantidad = Number(item.cantidad || 0);
+      const subtotal = Number(item.subtotal || 0);
+      solicitados += cantidad;
+      ingreso += subtotal;
+      if (v.estado === "completada") realizados += cantidad;
+
+      const key = item.producto_id;
+      const entry = map.get(key) || { servicio_id: key, etiqueta: item.modelo || item.codigo, cantidad: 0, realizados: 0, ingreso: 0 };
+      entry.cantidad += cantidad;
+      if (v.estado === "completada") entry.realizados += cantidad;
+      entry.ingreso += subtotal;
+      map.set(key, entry);
+    });
+  });
+
+  const ranking = [...map.values()]
+    .sort((a, b) => b.cantidad - a.cantidad || b.ingreso - a.ingreso)
+    .slice(0, Number(limit) || 10)
+    .map((r) => ({ ...r, ingreso: redondear(r.ingreso) }));
+
+  res.json({ success: true, data: { solicitados, realizados, ingreso: redondear(ingreso), ranking } });
+});
+
+app.get("/api/opticas/reportes/clientes", (req, res) => {
+  const { desde, hasta } = resolverRangoQuery(req.query);
+  const sucursalIds = sucursalIdsDeQuery(req);
+
+  const pacientesScope = opticaPacientes.filter((p) => sucursalIds.includes(p.sucursal_id));
+  const nuevos = pacientesScope.filter((p) => enRangoFecha(p.created_at, desde, hasta)).length;
+
+  const ventasScope = opticaVentas.filter((v) =>
+    sucursalIds.includes(v.sucursal_id) && v.estado !== "cancelada" && enRangoFecha(v.created_at, desde, hasta));
+  const comprasPorCliente = new Map();
+  ventasScope.forEach((v) => {
+    if (v.paciente_id) comprasPorCliente.set(v.paciente_id, (comprasPorCliente.get(v.paciente_id) || 0) + 1);
+  });
+  const recurrentes = [...comprasPorCliente.values()].filter((n) => n >= 2).length;
+
+  const citasScope = opticaCitas.filter((c) =>
+    sucursalIds.includes(c.sucursal_id) && c.estado === "atendida" && enRangoFecha(c.fecha_hora, desde, hasta));
+  const atendidos = new Set(citasScope.map((c) => c.cliente_final_id)).size;
+
+  res.json({ success: true, data: { total: pacientesScope.length, nuevos, recurrentes, atendidos } });
+});
+
+app.get("/api/opticas/reportes/citas", (req, res) => {
+  const { desde, hasta } = resolverRangoQuery(req.query);
+  const { estado, agrupar } = req.query;
+  const sucursalIds = sucursalIdsDeQuery(req);
+
+  let citas = opticaCitas.filter((c) => sucursalIds.includes(c.sucursal_id) && enRangoFecha(c.fecha_hora, desde, hasta));
+  if (estado) citas = citas.filter((c) => c.estado === estado);
+
+  let desglose = null;
+  if (agrupar === "dia") {
+    const map = new Map();
+    citas.forEach((c) => {
+      const key = (c.fecha_hora || "").slice(0, 10);
+      map.set(key, [...(map.get(key) || []), c]);
+    });
+    desglose = [...map.entries()]
+      .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+      .map(([etiqueta, list]) => ({ etiqueta, ...contarCitas(list) }));
+  } else if (agrupar === "sucursal") {
+    const map = new Map();
+    citas.forEach((c) => {
+      map.set(c.sucursal_id, [...(map.get(c.sucursal_id) || []), c]);
+    });
+    desglose = [...map.entries()]
+      .map(([sid, list]) => ({ etiqueta: opticaSucursales.find((s) => s.id === sid)?.name ?? "—", ...contarCitas(list) }))
+      .sort((a, b) => b.total - a.total);
+  }
+
+  res.json({ success: true, data: { ...contarCitas(citas), agrupar: agrupar || null, desglose } });
 });
 
 const PORT = 4001;

@@ -3,13 +3,12 @@ import { Save, Phone, Mail, Building2, Lock, User, Briefcase, ShieldCheck } from
 
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
-import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
 import SectionTitle from "../../../shared/components/SectionTitle";
 import { onlyLetters, onlyDigits, isValidPhone } from "../../../shared/utils/textInput";
 import { isValidEmail } from "../../../shared/utils/validators";
 import { useFormValidation } from "../../../shared/hooks/useFormValidation";
-import { OPTICAS_PERSONAL_ROLES } from "../constants";
+import { USER_ROLE_LABELS } from "../constants";
 
 
 const NAME_MAX = 40;
@@ -18,26 +17,20 @@ const NAME_MAX = 40;
 function formFromUser(user) {
   return {
     name: user?.name ?? "",
-    username: user?.username ?? "",
     phone: user?.phone ?? "",
     email: user?.email ?? "",
-    role: user?.role ?? "",
-    branchId: user?.branchId ?? "",
   };
 }
 
 
 /**
- * Edición de personal para el Dueño de óptica - mismo patrón que
- * EditPersonnelModal de Indigo (módulo "Personal"): sucursal reasignable
- * entre todas las de la óptica, usuario editable.
+ * Edición de personal - el back solo permite modificar nombre/teléfono/
+ * correo (ver actualizarUsuarioSchema): ni el puesto ni la sucursal se
+ * pueden cambiar desde aquí, así que se muestran de solo lectura.
  */
 export default function EditPersonnelModal({
-  open, user, branch, branches, roleOptions = OPTICAS_PERSONAL_ROLES, allowUsernameEdit = true,
-  title = "Editar personal", onClose, onSubmit,
+  open, user, title = "Editar personal", onClose, onSubmit,
 }) {
-
-  const branchLocked = Boolean(branch);
 
   const [form, setForm] = useState(() => formFromUser(user));
   const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
@@ -52,8 +45,6 @@ export default function EditPersonnelModal({
 
   if (!open) return null;
 
-  const selectedBranch = branchLocked ? branch : branches?.find((b) => b.id === form.branchId);
-
   const set = (field, transform) => (event) => {
     const raw = event?.target ? event.target.value : event;
     const value = transform ? transform(raw ?? "") : raw;
@@ -66,20 +57,14 @@ export default function EditPersonnelModal({
 
     const isValid = validate([
       ["name", !form.name.trim(), "El nombre es obligatorio."],
-      ["username", allowUsernameEdit && !form.username.trim(), "El usuario es obligatorio."],
       ["phone", !isValidPhone(form.phone), "El teléfono debe tener exactamente 10 dígitos."],
       ["email", !form.email.trim() || !isValidEmail(form.email), "Escribe un correo electrónico válido."],
-      ["role", !form.role, "Selecciona un puesto."],
-      ["branchId", !branchLocked && !form.branchId, "Selecciona una sucursal."],
     ]);
     if (!isValid) return;
 
-    const payload = { name: form.name.trim(), phone: form.phone, email: form.email.trim(), role: form.role, branchId: form.branchId };
-    if (allowUsernameEdit) payload.username = form.username.trim();
-
     try {
       setSaving(true);
-      await onSubmit(payload);
+      await onSubmit({ name: form.name.trim(), phone: form.phone, email: form.email.trim() });
       onClose();
     } catch {
       setErrors((prev) => ({ ...prev, submit: "No se pudo guardar el personal. Intenta de nuevo." }));
@@ -106,21 +91,13 @@ export default function EditPersonnelModal({
                 onChange={set("name", (v) => onlyLetters(v, NAME_MAX))}
                 error={errors.name}
               />
-              {allowUsernameEdit && (
-                <Input
-                  label="Usuario *"
-                  value={form.username}
-                  onChange={set("username")}
-                  error={errors.username}
-                />
-              )}
               <Input
                 label="Teléfono *"
                 value={form.phone}
                 onChange={set("phone", (v) => onlyDigits(v, 10))}
                 error={errors.phone}
               />
-              <div className={allowUsernameEdit ? "" : "sm:col-span-2"}>
+              <div className="sm:col-span-2">
                 <Input
                   label="Correo electrónico *"
                   type="email"
@@ -133,35 +110,25 @@ export default function EditPersonnelModal({
           </div>
 
           <div className="border-t border-gray-100 pt-6">
-            <SectionTitle icon={Briefcase} step={2} subtitle="Puesto que ocupará y sucursal donde trabaja.">
+            <SectionTitle icon={Briefcase} step={2} subtitle="El puesto y la sucursal no se pueden cambiar desde aquí.">
               Información laboral
             </SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium text-text-primary">Puesto / Rol *</label>
-                <Select value={form.role} onChange={set("role")}>
-                  <option value="">Selecciona un puesto...</option>
-                  {roleOptions.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </Select>
-                {errors.role && <p className="mt-1.5 text-sm text-error">{errors.role}</p>}
+                <label className="mb-2 block text-sm font-medium text-text-primary">Puesto / Rol</label>
+                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-background px-4 py-3 text-text-secondary">
+                  <Briefcase className="h-4 w-4" />
+                  {USER_ROLE_LABELS[user?.role] ?? user?.role ?? "—"}
+                  <Lock className="ml-auto h-3.5 w-3.5" />
+                </div>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-text-primary">Sucursal {!branchLocked ? "*" : ""}</label>
-                {branchLocked ? (
-                  <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-background px-4 py-3 text-text-secondary">
-                    <Building2 className="h-4 w-4" />
-                    {branch?.name ?? user?.branchName ?? "—"}
-                    <Lock className="ml-auto h-3.5 w-3.5" />
-                  </div>
-                ) : (
-                  <>
-                    <Select value={form.branchId} onChange={set("branchId")}>
-                      <option value="">Selecciona una sucursal...</option>
-                      {branches?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </Select>
-                    {errors.branchId && <p className="mt-1.5 text-sm text-error">{errors.branchId}</p>}
-                  </>
-                )}
+                <label className="mb-2 block text-sm font-medium text-text-primary">Sucursal</label>
+                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-background px-4 py-3 text-text-secondary">
+                  <Building2 className="h-4 w-4" />
+                  {user?.branchName ?? "—"}
+                  <Lock className="ml-auto h-3.5 w-3.5" />
+                </div>
               </div>
             </div>
           </div>
@@ -193,15 +160,11 @@ export default function EditPersonnelModal({
           <div className="mt-3 border-t border-gray-100 pt-3 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-text-secondary">Puesto / Rol</span>
-              <span className="font-medium text-text-primary">
-                {roleOptions.find((r) => r.value === form.role)?.label ?? "Selecciona un puesto..."}
-              </span>
+              <span className="font-medium text-text-primary">{USER_ROLE_LABELS[user?.role] ?? user?.role ?? "—"}</span>
             </div>
             <div className="mt-2 flex items-center justify-between">
               <span className="text-text-secondary">Sucursal</span>
-              <span className="inline-flex items-center gap-1 font-medium text-text-primary">
-                {selectedBranch?.name ?? "—"}
-              </span>
+              <span className="inline-flex items-center gap-1 font-medium text-text-primary">{user?.branchName ?? "—"}</span>
             </div>
           </div>
 

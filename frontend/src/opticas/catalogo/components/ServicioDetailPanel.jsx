@@ -3,11 +3,7 @@ import Button from "../../../shared/components/Button";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import Field from "../../../shared/components/DetailField";
 import Can from "../../../shared/security/Can";
-import { SERVICE_CATEGORIES } from "../constants";
 import { currency } from "../../../shared/utils/format";
-
-const categoryLabel = (value) =>
-  SERVICE_CATEGORIES.find((c) => c.value === value)?.label ?? value;
 
 
 export default function ServicioDetailPanel({ servicio, canDeactivate = false, onEdit, onDeactivate, onActivate }) {
@@ -31,7 +27,7 @@ export default function ServicioDetailPanel({ servicio, canDeactivate = false, o
 
       <dl className="space-y-3 border-t border-gray-100 pt-4">
         <Field label="SKU" value={servicio.code} />
-        <Field label="Categoría" value={categoryLabel(servicio.category)} />
+        <Field label="Categoría" value={servicio.categoryName} />
         <Field label="Descripción" value={servicio.description} />
       </dl>
 

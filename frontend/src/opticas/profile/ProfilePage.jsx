@@ -9,8 +9,11 @@ import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
 import { useAuth } from "../../shared/context/AuthContext";
 import { getRoleConfig } from "../../shared/security/roleConfig";
+import { cambiarPasswordRequest } from "../../shared/services/authService";
 
 import useUsers from "../users/hooks/useUsers";
+import useBranches from "../branches/hooks/useBranches";
+import { withBranchNames } from "../users/services/userService";
 import { onlyLetters, onlyDigits, isValidPhone } from "../../shared/utils/textInput";
 import { isValidEmail } from "../../shared/utils/validators";
 import { useFormValidation } from "../../shared/hooks/useFormValidation";
@@ -60,20 +63,27 @@ function FormField({ label, value, editing, children }) {
 export default function ProfilePage() {
 
   const { user: currentUser } = useAuth();
-  const { users, loading, error, updateMyProfile, changeMyPassword } = useUsers();
+  const { users, loading: loadingUsers, error: errorUsers, updateMyProfile } = useUsers();
+  const { branches, loading: loadingBranches, error: errorBranches } = useBranches();
 
-  const me = useMemo(() => users.find((u) => u.id === currentUser?.id), [users, currentUser?.id]);
+  const me = useMemo(
+    () => withBranchNames(users, branches).find((u) => u.id === currentUser?.id),
+    [users, branches, currentUser?.id]
+  );
 
   const [editingInfo, setEditingInfo] = useState(false);
   const [infoForm, setInfoForm] = useState(null);
   const { errors: infoErrors, validate: validateInfo, resetErrors: resetInfoErrors, setErrors: setInfoErrors } = useFormValidation();
   const [savingInfo, setSavingInfo] = useState(false);
 
-  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
-  const [showPassword, setShowPassword] = useState({ currentPassword: false, newPassword: false, confirmPassword: false });
+  const [passwordForm, setPasswordForm] = useState({ newPassword: "", confirmPassword: "" });
+  const [showPassword, setShowPassword] = useState({ newPassword: false, confirmPassword: false });
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+
+  const loading = loadingUsers || loadingBranches;
+  const error = errorUsers || errorBranches;
 
   if (loading) return <LoadingSpinner />;
   if (error || !me) return <ErrorState />;
@@ -124,12 +134,8 @@ export default function ProfilePage() {
     e.preventDefault();
     setPasswordSuccess("");
 
-    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+    const { newPassword, confirmPassword } = passwordForm;
 
-    if (!currentPassword) {
-      setPasswordError("Ingresa tu contraseña actual.");
-      return;
-    }
     if (newPassword.length < 8) {
       setPasswordError("La nueva contraseña debe tener mínimo 8 caracteres.");
       return;
@@ -150,8 +156,8 @@ export default function ProfilePage() {
     setPasswordError("");
     setSavingPassword(true);
     try {
-      await changeMyPassword(me.id, { currentPassword, newPassword });
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      await cambiarPasswordRequest(newPassword);
+      setPasswordForm({ newPassword: "", confirmPassword: "" });
       setPasswordSuccess("Contraseña actualizada correctamente.");
     } catch {
       setPasswordError("No se pudo actualizar la contraseña.");
@@ -263,19 +269,6 @@ export default function ProfilePage() {
             </h3>
 
             <form className="space-y-4" onSubmit={submitPasswordChange}>
-
-              <Input
-                label="Contraseña actual"
-                type={showPassword.currentPassword ? "text" : "password"}
-                placeholder="Ingresa tu contraseña actual"
-                value={passwordForm.currentPassword}
-                onChange={(e) => setPasswordForm((f) => ({ ...f, currentPassword: e.target.value }))}
-                endAdornment={
-                  <button type="button" onClick={() => toggleShowPassword("currentPassword")} className="text-text-secondary">
-                    {showPassword.currentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                }
-              />
 
               <Input
                 label="Nueva contraseña"

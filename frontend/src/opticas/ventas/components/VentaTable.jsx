@@ -1,10 +1,11 @@
-import { Eye } from "lucide-react";
+import { Eye, Download } from "lucide-react";
 import DataTable from "../../../shared/components/DataTable";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import IconButton from "../../../shared/components/IconButton";
 import PriorityBadge from "./PriorityBadge";
 import { WORK_TYPES } from "../constants";
 import { currency } from "../../../shared/utils/format";
+import { downloadVentaReceipt, buildReceiptData } from "../pdfReceipt";
 
 const workTypeLabel = (value) =>
   WORK_TYPES.find((option) => option.value === value)?.label ?? value;
@@ -50,6 +51,11 @@ export default function VentaTable({
       render: (row) => (
         <div className="flex items-center gap-1">
           <IconButton icon={Eye} label="Ver" onClick={() => onView(row)} />
+          <IconButton
+            icon={Download}
+            label="Descargar ticket"
+            onClick={() => downloadVentaReceipt(buildReceiptData(row))}
+          />
         </div>
       ),
     },

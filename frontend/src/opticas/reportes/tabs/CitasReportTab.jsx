@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Input from "../../../shared/components/Input";
 import SelectFilter from "../../../shared/filters/SelectFilter";
@@ -12,6 +12,7 @@ import SalesComparisonList from "../components/SalesComparisonList";
 import StatusDistributionBar from "../components/StatusDistributionBar";
 import { CITA_STATUSES } from "../../citas/constants";
 import { QUICK_RANGES, inDateRange, groupByCount } from "../salesReportUtils";
+import { getCitasReporte } from "../services/reportesService";
 import { formatFecha, formatHora } from "../../../shared/utils/format";
 
 const count = (value) => String(value ?? 0);
@@ -57,12 +58,47 @@ export default function CitasReportTab({
     [citasEnriquecidas, dateFrom, dateTo, branchId, employeeName, estado]
   );
 
-  const total = scopedCitas.length;
-  const pct = (n) => (total ? Math.round((n / total) * 100) : 0);
+  // Las 4 tarjetas y la distribucion por estado vienen de GET
+  // /api/opticas/reportes/citas (soporta el filtro de Estado directo) -
+  // pero no tiene forma de filtrar por Empleado, asi que con ese filtro
+  // activo se sigue calculando del lado del cliente como antes.
+  const sinFiltroEmpleado = !employeeName;
+  const [reporteCitas, setReporteCitas] = useState(null);
 
-  const atendidas = scopedCitas.filter((c) => c.status === "atendida").length;
-  const canceladas = scopedCitas.filter((c) => c.status === "cancelada").length;
-  const noAsistio = scopedCitas.filter((c) => c.status === "no_asistio").length;
+  useEffect(() => {
+    if (!sinFiltroEmpleado) return;
+    let active = true;
+    getCitasReporte({ branchId, dateFrom, dateTo, estado: estado || undefined })
+      .then((data) => { if (active) setReporteCitas(data); })
+      .catch(() => { if (active) setReporteCitas(null); });
+    return () => { active = false; };
+  }, [sinFiltroEmpleado, branchId, dateFrom, dateTo, estado]);
+
+  // El comparativo "por sucursal" sí puede venir del back (agrupar=sucursal
+  // en GET /citas). "Por empleado" (vista de sucursal fija) se queda en el
+  // cliente porque el back no soporta esa dimensión todavía.
+  const [comparisonBackend, setComparisonBackend] = useState(null);
+
+  useEffect(() => {
+    if (!sinFiltroEmpleado || branchLocked) return;
+    let active = true;
+    getCitasReporte({ branchId, dateFrom, dateTo, estado: estado || undefined, agrupar: "sucursal" })
+      .then((data) => { if (active) setComparisonBackend(data.desglose); })
+      .catch(() => { if (active) setComparisonBackend(null); });
+    return () => { active = false; };
+  }, [sinFiltroEmpleado, branchLocked, branchId, dateFrom, dateTo, estado]);
+
+  const totalCliente = scopedCitas.length;
+  const atendidasCliente = scopedCitas.filter((c) => c.status === "atendida").length;
+  const canceladasCliente = scopedCitas.filter((c) => c.status === "cancelada").length;
+  const noAsistioCliente = scopedCitas.filter((c) => c.status === "no_asistio").length;
+
+  const usarBack = sinFiltroEmpleado && reporteCitas;
+  const total = usarBack ? reporteCitas.total : totalCliente;
+  const atendidas = usarBack ? reporteCitas.atendidas : atendidasCliente;
+  const canceladas = usarBack ? reporteCitas.canceladas : canceladasCliente;
+  const noAsistio = usarBack ? reporteCitas.noAsistio : noAsistioCliente;
+  const pct = (n) => (total ? Math.round((n / total) * 100) : 0);
 
   const kpis = [
     { id: "total", type: "appointments", title: "Citas en el período", color: "blue", value: String(total), description: "En el período" },
@@ -79,12 +115,12 @@ export default function CitasReportTab({
 
   // Con una sola sucursal, "por sucursal" no aporta: se compara por
   // empleado en su lugar.
-  const comparisonItems = useMemo(
-    () => branchLocked
+  const comparisonItems = useMemo(() => {
+    if (!branchLocked && sinFiltroEmpleado && comparisonBackend) return comparisonBackend;
+    return branchLocked
       ? groupByCount(scopedCitas, (c) => c.employeeName, (c) => c.employeeName)
-      : groupByCount(scopedCitas, (c) => c.branchId, (c) => c.branchName || "Sin sucursal"),
-    [branchLocked, scopedCitas]
-  );
+      : groupByCount(scopedCitas, (c) => c.branchId, (c) => c.branchName || "Sin sucursal");
+  }, [branchLocked, scopedCitas, sinFiltroEmpleado, comparisonBackend]);
   const comparisonTitle = branchLocked ? "Citas por empleado" : "Citas por sucursal";
   const comparisonSubtitle = branchLocked
     ? "Número de citas registradas por empleado."

@@ -2,11 +2,7 @@ import { Eye, Pencil, Ban, RotateCcw } from "lucide-react";
 import DataTable from "../../../shared/components/DataTable";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import IconButton from "../../../shared/components/IconButton";
-import { SERVICE_CATEGORIES } from "../constants";
 import { currency } from "../../../shared/utils/format";
-
-const categoryLabel = (value) =>
-  SERVICE_CATEGORIES.find((c) => c.value === value)?.label ?? value;
 
 
 export default function ServicioTable({
@@ -23,7 +19,7 @@ export default function ServicioTable({
     { key: "displayId", label: "ID" },
     { key: "name", label: "Nombre", render: (row) => <span className="font-bold text-text-primary">{row.name}</span> },
     { key: "code", label: "SKU" },
-    { key: "category", label: "Categoría", render: (row) => categoryLabel(row.category) },
+    { key: "categoryName", label: "Categoría" },
     { key: "price", label: "Precio", render: (row) => currency(row.price) },
     {
       key: "status",

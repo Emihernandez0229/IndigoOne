@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { ClipboardList, Clock, AlertTriangle, XCircle, DollarSign, Info } from "lucide-react";
+import { ClipboardList, Clock, AlertTriangle, XCircle, DollarSign, Download } from "lucide-react";
 
 import StatusBadge from "../../../shared/components/StatusBadge";
 import Button from "../../../shared/components/Button";
+import IconButton from "../../../shared/components/IconButton";
 import TabBar from "../../../shared/components/TabBar";
 import SectionTitle from "../../../shared/components/SectionTitle";
 import Field from "../../../shared/components/DetailField";
 import PriorityBadge from "./PriorityBadge";
 import VentaTimeline from "./VentaTimeline";
-import GraduacionSummary from "./GraduacionSummary";
 import { PAYMENT_METHODS, WORK_TYPE_INFO, STATUS_TRANSITIONS } from "../constants";
 import { currency } from "../../../shared/utils/format";
+import { downloadVentaReceipt, buildReceiptData } from "../pdfReceipt";
 
 
 const TABS = [
@@ -33,11 +34,8 @@ const formatDateTime = (value) => {
  * Detalle de una venta - mismo patron que LaboratoryDetailPanel de Indigo
  * (Dueño): tabs "Información general"/"Detalles", tarjeta de datos y
  * linea de tiempo. "Estado" (trabajo) y "Pagos" son independientes.
- *
- * `receta` (opcional) es la graduacion de la orden de laboratorio ligada
- * a esta venta - solo aplica cuando workType es "orden_laboratorio".
  */
-export default function VentaDetailPanel({ venta, receta, onLiquidar, onChangeStatus, onCancel }) {
+export default function VentaDetailPanel({ venta, onLiquidar, onChangeStatus, onCancel }) {
 
   const [tab, setTab] = useState("info");
 
@@ -60,7 +58,14 @@ export default function VentaDetailPanel({ venta, receta, onLiquidar, onChangeSt
             <p className="text-sm text-text-secondary">Venta {venta.folio} · {formatDateTime(venta.createdAt)}</p>
           </div>
         </div>
-        <StatusBadge status={venta.status} />
+        <div className="flex items-center gap-2">
+          <IconButton
+            icon={Download}
+            label="Descargar ticket"
+            onClick={() => downloadVentaReceipt(buildReceiptData(venta))}
+          />
+          <StatusBadge status={venta.status} />
+        </div>
       </div>
 
       <TabBar tabs={TABS} active={tab} onChange={setTab} />
@@ -165,13 +170,6 @@ export default function VentaDetailPanel({ venta, receta, onLiquidar, onChangeSt
               </div>
             </div>
           </div>
-
-          {venta.workType === "orden_laboratorio" && receta && (
-            <div className="rounded-2xl border border-gray-200 bg-surface p-5">
-              <SectionTitle icon={Info}>Graduación</SectionTitle>
-              <GraduacionSummary receta={receta} />
-            </div>
-          )}
 
         </div>
       )}

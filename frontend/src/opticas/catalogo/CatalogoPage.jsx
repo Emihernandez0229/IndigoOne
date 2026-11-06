@@ -15,13 +15,13 @@ import SidePanel from "../../shared/components/SidePanel";
 import Can from "../../shared/security/Can";
 import usePermissions from "../../shared/hooks/usePermissions";
 import useBranchScope from "../../shared/hooks/useBranchScope";
-import { useAuth } from "../../shared/context/AuthContext";
 import { ROLES } from "../../shared/security/roles";
 
 import { listBranches } from "../branches/services/branchService";
 import useProductos from "./hooks/useProductos";
 import useServicios from "./hooks/useServicios";
-import { PRODUCT_CATEGORIES, SERVICE_CATEGORIES, CATALOG_STATUSES } from "./constants";
+import { useCategoriasProductos, useCategoriasServicios } from "./hooks/useCategorias";
+import { CATALOG_STATUSES } from "./constants";
 import ProductoTable from "./components/ProductoTable";
 import ProductoFormModal from "./components/ProductoFormModal";
 import ProductoDetailPanel from "./components/ProductoDetailPanel";
@@ -35,7 +35,6 @@ export default function CatalogoPage() {
 
   const { can } = usePermissions();
   const canManage = can("optica.catalog.update");
-  const { user: currentUser } = useAuth();
 
   // El catalogo de productos y servicios es compartido (no depende de
   // sucursal: el dueno no da de alta por sucursal), pero el selector se
@@ -56,6 +55,8 @@ export default function CatalogoPage() {
 
   const productosHook = useProductos();
   const serviciosHook = useServicios();
+  const { categorias: productCategories } = useCategoriasProductos();
+  const { categorias: serviceCategories } = useCategoriasServicios();
 
   const [productModal, setProductModal] = useState({ open: false, mode: "create", producto: null });
   const [serviceModal, setServiceModal] = useState({ open: false, mode: "create", servicio: null });
@@ -65,8 +66,8 @@ export default function CatalogoPage() {
 
   // Sin sucursal elegida (Todas), el stock es la suma de todas las
   // sucursales; con una elegida, se actualiza a la de esa sucursal. El
-  // Jefe de sucursal ve "active" como el de SU sucursal (dar de baja ahi
-  // no afecta al resto); el Dueño sigue viendo el estado global.
+  // activo/inactivo es siempre el global del producto - el back no tiene
+  // un "activo por sucursal" (solo Dueño puede cambiarlo, ver canDeactivate).
   const productos = useMemo(
     () =>
       productosHook.productos.map((p) => {
@@ -76,10 +77,9 @@ export default function CatalogoPage() {
           branchStock: selectedBranch
             ? branchEntry?.stock ?? 0
             : (p.stockPorSucursal ?? []).reduce((sum, s) => sum + s.stock, 0),
-          active: isOwner ? p.active : (branchEntry?.active ?? true),
         };
       }),
-    [productosHook.productos, selectedBranch, isOwner]
+    [productosHook.productos, selectedBranch]
   );
   const servicios = serviciosHook.servicios;
 
@@ -100,7 +100,7 @@ export default function CatalogoPage() {
     const term = query.trim().toLowerCase();
     return productos.filter((p) => {
       const matchesQuery = !term || p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term);
-      const matchesCategory = !category || p.category === category;
+      const matchesCategory = !category || String(p.categoryId) === category;
       const matchesStatus = !status || (status === "active" ? p.active : !p.active);
       return matchesQuery && matchesCategory && matchesStatus;
     });
@@ -110,7 +110,7 @@ export default function CatalogoPage() {
     const term = query.trim().toLowerCase();
     return servicios.filter((s) => {
       const matchesQuery = !term || s.name.toLowerCase().includes(term) || s.code.toLowerCase().includes(term);
-      const matchesCategory = !category || s.category === category;
+      const matchesCategory = !category || String(s.categoryId) === category;
       const matchesStatus = !status || (status === "active" ? s.active : !s.active);
       return matchesQuery && matchesCategory && matchesStatus;
     });
@@ -136,7 +136,7 @@ export default function CatalogoPage() {
     ];
   }, [tab, productos, servicios]);
 
-  const categoryOptions = tab === "productos" ? PRODUCT_CATEGORIES : SERVICE_CATEGORIES;
+  const categoryOptions = tab === "productos" ? productCategories : serviceCategories;
 
   const handleTabChange = (value) => {
     setTab(value);
@@ -162,6 +162,12 @@ export default function CatalogoPage() {
 
   const loading = tab === "productos" ? productosHook.loading : serviciosHook.loading;
   const error = tab === "productos" ? productosHook.error : serviciosHook.error;
+
+  // El back solo permite cambiar el activo/inactivo GLOBAL de un producto
+  // o servicio al Dueño (cambiarEstadoProducto/Servicio son soloRol('dueno')).
+  // El Jefe de sucursal nunca ve este botón; solo registra movimientos de
+  // stock (ver StockMovementModal más abajo).
+  const canDeactivate = isOwner && can("optica.catalog.deactivate");
 
 
   return (
@@ -254,7 +260,7 @@ export default function CatalogoPage() {
           <ProductoTable
             productos={filteredProductos}
             canEdit={canManage}
-            canDeactivate={can("optica.catalog.deactivate")}
+            canDeactivate={canDeactivate}
             onView={(producto) => setViewingId(producto.id)}
             onEdit={handleEditProducto}
             onDeactivate={(producto) => setConfirmAction({ type: "producto", action: "deactivate", item: producto })}
@@ -264,7 +270,7 @@ export default function CatalogoPage() {
           <ServicioTable
             servicios={filteredServicios}
             canEdit={canManage}
-            canDeactivate={can("optica.catalog.deactivate")}
+            canDeactivate={canDeactivate}
             onView={(servicio) => setViewingId(servicio.id)}
             onEdit={(servicio) => setServiceModal({ open: true, mode: "edit", servicio })}
             onDeactivate={(servicio) => setConfirmAction({ type: "servicio", action: "deactivate", item: servicio })}
@@ -283,7 +289,7 @@ export default function CatalogoPage() {
           <ProductoDetailPanel
             producto={viewingProducto}
             branches={isOwner ? branches : branches.filter((b) => b.id === selectedBranch)}
-            canDeactivate={can("optica.catalog.deactivate")}
+            canDeactivate={canDeactivate}
             onEdit={handleEditProducto}
             onDeactivate={(producto) => setConfirmAction({ type: "producto", action: "deactivate", item: producto })}
             onActivate={(producto) => setConfirmAction({ type: "producto", action: "activate", item: producto })}
@@ -291,7 +297,7 @@ export default function CatalogoPage() {
         ) : (
           <ServicioDetailPanel
             servicio={viewingServicio}
-            canDeactivate={can("optica.catalog.deactivate")}
+            canDeactivate={canDeactivate}
             onEdit={(servicio) => setServiceModal({ open: true, mode: "edit", servicio })}
             onDeactivate={(servicio) => setConfirmAction({ type: "servicio", action: "deactivate", item: servicio })}
             onActivate={(servicio) => setConfirmAction({ type: "servicio", action: "activate", item: servicio })}
@@ -325,7 +331,7 @@ export default function CatalogoPage() {
         producto={movementModal.producto}
         branchName={branches.find((b) => b.id === selectedBranch)?.name}
         onClose={() => setMovementModal({ open: false, producto: null })}
-        onSubmit={(payload) => productosHook.registerMovimiento(movementModal.producto.id, selectedBranch, { ...payload, createdBy: currentUser?.id })}
+        onSubmit={(payload) => productosHook.registerMovimiento(movementModal.producto.id, selectedBranch, payload)}
       />
 
       <ConfirmDialog
@@ -345,21 +351,17 @@ export default function CatalogoPage() {
         confirmLabel={confirmAction?.action === "activate" ? "Dar de alta" : "Dar de baja"}
         variant={confirmAction?.action === "activate" ? "primary" : "danger"}
         onConfirm={() => {
-          // El dueño da de alta/baja el producto completo; el jefe de
-          // sucursal solo afecta su propia sucursal (ver stockPorSucursal).
+          // Dar de alta/baja un producto o servicio es siempre global (el
+          // back no tiene un "activo por sucursal") y solo el Dueño puede
+          // hacerlo - ver canDeactivate más arriba.
           if (confirmAction.type === "servicio") {
             return confirmAction.action === "activate"
               ? serviciosHook.activate(confirmAction.item.id)
               : serviciosHook.deactivate(confirmAction.item.id);
           }
-          if (isOwner) {
-            return confirmAction.action === "activate"
-              ? productosHook.activate(confirmAction.item.id)
-              : productosHook.deactivate(confirmAction.item.id);
-          }
           return confirmAction.action === "activate"
-            ? productosHook.activateBranch(confirmAction.item.id, selectedBranch)
-            : productosHook.deactivateBranch(confirmAction.item.id, selectedBranch);
+            ? productosHook.activate(confirmAction.item.id)
+            : productosHook.deactivate(confirmAction.item.id);
         }}
         onClose={() => setConfirmAction(null)}
       />

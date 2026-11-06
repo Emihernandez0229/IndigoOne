@@ -1,13 +1,9 @@
-import { Pencil, ImageOff, Ban, RotateCcw } from "lucide-react";
+import { Pencil, Ban, RotateCcw } from "lucide-react";
 import Button from "../../../shared/components/Button";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import Field from "../../../shared/components/DetailField";
 import Can from "../../../shared/security/Can";
-import { PRODUCT_CATEGORIES } from "../constants";
 import { currency } from "../../../shared/utils/format";
-
-const categoryLabel = (value) =>
-  PRODUCT_CATEGORIES.find((c) => c.value === value)?.label ?? value;
 
 // Mismo criterio que opticas/inventory/stockStatus.js (catalogo Indigo):
 // agotado si es 0, bajo stock si no llega al minimo, disponible si no.
@@ -35,14 +31,6 @@ export default function ProductoDetailPanel({ producto, branches = [], canDeacti
   return (
     <div className="space-y-4">
 
-      <div className="flex h-40 items-center justify-center overflow-hidden rounded-xl bg-background">
-        {producto.imageUrl ? (
-          <img src={producto.imageUrl} alt={producto.name} className="h-full w-full object-contain" />
-        ) : (
-          <ImageOff className="h-8 w-8 text-text-secondary" />
-        )}
-      </div>
-
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={producto.active ? "active" : "inactive"} label={producto.active ? "Activo" : "Inactivo"} />
         <span className="rounded-full bg-indigo-light px-2.5 py-1 text-xs font-medium text-indigo-primary">Producto</span>
@@ -58,7 +46,7 @@ export default function ProductoDetailPanel({ producto, branches = [], canDeacti
       <dl className="space-y-3 border-t border-gray-100 pt-4">
         <Field label="SKU o código interno" value={producto.code} />
         <Field label="Marca" value={producto.brand} />
-        <Field label="Categoría" value={categoryLabel(producto.category)} />
+        <Field label="Categoría" value={producto.categoryName} />
         <Field label="Stock mínimo" value={producto.stockMin ?? 0} />
         <Field label="Descripción" value={producto.description} />
       </dl>

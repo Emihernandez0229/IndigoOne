@@ -6,18 +6,15 @@ function mapProducto(raw) {
   return {
     id: raw.id,
     displayId: raw.display_id ?? raw.displayId,
-    code: raw.codigo ?? raw.code ?? "",
+    code: raw.sku ?? raw.code ?? "",
     name: raw.nombre ?? raw.name ?? "",
-    category: raw.categoria ?? raw.category ?? "",
+    categoryId: raw.categoria_id ?? raw.categoryId ?? null,
+    categoryName: raw.categoria_nombre ?? raw.categoryName ?? "",
     brand: raw.marca ?? raw.brand ?? "",
     description: raw.descripcion ?? raw.description ?? "",
     salePrice: Number(raw.precio_venta ?? raw.salePrice ?? 0),
     stockMin: Number(raw.stock_minimo ?? raw.stockMin ?? 0),
-    imageUrl: raw.imagen_url ?? raw.imageUrl ?? "",
-    active: raw.active ?? raw.estado !== "inactive",
-    stockPorSucursal: Array.isArray(raw.stock_por_sucursal)
-      ? raw.stock_por_sucursal.map((row) => ({ branchId: row.sucursal_id, stock: Number(row.stock ?? 0), active: row.active ?? true }))
-      : [],
+    active: raw.activo ?? raw.active ?? true,
   };
 }
 
@@ -28,106 +25,101 @@ function mapServicio(raw) {
     displayId: raw.display_id ?? raw.displayId,
     code: raw.codigo ?? raw.code ?? "",
     name: raw.nombre ?? raw.name ?? "",
-    category: raw.categoria ?? raw.category ?? "",
+    categoryId: raw.categoria_id ?? raw.categoryId ?? null,
+    categoryName: raw.categoria_nombre ?? raw.categoryName ?? "",
     description: raw.descripcion ?? raw.description ?? "",
     price: Number(raw.precio ?? raw.price ?? 0),
-    active: raw.active ?? raw.estado !== "inactive",
+    active: raw.activo ?? raw.active ?? true,
   };
+}
+
+function mapCategoria(raw) {
+  return { value: raw.id, label: raw.nombre };
+}
+
+
+export async function listCategoriasProductos() {
+  const data = await httpClient.get("/api/opticas/productos/categorias");
+  return (Array.isArray(data) ? data : []).map(mapCategoria);
+}
+
+export async function listCategoriasServicios() {
+  const data = await httpClient.get("/api/opticas/servicios/categorias");
+  return (Array.isArray(data) ? data : []).map(mapCategoria);
 }
 
 
 export async function listProductos() {
-  const data = await httpClient.get("/api/opticas/productos");
+  const data = await httpClient.get("/api/opticas/productos?limit=100");
   return (Array.isArray(data) ? data : []).map(mapProducto);
 }
 
 export async function createProducto(payload) {
   const created = await httpClient.post("/api/opticas/productos", {
-    codigo: payload.code,
     nombre: payload.name,
-    categoria: payload.category,
-    marca: payload.brand,
-    descripcion: payload.description,
-    precio_venta: payload.salePrice,
-    stock_minimo: payload.stockMin,
-    imagen_url: payload.imageUrl || "",
+    sku: payload.code || undefined,
+    marca: payload.brand || undefined,
+    descripcion: payload.description || undefined,
+    categoriaId: Number(payload.categoryId),
+    precioVenta: Number(payload.salePrice),
+    stockMinimo: payload.stockMin === "" || payload.stockMin == null ? undefined : Number(payload.stockMin),
   });
   return mapProducto(created);
 }
 
 export async function updateProducto(id, payload) {
-  const updated = await httpClient.put(`/api/opticas/productos/${id}`, {
-    codigo: payload.code,
+  const updated = await httpClient.patch(`/api/opticas/productos/${id}`, {
     nombre: payload.name,
-    categoria: payload.category,
-    marca: payload.brand,
-    descripcion: payload.description,
-    precio_venta: payload.salePrice,
-    stock_minimo: payload.stockMin,
-    imagen_url: payload.imageUrl || "",
+    sku: payload.code || undefined,
+    marca: payload.brand || undefined,
+    descripcion: payload.description || undefined,
+    categoriaId: Number(payload.categoryId),
+    precioVenta: Number(payload.salePrice),
+    stockMinimo: payload.stockMin === "" || payload.stockMin == null ? undefined : Number(payload.stockMin),
   });
   return mapProducto(updated);
 }
 
 export async function deactivateProducto(id) {
-  return mapProducto(await httpClient.patch(`/api/opticas/productos/${id}/deactivate`));
+  return mapProducto(await httpClient.patch(`/api/opticas/productos/${id}/estado`, { activo: false }));
 }
 
 export async function activateProducto(id) {
-  return mapProducto(await httpClient.patch(`/api/opticas/productos/${id}/activate`));
-}
-
-// Para el Jefe de sucursal: alta/baja y movimientos de stock que solo
-// afectan a SU sucursal, sin tocar el producto global.
-export async function deactivateProductoBranch(id, branchId) {
-  return mapProducto(await httpClient.patch(`/api/opticas/productos/${id}/sucursal/${branchId}/baja`));
-}
-
-export async function activateProductoBranch(id, branchId) {
-  return mapProducto(await httpClient.patch(`/api/opticas/productos/${id}/sucursal/${branchId}/alta`));
-}
-
-export async function registerProductoMovimiento(id, branchId, payload) {
-  return mapProducto(await httpClient.patch(`/api/opticas/productos/${id}/sucursal/${branchId}/movimiento`, {
-    tipo: payload.tipo,
-    cantidad: payload.cantidad,
-    motivo: payload.motivo,
-    creadoPor: payload.createdBy,
-  }));
+  return mapProducto(await httpClient.patch(`/api/opticas/productos/${id}/estado`, { activo: true }));
 }
 
 
 export async function listServicios() {
-  const data = await httpClient.get("/api/opticas/servicios");
+  const data = await httpClient.get("/api/opticas/servicios?limit=100");
   return (Array.isArray(data) ? data : []).map(mapServicio);
 }
 
 export async function createServicio(payload) {
   const created = await httpClient.post("/api/opticas/servicios", {
-    codigo: payload.code,
     nombre: payload.name,
-    categoria: payload.category,
-    descripcion: payload.description,
-    precio: payload.price,
+    codigo: payload.code || undefined,
+    descripcion: payload.description || undefined,
+    categoriaId: Number(payload.categoryId),
+    precio: Number(payload.price),
   });
   return mapServicio(created);
 }
 
 export async function updateServicio(id, payload) {
-  const updated = await httpClient.put(`/api/opticas/servicios/${id}`, {
-    codigo: payload.code,
+  const updated = await httpClient.patch(`/api/opticas/servicios/${id}`, {
     nombre: payload.name,
-    categoria: payload.category,
-    descripcion: payload.description,
-    precio: payload.price,
+    codigo: payload.code || undefined,
+    descripcion: payload.description || undefined,
+    categoriaId: Number(payload.categoryId),
+    precio: Number(payload.price),
   });
   return mapServicio(updated);
 }
 
 export async function deactivateServicio(id) {
-  return mapServicio(await httpClient.patch(`/api/opticas/servicios/${id}/deactivate`));
+  return mapServicio(await httpClient.patch(`/api/opticas/servicios/${id}/estado`, { activo: false }));
 }
 
 export async function activateServicio(id) {
-  return mapServicio(await httpClient.patch(`/api/opticas/servicios/${id}/activate`));
+  return mapServicio(await httpClient.patch(`/api/opticas/servicios/${id}/estado`, { activo: true }));
 }

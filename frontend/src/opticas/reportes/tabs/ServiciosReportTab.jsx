@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Input from "../../../shared/components/Input";
 import SelectFilter from "../../../shared/filters/SelectFilter";
@@ -9,6 +9,7 @@ import BarChart from "../../../shared/charts/BarChart";
 import SalesComparisonList from "../components/SalesComparisonList";
 import SalesLineItemsTable from "../components/SalesLineItemsTable";
 import { QUICK_RANGES, inDateRange, groupByItem, buildServiceDailyBuckets, itemTotalConIva } from "../salesReportUtils";
+import { getServiciosReporte } from "../services/reportesService";
 import { currency } from "../../../shared/utils/format";
 
 const count = (value) => String(value ?? 0);
@@ -43,10 +44,23 @@ export default function ServiciosReportTab({
     [scopedVentas, serviceId]
   );
 
+  // Las 4 tarjetas vienen de GET /api/opticas/reportes/servicios - su
+  // unico filtro extra (servicioId) es justo el que ya tiene este tab, asi
+  // que no hace falta ningun calculo de respaldo del lado del cliente.
+  const [reporteServicios, setReporteServicios] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    getServiciosReporte({ branchId, dateFrom, dateTo, servicioId: serviceId || undefined })
+      .then((data) => { if (active) setReporteServicios(data); })
+      .catch(() => { if (active) setReporteServicios(null); });
+    return () => { active = false; };
+  }, [branchId, dateFrom, dateTo, serviceId]);
+
   const kpis = useMemo(() => {
-    const realizados = servicioStats.reduce((sum, s) => sum + s.unidades, 0);
-    const ingresos = servicioStats.reduce((sum, s) => sum + s.total, 0);
-    const masSolicitado = [...servicioStats].sort((a, b) => b.unidades - a.unidades)[0]?.name ?? "—";
+    const realizados = reporteServicios?.realizados ?? 0;
+    const ingresos = reporteServicios?.ingreso ?? 0;
+    const masSolicitado = reporteServicios?.ranking?.[0]?.name ?? "—";
     const ingresoPromedio = realizados > 0 ? ingresos / realizados : 0;
 
     return [
@@ -55,17 +69,21 @@ export default function ServiciosReportTab({
       { id: "top", type: "confirmed", title: "Más solicitado", color: "purple", value: masSolicitado, description: "" },
       { id: "promedio", type: "revenue", title: "Ingreso promedio", color: "orange", value: currency(ingresoPromedio), description: "Por servicio" },
     ];
-  }, [servicioStats]);
+  }, [reporteServicios]);
 
   const dailyBuckets = useMemo(
     () => buildServiceDailyBuckets(scopedVentas, dateFrom, dateTo, serviceId || undefined),
     [scopedVentas, dateFrom, dateTo, serviceId]
   );
 
-  const comparisonItems = useMemo(
-    () => servicioStats.map((s) => ({ id: s.id, name: s.name, total: s.unidades })),
-    [servicioStats]
-  );
+  // "Servicios más solicitados" ya puede salir directo del ranking que
+  // regresa GET /servicios (mismo fetch que ya se usa para las tarjetas,
+  // no hace falta una llamada extra) - si por lo que sea no cargó, se cae
+  // al cálculo local de respaldo.
+  const comparisonItems = useMemo(() => {
+    if (reporteServicios?.ranking?.length) return reporteServicios.ranking;
+    return servicioStats.map((s) => ({ id: s.id, name: s.name, total: s.unidades }));
+  }, [reporteServicios, servicioStats]);
 
   // Detalle sin agrupar: cada servicio realizado con su fecha y quién lo
   // vendió (antes era un resumen por nombre de servicio, pero eso no deja

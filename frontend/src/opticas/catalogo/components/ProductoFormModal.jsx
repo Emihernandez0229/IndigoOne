@@ -4,7 +4,7 @@ import Input from "../../../shared/components/Input";
 import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
 import { onlyLetters, onlyDigits, alphanumericDash } from "../../../shared/utils/textInput";
-import { PRODUCT_CATEGORIES } from "../constants";
+import { useCategoriasProductos } from "../hooks/useCategorias";
 
 
 const CODE_MAX = 10;
@@ -13,7 +13,7 @@ const BRAND_MAX = 20;
 const NUMBER_MAX = 3;
 
 const EMPTY = {
-  code: "", name: "", category: "", brand: "",
+  code: "", name: "", categoryId: "", brand: "",
   description: "", salePrice: "", stockMin: "",
 };
 
@@ -23,7 +23,7 @@ function crearForm(producto) {
     ...EMPTY,
     code: producto.code ?? "",
     name: producto.name ?? "",
-    category: producto.category ?? "",
+    categoryId: producto.categoryId != null ? String(producto.categoryId) : "",
     brand: producto.brand ?? "",
     description: producto.description ?? "",
     salePrice: producto.salePrice ?? "",
@@ -37,6 +37,7 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
   const [form, setForm] = useState(() => crearForm(producto));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const { categorias: categoryOptions } = useCategoriasProductos();
 
   const titles = { create: "Nuevo producto", edit: "Editar producto" };
 
@@ -62,7 +63,7 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
 
     if (!code) nextErrors.code = "El SKU es obligatorio.";
     if (!name) nextErrors.name = "El nombre es obligatorio.";
-    if (!form.category) nextErrors.category = "Selecciona una categoría.";
+    if (!form.categoryId) nextErrors.categoryId = "Selecciona una categoría.";
     if (form.salePrice === "" || Number(form.salePrice) < 0) nextErrors.salePrice = "Indica el precio de venta.";
 
     setErrors(nextErrors);
@@ -73,7 +74,7 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
       await onSubmit({
         code,
         name,
-        category: form.category,
+        categoryId: form.categoryId,
         brand: String(form.brand ?? "").trim(),
         description: String(form.description ?? "").trim(),
         salePrice: Number(form.salePrice),
@@ -106,11 +107,11 @@ export default function ProductoFormModal({ open, mode = "create", producto = nu
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="w-full">
             <label htmlFor="prod-category" className="mb-2 block text-sm font-medium text-text-primary">Categoría</label>
-            <Select id="prod-category" value={form.category} onChange={set("category")}>
+            <Select id="prod-category" value={form.categoryId} onChange={set("categoryId")}>
               <option value="">Selecciona...</option>
-              {PRODUCT_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+              {categoryOptions.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </Select>
-            {errors.category && <p className="mt-1.5 text-sm text-error">{errors.category}</p>}
+            {errors.categoryId && <p className="mt-1.5 text-sm text-error">{errors.categoryId}</p>}
           </div>
           <Input label="Marca" value={form.brand} onChange={set("brand", (v) => onlyLetters(v, BRAND_MAX))} />
         </div>

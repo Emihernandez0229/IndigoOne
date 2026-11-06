@@ -8,11 +8,13 @@ import { useFormValidation } from "../../../shared/hooks/useFormValidation";
 import { onlyDigits, textWithSpecialChars } from "../../../shared/utils/textInput";
 
 
+// "venta" no esta aqui a proposito: el sistema la registra solo al vender,
+// nunca se captura a mano (ver stock.schema.js del back: tipo solo admite
+// entrada/salida/ajuste en este endpoint).
 const MOVEMENT_TYPES = [
   { value: "entrada", label: "Entrada" },
   { value: "salida", label: "Salida" },
-  { value: "ventas", label: "Ventas" },
-  { value: "ajustes", label: "Ajustes" },
+  { value: "ajuste", label: "Ajuste" },
 ];
 
 const MOTIVO_MAX = 200;
