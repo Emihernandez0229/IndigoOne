@@ -1,3 +1,15 @@
+const COLUMNAS_PACIENTE = `
+    id,
+    sucursal_id,
+    nombre,
+    telefono,
+    email,
+    fecha_nacimiento,
+    activo,
+    created_at,
+    updated_at
+`;
+
 class PacienteRepository {
     constructor(pool) {
         this.pool = pool;
@@ -63,15 +75,7 @@ class PacienteRepository {
                 fecha_nacimiento
             )
             VALUES ($1, $2, $3, $4, $5)
-            RETURNING
-                id,
-                sucursal_id,
-                nombre,
-                telefono,
-                email,
-                fecha_nacimiento,
-                created_at,
-                updated_at
+            RETURNING ${COLUMNAS_PACIENTE}
         `;
 
         const values = [
@@ -89,15 +93,7 @@ class PacienteRepository {
 
     async obtenerPacientes(sucursalId) {
         const query = `
-            SELECT
-                id,
-                sucursal_id,
-                nombre,
-                telefono,
-                email,
-                fecha_nacimiento,
-                created_at,
-                updated_at
+            SELECT ${COLUMNAS_PACIENTE}
             FROM clientes_finales
             WHERE sucursal_id = $1
             ORDER BY nombre ASC
@@ -110,15 +106,7 @@ class PacienteRepository {
 
     async obtenerPacientePorId(id, sucursalId) {
         const query = `
-            SELECT
-                id,
-                sucursal_id,
-                nombre,
-                telefono,
-                email,
-                fecha_nacimiento,
-                created_at,
-                updated_at
+            SELECT ${COLUMNAS_PACIENTE}
             FROM clientes_finales
             WHERE id = $1
               AND sucursal_id = $2
@@ -169,15 +157,7 @@ class PacienteRepository {
             SET ${campos.join(', ')}
             WHERE id = $${indice++}
               AND sucursal_id = $${indice}
-            RETURNING
-                id,
-                sucursal_id,
-                nombre,
-                telefono,
-                email,
-                fecha_nacimiento,
-                created_at,
-                updated_at
+            RETURNING ${COLUMNAS_PACIENTE}
         `;
 
         const { rows } = await this.pool.query(query, valores);
@@ -194,6 +174,7 @@ class PacienteRepository {
                 cf.telefono,
                 cf.email,
                 cf.fecha_nacimiento,
+                cf.activo,
                 cf.created_at,
                 cf.updated_at
             FROM clientes_finales cf
@@ -206,6 +187,77 @@ class PacienteRepository {
             id,
             opticaId
         ]);
+        return rows[0] || null;
+    }
+
+    /**
+     * Obtiene todos los pacientes de una óptica, con el nombre de su sucursal.
+     */
+    async listarPacientesPorOptica(opticaId) {
+        const query = `
+            SELECT
+                cf.id,
+                cf.sucursal_id,
+                s.nombre AS sucursal_nombre,
+                cf.nombre,
+                cf.telefono,
+                cf.email,
+                cf.fecha_nacimiento,
+                cf.activo,
+                cf.created_at,
+                cf.updated_at
+            FROM clientes_finales cf
+            INNER JOIN sucursales s
+                ON s.id = cf.sucursal_id
+            WHERE s.optica_id = $1
+            ORDER BY cf.nombre ASC
+        `;
+
+        const { rows } = await this.pool.query(query, [opticaId]);
+
+        return rows;
+    }
+
+    /**
+     * Activa o desactiva un paciente dentro de una sucursal.
+     */
+    async cambiarEstadoPaciente(id, sucursalId, activo) {
+        const query = `
+            UPDATE clientes_finales
+            SET activo = $1,
+                updated_at = NOW()
+            WHERE id = $2
+              AND sucursal_id = $3
+            RETURNING ${COLUMNAS_PACIENTE}
+        `;
+
+        const { rows } = await this.pool.query(query, [
+            activo,
+            id,
+            sucursalId
+        ]);
+
+        return rows[0] || null;
+    }
+    /**
+     * Activa o desactiva un paciente dentro de una sucursal.
+     */
+    async cambiarEstadoPaciente(id, sucursalId, activo) {
+        const query = `
+            UPDATE clientes_finales
+            SET activo = $1,
+                updated_at = NOW()
+            WHERE id = $2
+              AND sucursal_id = $3
+            RETURNING ${COLUMNAS_PACIENTE}
+        `;
+
+        const { rows } = await this.pool.query(query, [
+            activo,
+            id,
+            sucursalId
+        ]);
+
         return rows[0] || null;
     }
 }

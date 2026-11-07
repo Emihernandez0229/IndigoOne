@@ -2,6 +2,7 @@ const {
     BadRequestError,
     NotFoundError,
     ForbiddenError,
+    ConflictError
 } = require('../../../core/utils/errors');
 const { ROL } = require('../../constants/roles.constants');
 
@@ -181,6 +182,61 @@ class PacienteService {
         }
 
         return pacienteActualizado;
+    }
+
+    /**
+     * Lista los pacientes visibles para el usuario.
+     * - Dueño: todos los de su óptica.
+     * - Encargado / empleado: los de su sucursal.
+     * - Cualquier otro rol: rechazado por #resolverSucursalPermitida.
+     */
+    async listarPacientes({ usuario }) {
+        if (usuario.rol === ROL.DUENO) {
+            return this.pacienteRepository.listarPacientesPorOptica(usuario.optica_id);
+        }
+
+        const sucursalPermitida = await this.#resolverSucursalPermitida(usuario);
+
+        return this.pacienteRepository.obtenerPacientes(sucursalPermitida);
+    }
+
+
+    /**
+     * Activa o desactiva un paciente. Solo dueño y encargado; el encargado
+     * únicamente dentro de su sucursal (lo resuelve obtenerPacientePorId).
+     */
+    async #cambiarEstadoPaciente({ id, usuario, activo }) {
+        if (usuario.rol !== ROL.DUENO && usuario.rol !== ROL.ENCARGADO) {
+            throw new ForbiddenError('No tienes permisos para cambiar el estado de pacientes.');
+        }
+
+        const paciente = await this.obtenerPacientePorId({ id, usuario });
+
+        if (paciente.activo === activo) {
+            throw new ConflictError(
+                activo ? 'El paciente ya está activo.' : 'El paciente ya está desactivado.'
+            );
+        }
+
+        const actualizado = await this.pacienteRepository.cambiarEstadoPaciente(
+            id,
+            paciente.sucursal_id,
+            activo
+        );
+
+        if (!actualizado) {
+            throw new NotFoundError('Paciente no encontrado.');
+        }
+
+        return actualizado;
+    }
+
+    async desactivarPaciente({ id, usuario }) {
+        return this.#cambiarEstadoPaciente({ id, usuario, activo: false });
+    }
+    
+    async activarPaciente({ id, usuario }) {
+        return this.#cambiarEstadoPaciente({ id, usuario, activo: true });
     }
 }
 

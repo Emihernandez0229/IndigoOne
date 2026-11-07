@@ -69,6 +69,46 @@ class PacienteController {
 
         res.status(200).json({ success: true, data: paciente });
     }
+
+    /**
+ * Lista los pacientes visibles para el usuario autenticado.
+ */
+async listarPacientes(req, res) {
+    const pacientes = await this.pacienteService.listarPacientes({
+        usuario: req.user,
+    });
+
+    res.status(200).json({ success: true, data: pacientes });
+}
+
+    /**
+     * Desactiva un paciente.
+     */
+    async desactivarPaciente(req, res) {
+        const { id } = req.params;
+    
+        const paciente = await this.pacienteService.desactivarPaciente({
+            id,
+            usuario: req.user,
+        });
+    
+        res.status(200).json({ success: true, data: paciente });
+    }
+    
+    /**
+     * Activa un paciente.
+     */
+    async activarPaciente(req, res) {
+        const { id } = req.params;
+    
+        const paciente = await this.pacienteService.activarPaciente({
+            id,
+            usuario: req.user,
+        });
+    
+        res.status(200).json({ success: true, data: paciente });
+    }
+
 }
 
 module.exports = PacienteController;

@@ -29,6 +29,14 @@ router.post(
     pacienteController.crearPaciente.bind(pacienteController)
 );
 
+// GET /api/opticas/pacientes
+// Dueño: toda la óptica. Encargado/empleado: su sucursal.
+router.get(
+    '/',
+    pacienteController.listarPacientes.bind(pacienteController)
+);
+
+
 router.get(
     '/sucursal/:sucursalId',
     validate(sucursalParamsSchema, 'params'),
@@ -46,6 +54,20 @@ router.patch(
     validate(pacienteParamsSchema, 'params'),
     validate(actualizarPacienteSchema),
     pacienteController.actualizarPaciente.bind(pacienteController)
+);
+
+router.patch(
+    '/:id/deactivate',
+    soloRol('dueno', 'encargado'),
+    validate(pacienteParamsSchema, 'params'),
+    pacienteController.desactivarPaciente.bind(pacienteController)
+);
+
+router.patch(
+    '/:id/activate',
+    soloRol('dueno', 'encargado'),
+    validate(pacienteParamsSchema, 'params'),
+    pacienteController.activarPaciente.bind(pacienteController)
 );
 
 module.exports = router;
