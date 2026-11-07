@@ -5,4 +5,6 @@ const ROL = Object.freeze({
     EMPLEADO: 'empleado',
 });
 
-module.exports = { ROL };
+const ROLES = Object.freeze(Object.values(ROL));
+
+module.exports = { ROL, ROLES };

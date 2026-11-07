@@ -56,4 +56,23 @@ function validarAccesoRecurso(recurso, { opticaId, sucursalId, esDueno }, mensaj
     }
 }
 
-module.exports = { resolverSucursal, validarAccesoRecurso };
+const resolverAlcanceConsulta = (req, { sucursalId, todas }) => {
+    const esDueno = req.user.rol === ROL.DUENO;
+
+    if (esDueno) {
+        if (sucursalId) return { sucursalId, todas: false };
+        if (todas) return { sucursalId: null, todas: true };
+
+        throw new BadRequestError('Debes indicar una sucursal o solicitar todas las sucursales.');
+    }
+
+    if (!req.user.sucursal_id) {
+        throw new BadRequestError('Tu usuario no tiene una sucursal asignada.');
+    }
+
+    return { sucursalId: req.user.sucursal_id, todas: false };
+};
+
+
+
+module.exports = { resolverSucursal, validarAccesoRecurso, resolverAlcanceConsulta };
