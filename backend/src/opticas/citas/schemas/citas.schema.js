@@ -8,10 +8,6 @@ const estadosCita = [
     'no_asistio'
 ];
 
-
-
-
-
 const crearCitaSchema = z.object({
     clienteId: z.uuid({
         error: 'El ID de la sucursal debe tener un formato UUID válido'}
@@ -32,25 +28,26 @@ const crearCitaSchema = z.object({
 
 
 const listarCitasSchema = z.object({
-    sucursalId: z.uuid({error: 'El ID de la sucursal debe de tener un formato UUID válido.'}).optional(),
-    clienteId: z.uuid({error: 'El ID del cliente debe tener un formato UUID válido.'}).optional(),
+    sucursalId: z.uuid({ error: 'El ID de la sucursal debe de tener un formato UUID válido.' }).optional(),
+    todas: z.enum(['true', 'false'], { error: 'todas debe ser true o false' }).default('false'),
+    clienteId: z.uuid({ error: 'El ID del cliente debe tener un formato UUID válido.' }).optional(),
     limit: z.coerce.number().int().min(1).max(100).default(20),
     offset: z.coerce.number().int().min(0).default(0),
-    estado:z.string()
-            .transform(
-                (valor) => valor.split(',').map(
-                    (e) => e.trim()
-                )
-            )
-            .pipe(z.array(z.enum(estadosCita,{ error: 'Estado inválido'})))
-            .optional(),
-
+    estado: z.string()
+        .transform((valor) => valor.split(',').map((e) => e.trim()))
+        .pipe(z.array(z.enum(estadosCita, { error: 'Estado inválido' })))
+        .optional(),
     desde: z.iso.datetime({ offset: true, error: 'desde debe ser fecha ISO 8601 con zona horaria.' }).optional(),
     hasta: z.iso.datetime({ offset: true, error: 'hasta debe ser fecha ISO 8601 con zona horaria.' }).optional(),
-}).refine(
-    (datos) => !datos.desde || !datos.hasta || new Date(datos.desde) < new Date(datos.hasta),
-    { message: '"desde" debe ser anterior a "hasta".', path: ['desde'] }
-)
+})
+    .refine(
+        (datos) => !datos.desde || !datos.hasta || new Date(datos.desde) < new Date(datos.hasta),
+        { message: '"desde" debe ser anterior a "hasta".', path: ['desde'] }
+    )
+    .refine(
+        (datos) => !(datos.todas === 'true' && datos.sucursalId),
+        { message: 'No puedes combinar todas=true con sucursalId.', path: ['todas'] }
+    );
 
 const  obtenerCitaPorIdSchema = z.object({
     citaId: z.uuid({

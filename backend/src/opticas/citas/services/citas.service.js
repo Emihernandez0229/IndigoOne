@@ -199,6 +199,24 @@ class CitasService {
     }
 
     /**
+     * Lista las citas de todas las sucursales de una óptica, con paginación.
+     * Pensado para el dueño (la restricción de rol se hace en el controller).
+     */
+    async listarCitasPorOptica({ opticaId, paginacion = {}, filtros = {} }) {
+        const limit = Math.min(paginacion.limit ?? LIMITE_CITAS_DEFECTO, LIMITE_CITAS_MAXIMO);
+        const offset = paginacion.offset ?? 0;
+    
+        const { citas, total } = await this.citasRepository.listarPorOptica({
+            opticaId, filtros, limit, offset,
+        });
+    
+        return {
+            data: citas,
+            paginacion: { total, limit, offset, hasMore: offset + citas.length < total },
+        };
+    }
+
+    /**
      * Obtiene el detalle de una cita, validando acceso según el rol.
      *
      * @param {Object} data

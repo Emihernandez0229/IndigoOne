@@ -87,58 +87,78 @@ class CitasRepository {
     }
 
     async listarPorSucursal({ sucursalId, filtros = {}, limit, offset }, client) {
-
-        const condiciones = ['c.sucursal_id = $1'];
-        const valores = [sucursalId]; // faltaba esta declaración
-
+        return this.#listar({
+            condicionBase: 'c.sucursal_id = $1',
+            valorBase: sucursalId,
+            filtros,
+            limit,
+            offset
+        }, client);
+    }
+    
+    async listarPorOptica({ opticaId, filtros = {}, limit, offset }, client) {
+        return this.#listar({
+            condicionBase: 's.optica_id = $1',
+            valorBase: opticaId,
+            filtros,
+            limit,
+            offset
+        }, client);
+    }
+    
+    async #listar({ condicionBase, valorBase, filtros, limit, offset }, client) {
+        const condiciones = [condicionBase];
+        const valores = [valorBase];
+    
         if (filtros.estados?.length) {
             valores.push(filtros.estados);
             condiciones.push(`c.estado = ANY($${valores.length}::text[])`);
         }
-
+    
         if (filtros.desde) {
-            valores.push(filtros.desde); // antes empujaba filtros.hasta por error
+            valores.push(filtros.desde);
             condiciones.push(`c.fecha_hora >= $${valores.length}`);
         }
-
+    
         if (filtros.hasta) {
-            valores.push(filtros.hasta); // este bloque faltaba
+            valores.push(filtros.hasta);
             condiciones.push(`c.fecha_hora < $${valores.length}`);
         }
-
-        if(filtros.clienteId){
+    
+        if (filtros.clienteId) {
             valores.push(filtros.clienteId);
             condiciones.push(`c.cliente_final_id = $${valores.length}`);
         }
-
-
+    
         valores.push(limit, offset);
         const posLimit = valores.length - 1;
         const posOffset = valores.length;
-
+    
         const query = `
-            SELECT 
-            c.id,
-            c.sucursal_id,
-            cf.nombre AS cliente_nombre,
-            c.fecha_hora,
-            c.motivo,
-            c.estado,
-            c.creado_por,
-            c.created_at,
-            COUNT(*) OVER() AS total_registros
+            SELECT
+                c.id,
+                c.sucursal_id,
+                s.nombre AS sucursal_nombre,
+                cf.nombre AS cliente_nombre,
+                c.fecha_hora,
+                c.motivo,
+                c.estado,
+                c.creado_por,
+                c.created_at,
+                COUNT(*) OVER() AS total_registros
             FROM citas c
+            JOIN sucursales s ON s.id = c.sucursal_id
             JOIN clientes_finales cf ON cf.id = c.cliente_final_id
             WHERE ${condiciones.join(' AND ')}
             ORDER BY c.fecha_hora ASC, c.id ASC
             LIMIT $${posLimit} OFFSET $${posOffset}
         `;
-
+    
         const { rows } = await this._exec(client).query(query, valores);
-
+    
         const total = rows.length > 0 ? Number(rows[0].total_registros) : 0;
         const citas = rows.map(({ total_registros, ...cita }) => cita);
-
+    
         return { citas, total };
     }
 

@@ -46,22 +46,41 @@ class CitasController {
      * @returns {Promise<void>}
      */
     async obtenerTodasCitas(req, res) {
-        const { sucursalId: sucursalIdQuery, clienteId, limit, offset, estado, desde, hasta } = req.query;
-
+        const { sucursalId: sucursalIdQuery, todas, clienteId, limit, offset, estado, desde, hasta } = req.query;
+        
+        const paginacion = { limit, offset };
+        const filtros = { estados: estado, desde, hasta, clienteId };
+        
+        // Dueño con todas=true: citas de todas las sucursales de su óptica.
+        // Para los demás roles el parámetro se ignora y rige su sucursal.
+        if (req.user.rol === ROL.DUENO && todas === 'true') {
+            const resultado = await this.citaService.listarCitasPorOptica({
+                opticaId: req.user.optica_id,
+                paginacion,
+                filtros,
+            });
+        
+            return res.status(200).json({
+                success: true,
+                data: resultado.data,
+                paginacion: resultado.paginacion,
+            });
+        }
+    
         const { sucursalId } = resolverSucursal(
             req,
             sucursalIdQuery,
             'Debes indicar la sucursal (sucursalId) a consultar.'
         );
-
-        const { data, paginacion } = await this.citaService.listarCitasPorSucursal({
+    
+        const { data, paginacion: infoPaginacion } = await this.citaService.listarCitasPorSucursal({
             sucursalId,
             opticaId: req.user.optica_id,
-            paginacion: { limit, offset },
-            filtros: { estados: estado, desde, hasta, clienteId },
+            paginacion,
+            filtros,
         });
-
-        res.status(200).json({ success: true, data, paginacion });
+    
+        res.status(200).json({ success: true, data, paginacion: infoPaginacion });
     }
 
     /**
