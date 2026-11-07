@@ -26,6 +26,16 @@ const emailCampo = z.string()
 
 // ── Schemas ──────────────────────────────────────────────────────────
 
+const actualizarUsuarioBaseSchema = z.object({
+    nombre: nombreCampo.optional(),
+    telefono: telefonoCampo,
+    email: emailCampo,
+    activo: z.boolean().optional()
+}).strict();
+
+const alMenosUnCampo = (datos) => Object.keys(datos).length > 0;
+const mensajeAlMenosUnCampo = { error: 'Debes proporcionar al menos un campo para actualizar' };
+
 const crearGerenteSchema = z.object({
     nombre: nombreCampo,
     telefono: telefonoCampo,
@@ -39,18 +49,25 @@ const crearEmpleadoSchema = z.object({
     sucursal_id: z.uuid({ error: 'El id de la sucursal es requerido' })
 }).strict();
 
-const actualizarUsuarioSchema = z.object({
-    nombre: nombreCampo.optional(),
-    telefono: telefonoCampo,
-    email: emailCampo,
-    activo: z.boolean().optional()
-}).strict().refine(
-    (datos) => Object.keys(datos).length > 0,
-    { error: 'Debes proporcionar al menos un campo para actualizar' }
-);
+// Dueño y encargado
+const actualizarUsuarioSchema = actualizarUsuarioBaseSchema
+    .refine(alMenosUnCampo, mensajeAlMenosUnCampo);
+
+    // Empleado: solo su información personal (sin `activo`)
+const actualizarPerfilSchema = actualizarUsuarioBaseSchema
+    .pick({ nombre: true, telefono: true, email: true })
+    .strict()
+    .refine(alMenosUnCampo, mensajeAlMenosUnCampo);
+
+// Hoy `/:id` no valida el UUID y un id inválido llega a PostgreSQL (error 22P02)
+const usuarioParamsSchema = z.object({
+    id: z.uuid({ error: 'El id del usuario no es válido' })
+});
 
 module.exports = {
     crearGerenteSchema,
     crearEmpleadoSchema,
-    actualizarUsuarioSchema
+    actualizarUsuarioSchema,
+    actualizarPerfilSchema,
+    usuarioParamsSchema
 };

@@ -6,6 +6,7 @@ const {
     ConflictError
 } = require('../../../core/utils/errors');
 
+const { ROL, ROLES } = require('../../constants/roles.constants')
 const {
     generarCredencialUnica
 } = require('../../../core/utils/credenciales');
@@ -36,6 +37,43 @@ class UsuarioService {
             throw new ConflictError('Ya existe un usuario con ese correo electrónico');
         }
         throw error;
+    }
+
+
+    /**
+    * Comprueba que el usuario autenticado pueda acceder al usuario objetivo.
+    * - Dueño: cualquier usuario de su óptica.
+    * - Cualquier rol: su propio perfil.
+    * - Encargado: además, los usuarios de la sucursal que gerencia.
+    * - Empleado: únicamente su propio perfil.
+    */
+    async #validarAccesoUsuario(usuario, { id, opticaId, rol }, accion) {
+        if (rol === 'dueno') {
+            return;
+        }
+
+        if (String(usuario.id) === String(id)) {
+            return;
+        }
+
+        if (rol === 'encargado') {
+            const sucursal = await this.usuariosRepository.buscarSucursalAdministrada(
+                opticaId,
+                id
+            );
+
+            if (!sucursal) {
+                throw new ForbiddenError('No tienes una sucursal asignada');
+            }
+
+            if (String(usuario.sucursal_id) !== String(sucursal.id)) {
+                throw new ForbiddenError(`No tienes permiso para ${accion} este usuario`);
+            }
+
+            return;
+        }
+
+        throw new ForbiddenError(`No tienes permiso para ${accion} este usuario`);
     }
 
     /**
@@ -207,20 +245,27 @@ class UsuarioService {
             );
         }
 
+        if (rol === 'empleado') {
+            const usuario = await this.usuariosRepository.buscarUsuarioPorIdYOptica(
+                id,
+                opticaId
+            );
+
+            if (!usuario) {
+                throw new NotFoundError('Usuario');
+            }
+
+            return [usuario];
+        }
+
         throw new ForbiddenError('No tienes permisos para consultar usuarios');
     }
 
-    /**
-     * Obtiene un usuario por su ID, validando permisos según el rol.
-     *
-     * @param {Object} datos - Datos de la consulta.
-     * @param {string} datos.usuarioId - ID del usuario a consultar.
-     * @param {string} datos.id - ID del usuario autenticado.
-     * @param {string} datos.optica_id - ID de la óptica.
-     * @param {string} datos.rol - Rol del usuario autenticado.
-     * @returns {Promise<Object>} Usuario encontrado.
-     */
+
     async buscarUsuarioPorId({ usuarioId, id, optica_id: opticaId, rol }) {
+        if (!ROLES.includes(rol)) {
+            throw new ForbiddenError('No tienes permiso para consultar usuarios');
+        }
 
         const usuario = await this.usuariosRepository.buscarUsuarioPorIdYOptica(
             usuarioId,
@@ -231,45 +276,14 @@ class UsuarioService {
             throw new NotFoundError('Usuario');
         }
 
-        if (rol === 'dueno') {
-            return usuario;
-        }
+        await this.#validarAccesoUsuario(usuario, { id, opticaId, rol }, 'consultar');
 
-        if (rol === 'encargado') {
-            const sucursal = await this.usuariosRepository.buscarSucursalAdministrada(
-                opticaId,
-                id
-            );
-
-            if (!sucursal) {
-                throw new ForbiddenError('No tienes una sucursal asignada');
-            }
-
-            if (usuario.sucursal_id !== sucursal.id) {
-                throw new ForbiddenError('No tienes permiso para consultar este usuario');
-            }
-
-            return usuario;
-        }
-
-        throw new ForbiddenError('No tienes permiso para consultar usuarios');
+        return usuario;
     }
 
-    /**
-     * Actualiza los datos permitidos de un usuario
-     * (nombre, teléfono, email y estado activo).
-     *
-     * @param {Object} datos - Datos de la actualización.
-     * @param {string} datos.usuarioId - ID del usuario a modificar.
-     * @param {string} datos.id - ID del usuario autenticado.
-     * @param {string} datos.optica_id - ID de la óptica.
-     * @param {string} datos.rol - Rol del usuario autenticado.
-     * @param {Object} datos.cambios - Datos que se actualizarán.
-     * @returns {Promise<Object>} Usuario actualizado.
-     */
-    async actualizarUsuario({ usuarioId, id, optica_id: opticaId, rol, cambios }) {
 
-        if (rol !== 'dueno' && rol !== 'encargado') {
+    async actualizarUsuario({ usuarioId, id, optica_id: opticaId, rol, cambios }) {
+        if (!ROLES.includes(rol)) {
             throw new ForbiddenError('No tienes permisos para modificar usuarios');
         }
 
@@ -282,19 +296,11 @@ class UsuarioService {
             throw new NotFoundError('Usuario');
         }
 
-        if (rol === 'encargado') {
-            const sucursal = await this.usuariosRepository.buscarSucursalAdministrada(
-                opticaId,
-                id
-            );
+        await this.#validarAccesoUsuario(usuario, { id, opticaId, rol }, 'modificar');
 
-            if (!sucursal) {
-                throw new ForbiddenError('No tienes una sucursal asignada');
-            }
-
-            if (usuario.sucursal_id !== sucursal.id) {
-                throw new ForbiddenError('No tienes permisos para modificar este usuario');
-            }
+        // Nadie cambia el estado de su propia cuenta (esto también protege al empleado)
+        if (String(usuario.id) === String(id) && cambios.activo !== undefined) {
+            throw new ForbiddenError('No puedes cambiar el estado de tu propia cuenta');
         }
 
         try {

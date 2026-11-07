@@ -6,13 +6,26 @@ const validate  = require('../../../core/middlewares/validation.middleware');
 
 const { crearGerenteSchema,
         crearEmpleadoSchema,
-        actualizarUsuarioSchema
+        actualizarUsuarioSchema,
+        usuarioParamsSchema,
+        actualizarPerfilSchema
  } = require('../schemas/usuario.schema');
 
 
 const {usuariosController} = require('../container/usuario.container');
 const { autenticar, soloTipo, soloRol } = require('../../../core/middlewares/auth.middleware');
 
+/**
+ * Valida el body de actualización según el rol: el empleado solo
+ * puede editar su información personal.
+ */
+const validarActualizacionUsuario = (req, res, next) => {
+    const schema = req.user.rol === 'empleado'
+        ? actualizarPerfilSchema
+        : actualizarUsuarioSchema;
+
+    return validate(schema)(req, res, next);
+};
 
 router.use(autenticar, soloTipo('optica'));
 
@@ -35,21 +48,23 @@ router.post(
 
 router.get(
     '/',
-    soloRol('dueno', 'encargado'),
+    soloRol('dueno', 'encargado', 'empleado'),
     usuariosController.listarUsuarios.bind(usuariosController)
 );
 
 router.get(
     '/:id',
-    soloRol('dueno', 'encargado'),
+    soloRol('dueno', 'encargado', 'empleado'),
+    validate(usuarioParamsSchema, 'params'),
     usuariosController.buscarUsuarioPorId.bind(usuariosController)
 );
 
 router.patch(
     '/:id',
-    soloRol('dueno', 'encargado'),
-    validate(actualizarUsuarioSchema),
+    soloRol('dueno', 'encargado', 'empleado'),
+    validate(usuarioParamsSchema, 'params'),
+    validarActualizacionUsuario,
     usuariosController.actualizarUsuario.bind(usuariosController)
-)
+);
 
 module.exports = router;
