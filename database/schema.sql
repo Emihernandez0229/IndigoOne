@@ -172,6 +172,7 @@ CREATE TABLE clientes_finales (
     telefono VARCHAR(20),
     email VARCHAR(150),
     fecha_nacimiento DATE,
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
