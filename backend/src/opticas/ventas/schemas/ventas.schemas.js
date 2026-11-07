@@ -45,6 +45,7 @@ const ventaParamsSchema = z.object({
 
 const listarVentasQuerySchema = z.object({
     sucursalId: z.uuid({ error: 'El ID de la sucursal debe tener un formato UUID válido' }).optional(),
+    todas: z.stringbool({error:'todas debe ser true o false'}).optional(),
     pacienteId: z.uuid({ error: 'El ID del paciente debe tener un formato UUID válido' }).optional(),
     estado: z.enum(['pendiente', 'en_proceso', 'completada', 'cancelada'], { error: 'estado inválido' }).optional(),
     tipoTrabajo: z.enum(['venta_directa', 'trabajo_interno', 'orden_laboratorio']).optional(),

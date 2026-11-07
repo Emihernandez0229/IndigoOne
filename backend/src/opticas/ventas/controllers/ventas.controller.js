@@ -33,12 +33,19 @@ class VentasController {
     }
 
     async listar(req, res) {
-        const { sucursalId: q, pacienteId, estado, tipoTrabajo, busqueda, desde, hasta, limit, offset } = req.query;
+        const { sucursalId: q, todas, pacienteId, estado, tipoTrabajo, busqueda, desde, hasta, limit, offset } = req.query;
 
-        const { sucursalId } = resolverSucursal(req, q, 'Debes indicar la sucursal (sucursalId) a consultar.');
+
+        const esDueno = req.user.rol === ROL.DUENO;
+        const verTodas = esDueno && todas === true;
+
+        const sucursalId = verTodas
+        ? null
+        : resolverSucursal(req, q, 'Debes indicar la sucursal (sucursalId) a consultar.').sucursalId;
+
 
         const { data, paginacion } = await this.ventasService.listarVentas({
-            sucursalId, opticaId: req.user.optica_id,
+            sucursalId, opticaId: req.user.optica_id, todas:verTodas,
             paginacion: { limit, offset },
             filtros: { clienteId: pacienteId, estado, tipoTrabajo, busqueda, desde, hasta },
         });

@@ -134,13 +134,16 @@ class VentasService {
         return this.ventasRepository.obtenerDetalle(ventaId);
     }
 
-    async listarVentas({ sucursalId, opticaId, paginacion = {}, filtros = {} }) {
+    async listarVentas({ sucursalId, opticaId, todas = false, paginacion = {}, filtros = {} }) {
         const limit = Math.min(paginacion.limit ?? LIMITE_DEFECTO, LIMITE_MAXIMO);
         const offset = paginacion.offset ?? 0;
 
-        await this.#validarSucursal(sucursalId, opticaId, { validarActiva: false });
 
-        const { ventas, total } = await this.ventasRepository.listar({ sucursalId, filtros, limit, offset });
+        if (!todas) {
+            await this.#validarSucursal(sucursalId, opticaId, { validarActiva: false });
+        }
+
+        const { ventas, total } = await this.ventasRepository.listar({ sucursalId, opticaId, todas, filtros, limit, offset });
 
         return {
             data: ventas,

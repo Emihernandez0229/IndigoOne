@@ -66,7 +66,11 @@ class ReportesService {
         const [resumen, desglose] = await Promise.all([
             this.reportesRepository.ventasResumen(consulta),
             filtros.agrupar
-                ? this.reportesRepository.ventasDesglose({ ...consulta, agrupar: filtros.agrupar, limit: filtros.limit })
+                ? this.reportesRepository.ventasDesglose({
+                    ...consulta,
+                    agrupar: filtros.agrupar,
+                    limit: filtros.agrupar === 'dia' ? null : filtros.limit,   // null = sin tope
+                })
                 : Promise.resolve(null),
         ]);
 
@@ -84,19 +88,38 @@ class ReportesService {
         const sucursalIds = await this.#resolverSucursales(usuario, filtros);
         const consulta = {
             sucursalIds, vendedorId: null,
-            servicioId: filtros.servicioId ?? null, limit: filtros.limit,
+            servicioId: filtros.servicioId ?? null, agrupar: filtros.agrupar ?? null, limit: filtros.limit,
             desde: filtros.desde, hasta: filtros.hasta, periodo: filtros.periodo,
         };
-        const { resumen, ranking } = await this.reportesRepository.servicios(consulta);
-        return { periodo: this.#periodo(filtros), sucursales: sucursalIds.length, ...resumen, ranking };
+        const { resumen, ranking, desglose } = await this.reportesRepository.servicios(consulta);
+        return {
+            periodo: this.#periodo(filtros), sucursales: sucursalIds.length,
+            ...resumen, ranking, agrupar: filtros.agrupar ?? null, desglose,
+        };
     }
 
     async reporteClientes({ usuario, filtros }) {
         const sucursalIds = await this.#resolverSucursales(usuario, filtros);
         const datos = await this.reportesRepository.clientes({
-            sucursalIds, desde: filtros.desde, hasta: filtros.hasta, periodo: filtros.periodo,
+            sucursalIds, agrupar: filtros.agrupar ?? null,
+            desde: filtros.desde, hasta: filtros.hasta, periodo: filtros.periodo,
         });
-        return { periodo: this.#periodo(filtros), sucursales: sucursalIds.length, ...datos };
+        return { periodo: this.#periodo(filtros), sucursales: sucursalIds.length,
+                 agrupar: filtros.agrupar ?? null, ...datos };
+    }
+
+    async reporteClientesActividad({ usuario, filtros }) {
+        const sucursalIds = await this.#resolverSucursales(usuario, filtros);
+        const limit = Math.min(filtros.limit ?? 20, 100);
+        const offset = filtros.offset ?? 0;
+        const { items, total } = await this.reportesRepository.clientesActividad({
+            sucursalIds, busqueda: filtros.busqueda ?? null, limit, offset,
+            desde: filtros.desde, hasta: filtros.hasta, periodo: filtros.periodo,
+        });
+        return {
+            periodo: this.#periodo(filtros), items,
+            paginacion: { total, limit, offset, hasMore: offset + items.length < total },
+        };
     }
 
     async reporteCitas({ usuario, filtros }) {
@@ -136,7 +159,7 @@ class ReportesService {
             productoId: filtros.productoId ?? null, tipo: filtros.tipo ?? null,
             agrupar: filtros.agrupar ?? null,
             desde: filtros.desde, hasta: filtros.hasta, periodo: filtros.periodo,
-            limit: filtros.limit, offset: filtros.offset,
+            limit: filtros.agrupar === 'dia'?null:filtros.limit, offset: filtros.offset,
         });
         return { periodo: this.#periodo(filtros), sucursales: sucursalIds.length, agrupar: filtros.agrupar ?? null, ...datos };
     }
@@ -166,6 +189,26 @@ class ReportesService {
         ]);
 
         return { ...base, citas, clientes, inventario: inventario.resumen };
+    }
+
+        async reporteServiciosDetalle({ usuario, filtros }) {
+        const sucursalIds = await this.#resolverSucursales(usuario, filtros);
+        const limit = Math.min(filtros.limit ?? 20, 100);
+        const offset = filtros.offset ?? 0;
+
+        const { items, total } = await this.reportesRepository.serviciosDetalle({
+            sucursalIds, vendedorId: null,
+            servicioId: filtros.servicioId ?? null,
+            desde: filtros.desde, hasta: filtros.hasta, periodo: filtros.periodo,
+            limit, offset,
+        });
+
+        return {
+            periodo: this.#periodo(filtros),
+            sucursales: sucursalIds.length,
+            items,
+            paginacion: { total, limit, offset, hasMore: offset + items.length < total },
+        };
     }
 }
 

@@ -94,9 +94,9 @@ class VentasRepository {
         return { ...rows[0], items };
     }
 
-    async listar({ sucursalId, filtros = {}, limit, offset }, client) {
-        const condiciones = ['v.sucursal_id = $1'];
-        const valores = [sucursalId];
+    async listar({ sucursalId, opticaId, todas = false, filtros = {}, limit, offset }, client) {
+        const condiciones = [todas ? 's.optica_id = $1':'v.sucursal_id = $1'];
+        const valores = [todas ? opticaId : sucursalId];
         const agregar = (sql, valor) => { valores.push(valor); condiciones.push(sql.replace('?', `$${valores.length}`)); };
 
         if (filtros.clienteId)   agregar('v.cliente_final_id = ?', filtros.clienteId);
@@ -113,7 +113,7 @@ class VentasRepository {
         const posOffset = valores.length;
 
         const { rows } = await this._exec(client).query(
-            `SELECT v.id, v.folio, v.sucursal_id,
+            `SELECT v.id, v.folio, v.sucursal_id,s.nombre AS sucursal_nombre,
                     v.cliente_final_id AS paciente_id, cf.nombre AS paciente_nombre,
                     v.vendedor_id AS creado_por, u.nombre AS vendedor_nombre,
                     v.tipo_trabajo, v.prioridad, v.metodo_pago,
@@ -123,6 +123,7 @@ class VentasRepository {
                     v.cancelada_at, v.pagada_at,
                     COUNT(*) OVER() AS total_registros
                FROM ventas v
+               JOIN sucursales s ON s.id = v.sucursal_id
                LEFT JOIN clientes_finales cf ON cf.id = v.cliente_final_id
                JOIN optica_usuarios u ON u.id = v.vendedor_id
               WHERE ${condiciones.join(' AND ')}
