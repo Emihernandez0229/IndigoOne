@@ -2,7 +2,9 @@ const {
     BadRequestError,
     NotFoundError,
     ConflictError,
+    ForbiddenError,
 } = require('../../../core/utils/errors');
+const { ROL } = require('../../constants/roles.constants');
 
 class SucursalesService {
     constructor(sucursalRepository, transactionManager) {
@@ -14,6 +16,7 @@ class SucursalesService {
         return nombre.trim().replace(/\s+/g, ' ').toUpperCase();
     }
 
+
     async #obtenerSucursalDeOptica(sucursalId, opticaId, client) {
         const sucursal = await this.sucursalRepository.buscarPorId(sucursalId, client);
 
@@ -23,6 +26,19 @@ class SucursalesService {
 
         return sucursal;
     }
+
+    /**
+ * Comprueba que cualquier rol distinto de dueño acceda únicamente
+ * a su sucursal asignada.
+ */
+#validarAccesoSucursal(sucursal, rol, sucursalAsignadaId) {
+    if (
+        rol !== ROL.DUENO &&
+        String(sucursal.id) !== String(sucursalAsignadaId)
+    ) {
+        throw new ForbiddenError('No tienes permiso para acceder a esta sucursal');
+    }
+}
 
     async #validarCandidatoGerente(opticaUsuarioId, opticaId, client) {
         const candidato = await this.sucursalRepository.buscarUsuarioPorId(opticaUsuarioId, opticaId, client);
@@ -159,24 +175,39 @@ class SucursalesService {
         return await this.sucursalRepository.listarGerentesDisponibles(opticaId);
     }
 
-    async listarSucursales(opticaId) {
-        if (!opticaId) {
-            throw new BadRequestError('La óptica es obligatoria');
-        }
-
-        return await this.sucursalRepository.listarSucursales(opticaId);
+    /**
+ * Lista sucursales. El dueño ve todas; el resto solo la suya.
+ */
+async listarSucursales(opticaId, rol, sucursalAsignadaId) {
+    if (!opticaId) {
+        throw new BadRequestError('La óptica es obligatoria');
     }
+
+    const sucursales = await this.sucursalRepository.listarSucursales(opticaId);
+
+    if (rol !== ROL.DUENO) {
+        return sucursales.filter(
+            (s) => String(s.id) === String(sucursalAsignadaId)
+        );
+    }
+
+    return sucursales;
+}
 
     /**
      * @param {string} sucursalId - Validado como UUID en sucursalParamsSchema.
      * @param {string} opticaId - Viene del token.
      */
-    async obtenerSucursal(sucursalId, opticaId) {
+    async obtenerSucursal(sucursalId, opticaId, rol, sucursalAsignadaId) {
         if (!opticaId) {
             throw new BadRequestError('La óptica es obligatoria');
         }
 
-        return await this.#obtenerSucursalDeOptica(sucursalId, opticaId);
+        const sucursal = await this.#obtenerSucursalDeOptica(sucursalId, opticaId);
+
+        this.#validarAccesoSucursal(sucursal, rol, sucursalAsignadaId);
+
+        return sucursal;
     }
 
     /**
@@ -190,13 +221,22 @@ class SucursalesService {
      * @param {string} opticaId - Viene del token.
      * @param {Object} data
      */
-    async actualizarSucursal(sucursalId, opticaId, data) {
+    async actualizarSucursal(sucursalId, opticaId, data, rol, sucursalAsignadaId) {
         if (!opticaId) {
             throw new BadRequestError('La óptica es obligatoria');
         }
+        if (rol !== ROL.DUENO && data.nombre !== undefined) {
+    throw new ForbiddenError('No tienes permiso para cambiar el nombre de la sucursal');
+}
 
         return await this.transactionManager.ejecutar(async (client) => {
             const sucursal = await this.#obtenerSucursalDeOptica(sucursalId, opticaId, client);
+
+            this.#validarAccesoSucursal(sucursal, rol, sucursalAsignadaId);
+
+            if (rol === 'encargado' && data.nombre !== undefined) {
+                throw new ForbiddenError('No tienes permiso para cambiar el nombre de la sucursal');
+            }
 
             const nombre = data.nombre ? this._normalizarNombre(data.nombre) : sucursal.nombre;
 

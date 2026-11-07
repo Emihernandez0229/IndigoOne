@@ -78,16 +78,15 @@ class SucursalController {
      * @returns {Promise<Object>} Lista de sucursales.
      */
     async listarSucursales(req, res) {
-        const { optica_id } = req.user;
-    
-        const sucursales =
-            await this.sucursalService.listarSucursales(
-                optica_id
-            );
-        
-        res.status(200).json({
-            data: sucursales
-        });
+        const { optica_id, rol, sucursal_id } = req.user;
+
+        const sucursales = await this.sucursalService.listarSucursales(
+            optica_id,
+            rol,
+            sucursal_id
+        );
+
+        res.status(200).json({ data: sucursales });
     }
 
     /**
@@ -99,11 +98,13 @@ class SucursalController {
      */
     async obtenerSucursal(req, res) {
         const { id } = req.params;
-        const { optica_id } = req.user;
+        const { optica_id, rol, sucursal_id } = req.user;
 
         const sucursal = await this.sucursalService.obtenerSucursal(
             id,
-            optica_id
+            optica_id,
+            rol,
+            sucursal_id
         );
 
         return res.status(200).json({
@@ -122,12 +123,14 @@ class SucursalController {
      */
     async actualizarSucursal(req, res) {
         const { id } = req.params;
-        const { optica_id } = req.user;
+        const { optica_id, rol, sucursal_id } = req.user;
 
         const sucursal = await this.sucursalService.actualizarSucursal(
             id,
             optica_id,
-            req.body
+            req.body,
+            rol,
+            sucursal_id
         );
 
         return res.status(200).json({

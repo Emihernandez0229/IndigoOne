@@ -48,6 +48,11 @@ const actualizarSucursalSchema = z.object({
         .optional()
 }).strict();
 
+// Encargado: solo dirección y teléfono
+const actualizarSucursalEncargadoSchema = actualizarSucursalSchema
+    .pick({ direccion: true, telefono: true })
+    .strict();
+
 const cambiarGerenteSchema = z.object({
     optica_usuario_id: z.uuid({
         error: 'El ID del gerente debe tener un formato UUID válido'
@@ -69,5 +74,6 @@ module.exports = {
     actualizarSucursalSchema,
     cambiarGerenteSchema,
     asignarGerenteSchema,
-    sucursalParamsSchema
+    sucursalParamsSchema,
+    actualizarSucursalEncargadoSchema
 }
