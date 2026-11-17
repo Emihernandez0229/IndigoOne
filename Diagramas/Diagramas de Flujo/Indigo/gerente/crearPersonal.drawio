@@ -1,0 +1,128 @@
+<mxfile host="65bd71144e">
+    <diagram id="ZlQ6odj5AN75XZCb2PWa" name="Página-1">
+        <mxGraphModel dx="1300" dy="934" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-1" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-2" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-5">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-2" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" value="" vertex="1">
+                    <mxGeometry height="40" width="40" x="393.75" y="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-3" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Crear Personal&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="30" width="60" x="383.75" y="10" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-4" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-5" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-7">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Entrar a la aplicación&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="30" width="120" x="353.75" y="115" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-6" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-7" style="edgeStyle=none;html=1;" target="AFF8opvy_UBB1Rt8zDmp-9">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Iniciar sesión&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="20" width="80" x="373.75" y="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-8" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-9" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-11">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Mostrar modulos de rol &quot;Gerente&quot;&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="30" width="120" x="353.75" y="215" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-10" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-11" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-13">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Seleccionar personal&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="20" width="130" x="348.75" y="270" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-12" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-13" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-15">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Mostrar vista de personal&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="20" width="165" x="331.25" y="310" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-14" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-15" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-17">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Seleccionar &quot;Nuevo empleado&quot;&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="20" width="172" x="327.75" y="350" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-28" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-17" style="edgeStyle=none;html=1;" target="AFF8opvy_UBB1Rt8zDmp-27">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Ingresar nombre&amp;nbsp;&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="20" width="111.25" x="358" y="390" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-45" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-25" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-26">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-25" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Mostrar usuario y contraseña del nuevo empleado&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="40" width="172" x="327" y="670" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-26" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" value="" vertex="1">
+                    <mxGeometry height="40" width="40" x="393" y="740" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-33" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-27" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-32">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-27" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Ingresar numero de telefono&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="30" width="111.25" x="358" y="430" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-44" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-31" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-25">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-31" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Empleado creado exitosamente&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="30" width="120" x="354" y="620" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-38" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-32" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-34">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-39" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-32" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-36">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="531.25" y="505"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-40" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-32" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-35">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="295.63" y="505"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-32" parent="1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;shapeInside=1;fixedSize=1;" value="&lt;span style=&quot;color: rgb(63, 63, 63); font-family: &amp;quot;Comic Sans MS&amp;quot;;&quot;&gt;Seleccionar rol dentro de la sucursal&lt;/span&gt;" vertex="1">
+                    <mxGeometry height="30" width="165" x="331.25" y="490" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-41" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-34" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-31">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-34" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="Subgerente" vertex="1">
+                    <mxGeometry height="20" width="80" x="374" y="550" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-43" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-35" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-31">
+                    <mxGeometry relative="1" x="0.0375" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="295.63" y="635"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-35" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="Ventas" vertex="1">
+                    <mxGeometry height="20" width="51.25" x="270" y="550" as="geometry"/>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-42" edge="1" parent="1" source="AFF8opvy_UBB1Rt8zDmp-36" style="edgeStyle=none;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="AFF8opvy_UBB1Rt8zDmp-31">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="531.25" y="635"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="AFF8opvy_UBB1Rt8zDmp-36" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="Laboratorio" vertex="1">
+                    <mxGeometry height="20" width="70" x="496.25" y="550" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

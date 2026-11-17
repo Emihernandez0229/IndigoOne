@@ -1,0 +1,88 @@
+<mxfile host="65bd71144e">
+    <diagram id="wE3UJqfljvGAlftIjP6O" name="Página-1">
+        <mxGraphModel dx="1300" dy="934" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-1" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-2" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ui9wVQ21dJndHmoXYeDd-5">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-2" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" value="" vertex="1">
+                    <mxGeometry height="40" width="40" x="420" y="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-3" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Crear Sucursal&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="30" width="60" x="410" y="10" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-23" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-5" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ui9wVQ21dJndHmoXYeDd-22">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Entrar a la aplicación&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="30" width="120" x="380" y="115" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-26" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-22" style="edgeStyle=none;html=1;" target="ui9wVQ21dJndHmoXYeDd-24">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-22" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Iniciar sesión&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="20" width="80" x="400" y="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-28" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-24" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ui9wVQ21dJndHmoXYeDd-27">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-24" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Mostrar modulos de rol &quot;Dueño&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="30" width="120" x="380" y="215" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-30" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-27" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ui9wVQ21dJndHmoXYeDd-29">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-27" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Seleccionar sucursales&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="20" width="130" x="375" y="270" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-32" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-29" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ui9wVQ21dJndHmoXYeDd-31">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-29" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Mostrar vista de sucursales&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="20" width="165" x="357.5" y="310" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-34" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-31" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ui9wVQ21dJndHmoXYeDd-33">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-31" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Seleccionar &quot;Nueva Sucursal&quot;&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="20" width="172" x="354" y="350" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-36" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-33" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ui9wVQ21dJndHmoXYeDd-35">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-33" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Ingresar nombre de la nueva sucursal&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="30" width="130" x="375" y="390" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-39" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-35" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ui9wVQ21dJndHmoXYeDd-37">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-35" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Ingresar Pais, Estado y Municipio&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="20" width="196" x="342" y="440" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-42" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-37" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ui9wVQ21dJndHmoXYeDd-41">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-37" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Ingresar nombre del encargado de la sucursal&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="30" width="172" x="354" y="480" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-44" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-41" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ui9wVQ21dJndHmoXYeDd-43">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-41" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Sucursal y usuario de encargado creados exitosamente&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="30" width="196" x="342" y="540" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-46" edge="1" parent="1" source="ui9wVQ21dJndHmoXYeDd-43" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ui9wVQ21dJndHmoXYeDd-45">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-43" parent="1" style="rounded=1;whiteSpace=wrap;html=1;roundedPerimeter=1;" value="&lt;font face=&quot;Comic Sans MS&quot;&gt;Mostrar usuario y contraseña del gerente para administración de la nueva sucursal&lt;/font&gt;" vertex="1">
+                    <mxGeometry height="50" width="219.5" x="330.25" y="595" as="geometry"/>
+                </mxCell>
+                <mxCell id="ui9wVQ21dJndHmoXYeDd-45" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" value="" vertex="1">
+                    <mxGeometry height="40" width="40" x="420" y="670" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

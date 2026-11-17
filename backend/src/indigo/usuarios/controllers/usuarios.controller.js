@@ -37,58 +37,25 @@ async function crearPrimerSuperUsuario(req, res, next) {
   }
 }
 
-/* Super usuario */
-async function crearSuperUsuario(req, res, next) {
+/* Alta */
+async function crearUsuario(req, res, next) {
   try {
-    const resultado = await usuariosService.crearSuperUsuario(req.user, {
-      nombre: req.body.nombre,
-    });
-
-    res.status(201).json(resultado);
-  } catch (err) {
-    next(err);
-  }
-}
-
-/* Dueño */
-async function crearDueno(req, res, next) {
-  try {
-    const resultado = await usuariosService.crearDueno(req.user, {
-      nombre: req.body.nombre,
-    });
-
-    res.status(201).json(resultado);
-  } catch (err) {
-    next(err);
-  }
-}
-
-/* Gerente */
-async function crearGerenteSucursal(req, res, next) {
-  try {
-    const { nombre, sucursal_id, nueva_sucursal_nombre } = req.body;
-
-    const resultado = await usuariosService.crearGerenteSucursal(req.user, {
+    const {
       nombre,
-      sucursalId: sucursal_id || null,
-      nuevaSucursalNombre: nueva_sucursal_nombre || null,
-    });
+      telefono,
+      correo,
+      rol,
+      sucursal_id,
+      requiere_cambio_password,
+    } = req.body;
 
-    res.status(201).json(resultado);
-  } catch (err) {
-    next(err);
-  }
-}
-
-/* Empleado */
-async function crearEmpleado(req, res, next) {
-  try {
-    const { nombre, tipo, sucursal_id } = req.body;
-
-    const resultado = await usuariosService.crearEmpleado(req.user, {
+    const resultado = await usuariosService.crearUsuario(req.user, {
       nombre,
-      tipo,
+      telefono: telefono || null,
+      correo: correo || null,
+      rol,
       sucursalId: sucursal_id || null,
+      requiereCambioPassword: requiere_cambio_password ?? true,
     });
 
     res.status(201).json(resultado);
@@ -100,15 +67,18 @@ async function crearEmpleado(req, res, next) {
 /* Actualizar */
 async function actualizarUsuario(req, res, next) {
   try {
-    const { rol, sucursal_id, nueva_sucursal_nombre } = req.body;
+    const { nombre, usuario, telefono, correo, rol, sucursal_id } = req.body;
 
     const resultado = await usuariosService.actualizarUsuario(
       req.user,
       req.params.id,
       {
+        nombre,
+        usuario: usuario || null,
+        telefono: telefono || null,
+        correo: correo || null,
         rolNuevo: rol,
         sucursalId: sucursal_id || null,
-        nuevaSucursalNombre: nueva_sucursal_nombre || null,
       }
     );
 
@@ -136,15 +106,52 @@ async function darDeAltaUsuario(req, res, next) {
   }
 }
 
+/* Restablecer contraseña */
+async function resetearPassword(req, res, next) {
+  try {
+    res.json(await usuariosService.resetearPassword(req.user, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+}
+
+/* Mi perfil */
+async function actualizarMiPerfil(req, res, next) {
+  try {
+    const { nombre, usuario, telefono, correo } = req.body;
+
+    const resultado = await usuariosService.actualizarMiPerfil(req.user, {
+      nombre,
+      usuario: usuario || null,
+      telefono: telefono || null,
+      correo: correo || null,
+    });
+
+    res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function cambiarMiPassword(req, res, next) {
+  try {
+    const { actual, nueva } = req.body;
+
+    res.json(await usuariosService.cambiarMiPassword(req.user, { actual, nueva }));
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   obtenerUsuarios,
   obtenerOpcionesFormulario,
   crearPrimerSuperUsuario,
-  crearSuperUsuario,
-  crearDueno,
-  crearGerenteSucursal,
-  crearEmpleado,
+  crearUsuario,
   actualizarUsuario,
   darDeBajaUsuario,
   darDeAltaUsuario,
+  resetearPassword,
+  actualizarMiPerfil,
+  cambiarMiPassword,
 };

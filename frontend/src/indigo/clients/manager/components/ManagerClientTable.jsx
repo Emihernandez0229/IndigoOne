@@ -8,10 +8,10 @@ export default function ManagerClientTable({ clients = [], canEdit = true, canDe
 
   const columns = [
     { key: "displayId", label: "ID" },
-    { key: "name", label: "Nombre del cliente" },
     { key: "code", label: "Código" },
-    { key: "businessName", label: "Razón social" },
-    { key: "phone", label: "Teléfono" },
+    { key: "name", label: "Cliente" },
+    { key: "rfc", label: "RFC", render: (row) => row.rfc || "—" },
+    { key: "phone", label: "Teléfono", render: (row) => row.phone || "—" },
     {
       key: "status",
       label: "Estado",

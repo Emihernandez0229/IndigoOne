@@ -1,6 +1,6 @@
-export const MAX_PRODUCT_PHOTOS = 3;
+// export const MAX_PRODUCT_PHOTOS = 3;
 
-export const ACCEPTED_PHOTO_TYPES = ["image/png", "image/jpeg"];
+// export const ACCEPTED_PHOTO_TYPES = ["image/png", "image/jpeg"];
 
 export const PRODUCT_TYPES = [
   { value: "armazones", label: "Armazones" },

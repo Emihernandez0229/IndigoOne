@@ -2,7 +2,9 @@ import { useCrudResource, prepend, mergeById } from "../../../shared/hooks/useCr
 import {
   listUsers, createUser, updateUser, deactivateUser, activateUser,
   createEmployee, updateEmployee,
-  updateMyProfile, updateMyEmergencyContact, changeMyPassword,
+  updateMyProfile, 
+  //updateMyEmergencyContact, 
+  changeMyPassword,
   createPersonal, updatePersonal, deactivatePersonal, activatePersonal, resetPersonalPassword,
 } from "../services/userService";
 
@@ -18,7 +20,7 @@ export default function useUsers() {
       deactivate: { fn: deactivateUser, apply: mergeById },
       activate: { fn: activateUser, apply: mergeById },
       updateMyProfile: { fn: updateMyProfile, apply: mergeById },
-      updateMyEmergencyContact: { fn: updateMyEmergencyContact, apply: mergeById },
+      //updateMyEmergencyContact: { fn: updateMyEmergencyContact, apply: mergeById },
       changeMyPassword: { fn: changeMyPassword, apply: (prev) => prev },
       createPersonal: { fn: createPersonal, apply: prepend },
       updatePersonal: { fn: updatePersonal, apply: mergeById },

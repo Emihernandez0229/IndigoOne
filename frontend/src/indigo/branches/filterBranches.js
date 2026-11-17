@@ -8,7 +8,7 @@ export function filterBranches(branches = [], { query = "", status = "" } = {}) 
   return branches.filter((branch) => {
     const matchesQuery =
       !q ||
-      String(branch.id) === q ||
+      String(branch.displayId) === q ||
       branch.name.toLowerCase().includes(q);
 
     const matchesStatus = !status || branch.status === status;

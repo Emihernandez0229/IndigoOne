@@ -4,16 +4,18 @@ async function crearSucursal(req, res, next) {
   try {
     const {
       nombre,
-      direccion,
-      telefono,
+      pais,
+      estado,
+      municipio,
       gerente_indigo_usuario_id,
       nuevo_gerente_nombre,
     } = req.body;
 
     const sucursal = await sucursalesService.crearSucursal(req.user, {
       nombre,
-      direccion,
-      telefono,
+      pais,
+      estado,
+      municipio,
       gerenteIndigoUsuarioId: gerente_indigo_usuario_id || null,
       nuevoGerenteNombre: nuevo_gerente_nombre || null,
     });
@@ -67,8 +69,9 @@ async function actualizarSucursal(req, res, next) {
   try {
     const {
       nombre,
-      direccion,
-      telefono,
+      pais,
+      estado,
+      municipio,
       gerente_indigo_usuario_id,
       nuevo_gerente_nombre,
     } = req.body;
@@ -78,11 +81,28 @@ async function actualizarSucursal(req, res, next) {
       req.params.id,
       {
         nombre,
-        direccion,
-        telefono,
+        pais,
+        estado,
+        municipio,
         gerenteIndigoUsuarioId: gerente_indigo_usuario_id || null,
         nuevoGerenteNombre: nuevo_gerente_nombre || null,
       }
+    );
+
+    res.json(sucursal);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function actualizarContacto(req, res, next) {
+  try {
+    const { direccion, telefono } = req.body;
+
+    const sucursal = await sucursalesService.actualizarContacto(
+      req.user,
+      req.params.id,
+      { direccion, telefono }
     );
 
     res.json(sucursal);
@@ -113,6 +133,7 @@ module.exports = {
   asignarGerente,
   listarSucursales,
   actualizarSucursal,
+  actualizarContacto,
   darDeBaja,
   darDeAlta,
 };

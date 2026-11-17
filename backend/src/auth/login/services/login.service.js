@@ -181,7 +181,15 @@ async function loginIndigo(indigoUsuarioId, password) {
 
   return {
     token,
-    usuario: { id: user.id, nombre: user.nombre, usuario: user.usuario, tipo: 'indigo', rol: user.rol, sucursal_id: user.sucursal_id },
+    usuario: { 
+      id: user.id,
+      nombre: user.nombre, 
+      usuario: user.usuario, 
+      tipo: 'indigo', 
+      rol: user.rol, 
+      sucursal_id: user.sucursal_id,
+      password_pendiente_cambio: !user.password_cambiada,
+     },
   };
 }
 
@@ -235,13 +243,13 @@ async function loginOptica(opticaUsuarioId, password) {
 async function cambiarPassword({ tipo, id, optica_id, passwordNueva, esDuenoOptica }) {
   const passwordHash = await bcrypt.hash(passwordNueva, SALT_ROUNDS);
 
-  if (tipo === 'indigo') {
-    await pool.query(
-      'UPDATE indigo_usuarios SET password_hash = $1, updated_at = now() WHERE id = $2',
-      [passwordHash, id]
-    );
-    return;
-  }
+  // if (tipo === 'indigo') {
+  //   await pool.query(
+  //     'UPDATE indigo_usuarios SET password_hash = $1, updated_at = now() WHERE id = $2',
+  //     [passwordHash, id]
+  //   );
+  //   return;
+  // }
 
   const client = await pool.connect();
   try {

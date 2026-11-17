@@ -23,8 +23,12 @@ import BranchFormModal from "./components/BranchFormModal";
 import BranchDetailPanel from "./components/BranchDetailPanel";
 import { BRANCH_STATUSES } from "./constants";
 
+import CredentialsModal from "../users/components/CredentialsModal";
+
 
 export default function BranchesPage() {
+
+  const [newManager, setNewManager] = useState(null);
 
   const { can } = usePermissions();
   const { branches, loading, error, create, update, deactivate, activate } = useBranches();
@@ -42,6 +46,9 @@ export default function BranchesPage() {
     () => filterBranches(branches, { query, status }),
     [branches, query, status]
   );
+
+
+
 
 
   const kpis = useMemo(() => {
@@ -78,15 +85,25 @@ export default function BranchesPage() {
   }, [branches, users]);
 
 
-  const closeModal = () => setModal((m) => ({ ...m, open: false }));
+   const closeModal = () => setModal((m) => ({ ...m, open: false }));
+
+  // const handleSubmit = async (payload) => {
+  //   if (modal.mode === "edit" && modal.branch) {
+  //     await update(modal.branch.id, payload);
+  //   } else {
+  //     await create(payload);
+  //   }
+  // };
 
   const handleSubmit = async (payload) => {
-    if (modal.mode === "edit" && modal.branch) {
-      await update(modal.branch.id, payload);
-    } else {
-      await create(payload);
-    }
-  };
+  const result =
+    modal.mode === "edit" && modal.branch
+      ? await update(modal.branch.id, payload)
+      : await create(payload);
+
+  // Si se creo un gerente nuevo, se muestra su credencial una sola vez
+  if (result?.gerente_nuevo) setNewManager(result.gerente_nuevo);
+};
 
 
   if (loading) return <LoadingSpinner />;
@@ -164,6 +181,12 @@ export default function BranchesPage() {
         onSubmit={handleSubmit}
       />
 
+      <CredentialsModal
+        open={Boolean(newManager)}
+        user={newManager}
+        onClose={() => setNewManager(null)}
+      />
+
       <ConfirmDialog
         open={Boolean(branchToDeactivate)}
         title="Dar de baja sucursal"
@@ -183,6 +206,8 @@ export default function BranchesPage() {
         onConfirm={() => activate(branchToActivate.id)}
         onClose={() => setBranchToActivate(null)}
       />
+
+
 
     </PageContainer>
 

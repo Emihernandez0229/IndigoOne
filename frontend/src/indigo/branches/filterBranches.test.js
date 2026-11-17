@@ -10,7 +10,7 @@ describe("filterBranches", () => {
   });
 
   it("busca por ID exacto", () => {
-    expect(filterBranches(branches, { query: "2" })).toEqual([branches[1]]);
+    expect(filterBranches(branches, { query: "displayId" })).toEqual([branches[1]]);
   });
 
   it("busca por nombre parcial e insensible a mayusculas", () => {

@@ -8,7 +8,7 @@ import ManagerClientsPage from "./manager/ManagerClientsPage";
 const BRANCH_SCOPED_ROLES = [
   ROLES.INDIGO_GERENTE_SUCURSAL,
   ROLES.INDIGO_SUBGERENTE,
-  ROLES.INDIGO_EMPLEADO_VENTAS,
+  //ROLES.INDIGO_EMPLEADO_VENTAS,
 ];
 
 

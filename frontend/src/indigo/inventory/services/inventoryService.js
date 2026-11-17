@@ -18,7 +18,7 @@ export async function createInventoryItem(payload) {
     stock_minimo: payload.stockMin,
     costo: payload.cost,
     sucursal_id: payload.branchId || null,
-    fotos: payload.photos || [],
+    // fotos: payload.photos || [],
   });
 }
 
@@ -35,7 +35,7 @@ export async function updateInventoryItem(id, payload) {
     stock_disponible: payload.stockAvailable,
     stock_minimo: payload.stockMin,
     costo: payload.cost,
-    fotos: payload.photos || [],
+    // fotos: payload.photos || [],
   });
 }
 

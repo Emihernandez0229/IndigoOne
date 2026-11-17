@@ -12,12 +12,13 @@ const {
 const router = express.Router();
 
 const ADMINS = ["dueno", "super_usuario"];
-const GESTORES = ["dueno", "super_usuario", "gerente_sucursal"];
+const ENCARGADOS = ["gerente_sucursal", "subgerente_sucursal"];
+const CONSULTA = [...ADMINS, ...ENCARGADOS];
 
 router.use(autenticar, soloTipo("indigo"));
 
-// Consultar sucursales
-router.get("/", soloRol(...GESTORES), controller.listarSucursales);
+// Consultar sucursales (gerente y subgerente solo ven la suya)
+router.get("/", soloRol(...CONSULTA), controller.listarSucursales);
 
 // Gerentes disponibles
 router.get(
@@ -30,22 +31,28 @@ router.get(
 router.post(
   "/",
   soloRol(...ADMINS),
-  validate(schemas.sucursal),
+  validate(schemas.crear),
   controller.crearSucursal
 );
 
-// Editar sucursal
+// Editar nombre, ubicación y responsable (dueño)
 router.put(
   "/:id",
-  soloRol(...GESTORES),
-  validate(schemas.sucursal),
+  soloRol(...ADMINS),
+  validate(schemas.actualizar),
   controller.actualizarSucursal
 );
 
-// Dar de baja
-router.patch("/:id/deactivate", soloRol(...ADMINS), controller.darDeBaja);
+// Editar dirección y teléfono de la sucursal (gerente y subgerente)
+router.patch(
+  "/:id/contacto",
+  soloRol(...ENCARGADOS),
+  validate(schemas.contacto),
+  controller.actualizarContacto
+);
 
-// Dar de alta
+// Dar de baja / alta
+router.patch("/:id/deactivate", soloRol(...ADMINS), controller.darDeBaja);
 router.patch("/:id/activate", soloRol(...ADMINS), controller.darDeAlta);
 
 // Cambiar gerente

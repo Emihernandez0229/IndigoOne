@@ -1,17 +1,77 @@
 const clientesService = require("../services/clientes.service");
 const { BadRequestError } = require("../../../core/utils/errors");
 
-async function crearOptica(req, res, next) {
+async function listarClientes(req, res, next) {
   try {
-    const { codigo, razon_social, dueno_nombre } = req.body;
+    res.json(await clientesService.listarClientes(req.user));
+  } catch (err) {
+    next(err);
+  }
+}
 
-    const resultado = await clientesService.crearOptica(req.user, {
+async function crearCliente(req, res, next) {
+  try {
+    const {
+      codigo,
+      razon_social,
+      rfc,
+      municipio,
+      direccion,
+      codigo_postal,
+      sucursal_cliente_nombre,
+      indigo_sucursal_id,
+    } = req.body;
+
+    const resultado = await clientesService.crearCliente(req.user, {
       codigo,
       razonSocial: razon_social,
-      duenoNombre: dueno_nombre,
+      rfc,
+      municipio,
+      direccion,
+      codigoPostal: codigo_postal,
+      sucursalClienteNombre: sucursal_cliente_nombre,
+      indigoSucursalId: indigo_sucursal_id || null,
     });
 
     res.status(201).json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function actualizarCliente(req, res, next) {
+  try {
+    const { razon_social, rfc, municipio, direccion, codigo_postal } = req.body;
+
+    const resultado = await clientesService.actualizarCliente(
+      req.user,
+      req.params.id,
+      {
+        razonSocial: razon_social,
+        rfc,
+        municipio,
+        direccion,
+        codigoPostal: codigo_postal,
+      }
+    );
+
+    res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function darDeBajaCliente(req, res, next) {
+  try {
+    res.json(await clientesService.darDeBajaCliente(req.user, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function darDeAltaCliente(req, res, next) {
+  try {
+    res.json(await clientesService.darDeAltaCliente(req.user, req.params.id));
   } catch (err) {
     next(err);
   }
@@ -47,4 +107,12 @@ async function asignarProveedor(req, res, next) {
   }
 }
 
-module.exports = { crearOptica, buscarPorCodigo, asignarProveedor };
+module.exports = {
+  listarClientes,
+  crearCliente,
+  actualizarCliente,
+  darDeBajaCliente,
+  darDeAltaCliente,
+  buscarPorCodigo,
+  asignarProveedor,
+};

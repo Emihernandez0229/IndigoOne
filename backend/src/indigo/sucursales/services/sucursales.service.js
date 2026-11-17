@@ -9,7 +9,7 @@ const {
 
 const sucursalesRepo = require("../repositories/sucursales.repository");
 const { aSucursalFront } = require("../helpers/sucursales.mapper");
-const { ROLES } = require("../../usuarios/helpers/usuarios.permisos");
+const { ROLES, esEncargado } = require("../../usuarios/helpers/usuarios.permisos");
 const {
   crearUsuarioConCredencial,
 } = require("../../usuarios/services/usuarios.service");
@@ -22,8 +22,22 @@ const tx = new TransactionManager(pool);
 
 const sucursalNoEncontrada = () => new AppError("Sucursal no encontrada", 404);
 
-async function respuestaSucursal(sucursalId) {
-  return aSucursalFront(await sucursalesRepo.buscarParaFront(sucursalId));
+/*
+ * Si se creó un gerente nuevo, se devuelve su credencial una sola vez
+ * (gerente_nuevo) para que el dueño se la entregue.
+ */
+async function respuestaSucursal(sucursalId, gerente = null) {
+  const sucursal = aSucursalFront(await sucursalesRepo.buscarParaFront(sucursalId));
+
+  if (!gerente?.credencial) return sucursal;
+
+  return {
+    ...sucursal,
+    gerente_nuevo: {
+      name: gerente.nombre,
+      credencial_provisional: gerente.credencial,
+    },
+  };
 }
 
 /*
@@ -46,24 +60,26 @@ async function asignarGerenteEnTransaccion(
       );
     }
 
-    return sucursalesRepo.asignarGerenteASucursal(
+    const gerente = await sucursalesRepo.asignarGerenteASucursal(
       gerenteIndigoUsuarioId,
       sucursalId,
       client
     );
+
+    return { id: gerente.id, nombre: gerente.nombre, credencial: null };
   }
 
-  if (nuevoGerenteNombre && nuevoGerenteNombre.trim()) {
+  if (nuevoGerenteNombre) {
     const nombre = nuevoGerenteNombre.trim();
 
-    const { id } = await crearUsuarioConCredencial(client, {
+    const { id, credencial } = await crearUsuarioConCredencial(client, {
       rol: ROLES.GERENTE,
       nombre,
       sucursalId,
       creadoPorId,
     });
 
-    return { id, nombre };
+    return { id, nombre, credencial };
   }
 
   return null;
@@ -75,33 +91,29 @@ async function asignarGerenteEnTransaccion(
 
 async function crearSucursal(
   actor,
-  { nombre, direccion, telefono, gerenteIndigoUsuarioId, nuevoGerenteNombre }
+  { nombre, pais, estado, municipio, gerenteIndigoUsuarioId, nuevoGerenteNombre }
 ) {
-  const sucursalId = await tx.ejecutar(async (client) => {
+  const { sucursalId, gerente } = await tx.ejecutar(async (client) => {
     if (await sucursalesRepo.existePorNombre(nombre, client)) {
       throw new ConflictError("Ya existe una sucursal con ese nombre");
     }
 
     const sucursal = await sucursalesRepo.crear(
-      {
-        nombre,
-        direccion: direccion || null,
-        telefono: telefono || null,
-      },
+      { nombre, pais, estado, municipio },
       client
     );
 
-    await asignarGerenteEnTransaccion(client, {
+    const gerente = await asignarGerenteEnTransaccion(client, {
       sucursalId: sucursal.id,
       gerenteIndigoUsuarioId,
       nuevoGerenteNombre,
       creadoPorId: actor.id,
     });
 
-    return sucursal.id;
+    return { sucursalId: sucursal.id, gerente };
   });
 
-  return respuestaSucursal(sucursalId);
+  return respuestaSucursal(sucursalId, gerente);
 }
 
 /* =========================================================
@@ -112,15 +124,35 @@ async function listarGerentesDisponibles(gerenteActualId = null) {
   return sucursalesRepo.listarGerentesDisponibles(gerenteActualId);
 }
 
+// async function listarSucursales(actor) {
+//   // Gerente y subgerente solo ven su propia sucursal
+//   const filtro = esEncargado(actor.rol)
+//     ? { sucursalId: actor.sucursal_id }
+//     : {};
+
+//   const filas = await sucursalesRepo.listarParaFront(filtro);
+
+//   return filas.map(aSucursalFront);
+// }
+
+
 async function listarSucursales(actor) {
-  // El gerente solo ve su propia sucursal
-  const filtro =
-    actor.rol === ROLES.GERENTE ? { sucursalId: actor.sucursal_id } : {};
+  let filtro = {};
+
+  if (esEncargado(actor.rol)) {
+    // Se lee de la BD, no del token: si lo asignaron después de iniciar
+    // sesión, el token todavía trae el sucursal_id viejo.
+    const { rows } = await pool.query(
+      "SELECT sucursal_id FROM indigo_usuarios WHERE id = $1",
+      [actor.id]
+    );
+    filtro = { sucursalId: rows[0]?.sucursal_id ?? null };
+  }
 
   const filas = await sucursalesRepo.listarParaFront(filtro);
-
   return filas.map(aSucursalFront);
 }
+
 
 /* =========================================================
    CAMBIAR GERENTE
@@ -154,37 +186,31 @@ async function asignarGerente(
     sucursal_id: sucursalId,
     gerente_asignado_id: gerente?.id ?? null,
     gerente_nombre: gerente?.nombre ?? null,
+    ...(gerente?.credencial && {
+      gerente_nuevo: {
+        name: gerente.nombre,
+        credencial_provisional: gerente.credencial,
+      },
+    }),
   };
 }
 
 /* =========================================================
-   ACTUALIZAR
+   ACTUALIZAR (dueño: nombre, ubicación y responsable)
 ========================================================= */
 
 async function actualizarSucursal(
   actor,
   sucursalId,
-  { nombre, direccion, telefono, gerenteIndigoUsuarioId, nuevoGerenteNombre }
+  { nombre, pais, estado, municipio, gerenteIndigoUsuarioId, nuevoGerenteNombre }
 ) {
-  /*
-   * El gerente solo puede editar dirección y teléfono de su propia
-   * sucursal: no la renombra ni cambia al gerente.
-   */
-  const esGerente = actor.rol === ROLES.GERENTE;
+  const gerente = await tx.ejecutar(async (client) => {
+    const sucursal = await sucursalesRepo.buscarPorId(sucursalId, client, {
+      bloquear: true,
+    });
 
-  if (esGerente) {
-    if (sucursalId !== actor.sucursal_id) {
-      throw new ForbiddenError("Solo puedes editar tu propia sucursal");
-    }
+    if (!sucursal) throw sucursalNoEncontrada();
 
-    const actual = await sucursalesRepo.buscarPorId(sucursalId);
-    if (!actual) throw sucursalNoEncontrada();
-
-    // No puede renombrar, se conserva el nombre actual
-    nombre = actual.nombre;
-  }
-
-  await tx.ejecutar(async (client) => {
     if (
       await sucursalesRepo.existePorNombre(nombre, client, {
         excluirId: sucursalId,
@@ -193,34 +219,42 @@ async function actualizarSucursal(
       throw new ConflictError("Ya existe una sucursal con ese nombre");
     }
 
-    const sucursal = await sucursalesRepo.buscarPorId(sucursalId, client, {
-      bloquear: true,
-    });
-
-    if (!sucursal) throw sucursalNoEncontrada();
-
-    await sucursalesRepo.actualizarDatos(
+    await sucursalesRepo.actualizarUbicacion(
       sucursalId,
-      {
-        nombre,
-        direccion: direccion || null,
-        telefono: telefono || null,
-      },
+      { nombre, pais, estado, municipio },
       client
     );
 
-    // El gerente no toca al gerente de la sucursal
-    if (!esGerente) {
-      await sucursalesRepo.liberarGerentes(sucursalId, client);
+    // Solo se toca al gerente si se indicó uno
+    if (!gerenteIndigoUsuarioId && !nuevoGerenteNombre) return null;
 
-      await asignarGerenteEnTransaccion(client, {
-        sucursalId,
-        gerenteIndigoUsuarioId,
-        nuevoGerenteNombre,
-        creadoPorId: actor.id,
-      });
-    }
+    await sucursalesRepo.liberarGerentes(sucursalId, client);
+
+    return asignarGerenteEnTransaccion(client, {
+      sucursalId,
+      gerenteIndigoUsuarioId,
+      nuevoGerenteNombre,
+      creadoPorId: actor.id,
+    });
   });
+
+  return respuestaSucursal(sucursalId, gerente);
+}
+
+/* =========================================================
+   ACTUALIZAR CONTACTO (gerente/subgerente: dirección y teléfono)
+========================================================= */
+
+async function actualizarContacto(actor, sucursalId, { direccion, telefono }) {
+  if (esEncargado(actor.rol) && sucursalId !== actor.sucursal_id) {
+    throw new ForbiddenError("Solo puedes editar tu propia sucursal");
+  }
+
+  const sucursal = await sucursalesRepo.buscarPorId(sucursalId);
+
+  if (!sucursal) throw sucursalNoEncontrada();
+
+  await sucursalesRepo.actualizarContacto(sucursalId, { direccion, telefono });
 
   return respuestaSucursal(sucursalId);
 }
@@ -246,6 +280,7 @@ module.exports = {
   asignarGerente,
   listarSucursales,
   actualizarSucursal,
+  actualizarContacto,
   darDeBaja,
   darDeAlta,
 };

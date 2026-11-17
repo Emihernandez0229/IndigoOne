@@ -1,0 +1,418 @@
+
+direction: right
+
+# =========================================
+# INDIGO ONE - MODELO ENTIDAD RELACION
+# =========================================
+
+# -----------------------------------------
+# 1. ESTRUCTURA INTERNA DE INDIGO
+# -----------------------------------------
+
+indigo: {
+  direction: down
+  label: "1. INDIGO"
+
+  sucursales: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    nombre: varchar(150)
+    pais: varchar(100)
+    estado: varchar(100)
+    municipio: varchar(100)
+    direccion: text
+    telefono: varchar(20)
+    activo: boolean
+    created_at: timestamptz
+  }
+
+  usuarios: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    sucursal_id: uuid {constraint: foreign_key}
+    nombre: varchar(150)
+    usuario: varchar(100) {constraint: unique}
+    password_hash: text
+    password_cambiada: boolean
+    telefono: varchar(20)
+    correo: varchar(150)
+    rol: varchar(30)
+    dado_de_alta_por: uuid {constraint: foreign_key}
+    activo: boolean
+    created_at: timestamptz
+    updated_at: timestamptz
+  }
+
+  trabajos: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    folio: varchar(30) {constraint: unique}
+    indigo_sucursal_id: uuid {constraint: foreign_key}
+    optica_id: uuid {constraint: foreign_key}
+    vendedor_id: uuid {constraint: foreign_key}
+    creado_por: uuid {constraint: foreign_key}
+    tipo_servicio: varchar(50)
+    tipo_bisel: varchar(50)
+    cantidad: integer
+    urgente: boolean
+    fecha_entrega: timestamptz
+    estado: varchar(20)
+    aceptado_por: uuid {constraint: foreign_key}
+    aceptado_at: timestamptz
+    realizado_por: uuid {constraint: foreign_key}
+    finalizado_at: timestamptz
+    motivo_merma: text
+    created_at: timestamptz
+    updated_at: timestamptz
+  }
+
+  trabajo_detalles: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    trabajo_id: uuid {constraint: foreign_key}
+    texto: text
+    creado_por: uuid {constraint: foreign_key}
+    created_at: timestamptz
+  }
+}
+
+# -----------------------------------------
+# 2. INVENTARIO DE INDIGO
+# -----------------------------------------
+
+inventario: {
+  direction: down
+  label: "2. INVENTARIO INDIGO"
+
+  items: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    tipo: varchar(30)
+    nombre: varchar(150)
+    marca: varchar(100)
+    material: varchar(100)
+    tratamiento: varchar(150)
+    esfera_min: numeric(4,2)
+    esfera_max: numeric(4,2)
+    cilindro_min: numeric(4,2)
+    cilindro_max: numeric(4,2)
+    adicion_min: numeric(4,2)
+    adicion_max: numeric(4,2)
+    precio_lista: numeric(10,2)
+    creado_por: uuid {constraint: foreign_key}
+    created_at: timestamptz
+    updated_at: timestamptz
+    deleted_at: timestamptz
+  }
+
+  productos: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    indigo_sucursal_id: uuid {constraint: foreign_key}
+    codigo: varchar(50)
+    modelo: varchar(150)
+    descripcion: text
+    color: varchar(50)
+    tipo: varchar(20)
+    material: varchar(100)
+    genero: varchar(10)
+    medidas: varchar(50)
+    stock_disponible: integer
+    stock_minimo: integer
+    costo: numeric(10,2)
+    activo: boolean
+    creado_por: uuid {constraint: foreign_key}
+    created_at: timestamptz
+    updated_at: timestamptz
+  }
+}
+
+# -----------------------------------------
+# 3. OPTICAS Y SUCURSALES
+# -----------------------------------------
+
+opticas: {
+  direction: down
+  label: "3. OPTICAS"
+
+  empresa: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    codigo: varchar(20) {constraint: unique}
+    razon_social: varchar(200)
+    rfc: varchar(13)
+    telefono: varchar(20)
+    correo: varchar(150)
+    pais: varchar(100)
+    estado: varchar(100)
+    municipio: varchar(100)
+    direccion: text
+    codigo_postal: varchar(5)
+    password_hash: text
+    password_cambiada: boolean
+    activo: boolean
+    creado_por: uuid {constraint: foreign_key}
+    created_at: timestamptz
+    updated_at: timestamptz
+  }
+
+  sucursales: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    optica_id: uuid {constraint: foreign_key}
+    nombre: varchar(150)
+    direccion: text
+    telefono: varchar(20)
+    activo: boolean
+    created_at: timestamptz
+  }
+
+  sucursal_proveedor: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    sucursal_id: uuid {constraint: foreign_key, unique}
+    indigo_sucursal_id: uuid {constraint: foreign_key}
+    asignado_por: uuid {constraint: foreign_key}
+    created_at: timestamptz
+    updated_at: timestamptz
+  }
+
+  usuarios: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    optica_id: uuid {constraint: foreign_key}
+    sucursal_id: uuid {constraint: foreign_key}
+    nombre: varchar(150)
+    usuario: varchar(100)
+    password_hash: text
+    rol: varchar(30)
+    dado_de_alta_por: uuid {constraint: foreign_key}
+    activo: boolean
+    created_at: timestamptz
+    updated_at: timestamptz
+  }
+
+  gerentes: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    sucursal_id: uuid {constraint: foreign_key, unique}
+    optica_usuario_id: uuid {constraint: foreign_key}
+    created_at: timestamptz
+  }
+}
+
+# -----------------------------------------
+# 4. CLIENTES Y EXPEDIENTES
+# -----------------------------------------
+
+clientes: {
+  direction: down
+  label: "4. CLIENTES Y EXPEDIENTES"
+
+  finales: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    sucursal_id: uuid {constraint: foreign_key}
+    nombre: varchar(200)
+    telefono: varchar(20)
+    email: varchar(150)
+    fecha_nacimiento: date
+    created_at: timestamptz
+    updated_at: timestamptz
+  }
+
+  expedientes: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    cliente_final_id: uuid {constraint: foreign_key}
+    fecha_examen: date
+    od_esfera: numeric(4,2)
+    od_cilindro: numeric(4,2)
+    od_eje: integer
+    od_adicion: numeric(4,2)
+    oi_esfera: numeric(4,2)
+    oi_cilindro: numeric(4,2)
+    oi_eje: integer
+    oi_adicion: numeric(4,2)
+    dip: numeric(4,1)
+    observaciones: text
+    registrado_por: uuid {constraint: foreign_key}
+    created_at: timestamptz
+  }
+}
+
+# -----------------------------------------
+# 5. PUNTO DE VENTA
+# -----------------------------------------
+
+ventas: {
+  direction: down
+  label: "5. PUNTO DE VENTA"
+
+  productos_servicios: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    sucursal_id: uuid {constraint: foreign_key}
+    tipo: varchar(20)
+    nombre: varchar(150)
+    precio: numeric(10,2)
+    inventario_item_id: uuid {constraint: foreign_key}
+    stock_local: integer
+    activo: boolean
+    created_at: timestamptz
+  }
+
+  ventas: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    folio: varchar(30) {constraint: unique}
+    sucursal_id: uuid {constraint: foreign_key}
+    cliente_final_id: uuid {constraint: foreign_key}
+    vendedor_id: uuid {constraint: foreign_key}
+    total: numeric(10,2)
+    estado: varchar(20)
+    created_at: timestamptz
+  }
+
+  detalle: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    venta_id: uuid {constraint: foreign_key}
+    producto_servicio_id: uuid {constraint: foreign_key}
+    cantidad: integer
+    precio_unitario: numeric(10,2)
+    subtotal: numeric(10,2)
+  }
+}
+
+# -----------------------------------------
+# 6. CITAS
+# -----------------------------------------
+
+citas: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  sucursal_id: uuid {constraint: foreign_key}
+  cliente_final_id: uuid {constraint: foreign_key}
+  fecha_hora: timestamptz
+  motivo: varchar(200)
+  estado: varchar(20)
+  creado_por: uuid {constraint: foreign_key}
+  created_at: timestamptz
+}
+
+# -----------------------------------------
+# 7. LABORATORIO DE OPTICAS
+# -----------------------------------------
+
+laboratorio_opticas: {
+  direction: down
+  label: "7. ORDENES DE LABORATORIO"
+
+  ordenes: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    folio: varchar(30) {constraint: unique}
+    sucursal_id: uuid {constraint: foreign_key}
+    cliente_final_id: uuid {constraint: foreign_key}
+    expediente_id: uuid {constraint: foreign_key}
+    venta_id: uuid {constraint: foreign_key}
+    item_id: uuid {constraint: foreign_key}
+    estado: varchar(30)
+    notas: text
+    creado_por: uuid {constraint: foreign_key}
+    created_at: timestamptz
+    updated_at: timestamptz
+  }
+
+  historial: {
+    shape: sql_table
+    id: uuid {constraint: primary_key}
+    orden_id: uuid {constraint: foreign_key}
+    estado_anterior: varchar(30)
+    estado_nuevo: varchar(30)
+    cambiado_por_tipo: varchar(10)
+    cambiado_por_id: uuid
+    created_at: timestamptz
+  }
+}
+
+# -----------------------------------------
+# 8. CREDENCIALES
+# -----------------------------------------
+
+seguridad: {
+  direction: down
+  label: "8. AUTENTICACION"
+
+  credenciales: {
+    shape: sql_table
+    usuario: varchar(100) {constraint: primary_key}
+    tipo: varchar(10)
+    referencia_id: uuid
+    created_at: timestamptz
+  }
+}
+
+# =========================================
+# RELACIONES ENTRE TABLAS
+# =========================================
+
+# INDIGO
+indigo.sucursales.id -> indigo.usuarios.sucursal_id
+indigo.usuarios.id -> indigo.usuarios.dado_de_alta_por
+indigo.usuarios.id -> inventario.items.creado_por
+indigo.usuarios.id -> inventario.productos.creado_por
+indigo.sucursales.id -> inventario.productos.indigo_sucursal_id
+
+# INVENTARIO
+indigo.usuarios.id -> opticas.empresa.creado_por
+indigo.usuarios.id -> opticas.sucursal_proveedor.asignado_por
+indigo.sucursales.id -> opticas.sucursal_proveedor.indigo_sucursal_id
+
+# OPTICAS
+opticas.empresa.id -> opticas.sucursales.optica_id
+opticas.sucursales.id -> opticas.sucursal_proveedor.sucursal_id
+opticas.empresa.id -> opticas.usuarios.optica_id
+opticas.sucursales.id -> opticas.usuarios.sucursal_id
+opticas.usuarios.id -> opticas.usuarios.dado_de_alta_por
+opticas.sucursales.id -> opticas.gerentes.sucursal_id
+opticas.usuarios.id -> opticas.gerentes.optica_usuario_id
+
+# CLIENTES
+opticas.sucursales.id -> clientes.finales.sucursal_id
+clientes.finales.id -> clientes.expedientes.cliente_final_id
+opticas.usuarios.id -> clientes.expedientes.registrado_por
+
+# VENTAS
+opticas.sucursales.id -> ventas.productos_servicios.sucursal_id
+inventario.items.id -> ventas.productos_servicios.inventario_item_id
+opticas.sucursales.id -> ventas.ventas.sucursal_id
+clientes.finales.id -> ventas.ventas.cliente_final_id
+opticas.usuarios.id -> ventas.ventas.vendedor_id
+ventas.ventas.id -> ventas.detalle.venta_id
+ventas.productos_servicios.id -> ventas.detalle.producto_servicio_id
+
+# CITAS
+opticas.sucursales.id -> citas.sucursal_id
+clientes.finales.id -> citas.cliente_final_id
+opticas.usuarios.id -> citas.creado_por
+
+# LABORATORIO DE OPTICAS
+opticas.sucursales.id -> laboratorio_opticas.ordenes.sucursal_id
+clientes.finales.id -> laboratorio_opticas.ordenes.cliente_final_id
+clientes.expedientes.id -> laboratorio_opticas.ordenes.expediente_id
+ventas.ventas.id -> laboratorio_opticas.ordenes.venta_id
+inventario.items.id -> laboratorio_opticas.ordenes.item_id
+opticas.usuarios.id -> laboratorio_opticas.ordenes.creado_por
+laboratorio_opticas.ordenes.id -> laboratorio_opticas.historial.orden_id
+
+# LABORATORIO INDIGO
+indigo.sucursales.id -> indigo.trabajos.indigo_sucursal_id
+opticas.empresa.id -> indigo.trabajos.optica_id
+indigo.usuarios.id -> indigo.trabajos.vendedor_id
+indigo.usuarios.id -> indigo.trabajos.creado_por
+indigo.usuarios.id -> indigo.trabajos.aceptado_por
+indigo.usuarios.id -> indigo.trabajos.realizado_por
+indigo.trabajos.id -> indigo.trabajo_detalles.trabajo_id
+indigo.usuarios.id -> indigo.trabajo_detalles.creado_por

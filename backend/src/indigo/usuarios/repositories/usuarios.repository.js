@@ -10,7 +10,7 @@ async function existeSuperUsuario(db = pool) {
 async function buscarPorId(id, db = pool, { bloquear = false } = {}) {
   const { rows } = await db.query(
     `
-      SELECT id, nombre, rol, sucursal_id, activo
+      SELECT id, nombre, usuario, rol, sucursal_id, activo
       FROM indigo_usuarios
       WHERE id = $1
       ${bloquear ? "FOR UPDATE" : ""}
@@ -20,8 +20,40 @@ async function buscarPorId(id, db = pool, { bloquear = false } = {}) {
   return rows[0] ?? null;
 }
 
+// ¿Ya hay alguien activo con ese puesto (gerente/subgerente) en la sucursal?
+async function existeRolActivoEnSucursal(
+  sucursalId,
+  rol,
+  excluirUsuarioId = null,
+  db = pool
+) {
+  const { rows } = await db.query(
+    `
+      SELECT id
+      FROM indigo_usuarios
+      WHERE sucursal_id = $1
+        AND rol = $2
+        AND activo = TRUE
+        AND ($3::uuid IS NULL OR id <> $3)
+      LIMIT 1
+    `,
+    [sucursalId, rol, excluirUsuarioId]
+  );
+  return Boolean(rows[0]);
+}
+
 async function insertar(
-  { sucursalId, nombre, usuario, passwordHash, rol, creadoPorId },
+  {
+    sucursalId,
+    nombre,
+    usuario,
+    passwordHash,
+    rol,
+    creadoPorId,
+    telefono = null,
+    correo = null,
+    passwordCambiada = false,
+  },
   db = pool
 ) {
   const { rows } = await db.query(
@@ -31,25 +63,86 @@ async function insertar(
         nombre,
         usuario,
         password_hash,
+        telefono,
+        correo,
         rol,
-        dado_de_alta_por
+        dado_de_alta_por,
+        password_cambiada
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id, nombre, usuario, rol
     `,
-    [sucursalId, nombre, usuario, passwordHash, rol, creadoPorId]
+    [
+      sucursalId,
+      nombre,
+      usuario,
+      passwordHash,
+      telefono,
+      correo,
+      rol,
+      creadoPorId,
+      passwordCambiada,
+    ]
   );
   return rows[0];
 }
 
-async function actualizarRolYSucursal(id, rol, sucursalId, db = pool) {
+// Edición hecha por un administrador (puede cambiar rol y sucursal)
+async function actualizarDatos(
+  id,
+  { nombre, usuario, telefono, correo, rol, sucursalId },
+  db = pool
+) {
   await db.query(
     `
       UPDATE indigo_usuarios
-      SET rol = $1, sucursal_id = $2, updated_at = NOW()
+      SET nombre = $1,
+          usuario = $2,
+          telefono = $3,
+          correo = $4,
+          rol = $5,
+          sucursal_id = $6,
+          updated_at = NOW()
+      WHERE id = $7
+    `,
+    [nombre, usuario, telefono, correo, rol, sucursalId, id]
+  );
+}
+
+// Edición del propio perfil (no toca rol ni sucursal)
+async function actualizarPerfil(id, { nombre, usuario, telefono, correo }, db = pool) {
+  await db.query(
+    `
+      UPDATE indigo_usuarios
+      SET nombre = $1,
+          usuario = $2,
+          telefono = $3,
+          correo = $4,
+          updated_at = NOW()
+      WHERE id = $5
+    `,
+    [nombre, usuario, telefono, correo, id]
+  );
+}
+
+async function buscarPasswordHash(id, db = pool) {
+  const { rows } = await db.query(
+    "SELECT password_hash FROM indigo_usuarios WHERE id = $1",
+    [id]
+  );
+  return rows[0]?.password_hash ?? null;
+}
+
+async function actualizarPassword(id, passwordHash, passwordCambiada, db = pool) {
+  await db.query(
+    `
+      UPDATE indigo_usuarios
+      SET password_hash = $1,
+          password_cambiada = $2,
+          updated_at = NOW()
       WHERE id = $3
     `,
-    [rol, sucursalId, id]
+    [passwordHash, passwordCambiada, id]
   );
 }
 
@@ -79,6 +172,8 @@ async function buscarParaFront(id, db = pool) {
         un.numero,
         u.nombre,
         u.usuario,
+        u.telefono,
+        u.correo,
         u.rol,
         u.sucursal_id,
         u.activo,
@@ -99,7 +194,12 @@ async function buscarParaFront(id, db = pool) {
   return rows[0] ?? null;
 }
 
-async function listar({ rol, sucursalId, usuarioId }, db = pool) {
+/*
+ * roles: arreglo de roles a mostrar (null = todos).
+ * sucursalId: si se pasa (aunque sea null) solo se muestra esa sucursal;
+ * si es undefined no se filtra por sucursal.
+ */
+async function listar({ roles, sucursalId }, db = pool) {
   let query = `
     SELECT
       u.id,
@@ -110,6 +210,8 @@ async function listar({ rol, sucursalId, usuarioId }, db = pool) {
 
       u.nombre,
       u.usuario,
+      u.telefono,
+      u.correo,
       u.rol,
       u.sucursal_id,
       u.activo,
@@ -126,16 +228,14 @@ async function listar({ rol, sucursalId, usuarioId }, db = pool) {
   const params = [];
   const conditions = [];
 
-  if (rol === "dueno") {
-    conditions.push(`u.rol NOT IN ('super_usuario', 'dueno')`);
-    conditions.push(`u.id <> $${params.length + 1}`);
-    params.push(usuarioId);
+  if (roles) {
+    params.push(roles);
+    conditions.push(`u.rol = ANY($${params.length})`);
   }
 
-  if (rol === "gerente_sucursal") {
-    conditions.push(`u.sucursal_id = $${params.length + 1}`);
+  if (sucursalId !== undefined) {
     params.push(sucursalId);
-    conditions.push(`u.rol IN ('empleado_ventas', 'empleado_laboratorio')`);
+    conditions.push(`u.sucursal_id = $${params.length}`);
   }
 
   if (conditions.length > 0) {
@@ -151,8 +251,12 @@ async function listar({ rol, sucursalId, usuarioId }, db = pool) {
 module.exports = {
   existeSuperUsuario,
   buscarPorId,
+  existeRolActivoEnSucursal,
   insertar,
-  actualizarRolYSucursal,
+  actualizarDatos,
+  actualizarPerfil,
+  buscarPasswordHash,
+  actualizarPassword,
   cambiarEstado,
   buscarParaFront,
   listar,

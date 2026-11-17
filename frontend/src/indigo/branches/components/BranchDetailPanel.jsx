@@ -5,6 +5,10 @@ import StatusBadge from "../../../shared/components/StatusBadge";
 import TabBar from "../../../shared/components/TabBar";
 import { kpiColors } from "../../../shared/constants/kpiColors";
 
+import { USER_ROLE_LABELS } from "../../users/constants";
+
+
+
 
 const TABS = [
   { value: "info", label: "Información general" },
@@ -114,7 +118,8 @@ export default function BranchDetailPanel({ branch }) {
               {branch.staffList.map((person, index) => (
                 <div key={index} className="flex items-center justify-between rounded-xl bg-background px-4 py-3">
                   <span className="font-medium text-text-primary">{person.name}</span>
-                  <span className="text-sm text-text-secondary">{person.role}</span>
+                  {/* <span className="text-sm text-text-secondary">{person.role}</span> */}
+                <span className="text-sm text-text-secondary"> {USER_ROLE_LABELS[person.role] ?? person.role} </span>
                 </div>
               ))}
             </div>

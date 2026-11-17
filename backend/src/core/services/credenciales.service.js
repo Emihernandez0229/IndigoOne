@@ -12,4 +12,12 @@ async function registrarCredencialGlobal(client, { usuario, tipo, referenciaId }
   );
 }
 
-module.exports = { existeUsuarioGlobal, registrarCredencialGlobal };
+// Cambia el usuario con el que inicia sesión (la clave de credenciales es el usuario)
+async function cambiarUsuarioGlobal(client, { referenciaId, tipo, usuarioNuevo }) {
+  await client.query(
+    "UPDATE credenciales SET usuario = $1 WHERE referencia_id = $2 AND tipo = $3",
+    [usuarioNuevo, referenciaId, tipo]
+  );
+}
+
+module.exports = { existeUsuarioGlobal, registrarCredencialGlobal, cambiarUsuarioGlobal };

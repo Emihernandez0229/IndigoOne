@@ -4,6 +4,8 @@ function aUsuarioFront(user) {
     displayId: Number(user.numero),
     name: user.nombre,
     username: user.usuario,
+    phone: user.telefono ?? null,
+    email: user.correo ?? null,
     role: `indigo:${user.rol}`,
     branchId: user.sucursal_id,
     branchName: user.sucursal_nombre ?? "Sin sucursal",

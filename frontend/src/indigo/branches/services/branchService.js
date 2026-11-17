@@ -2,28 +2,41 @@ import { httpClient } from "../../../shared/api/httpClient";
 
 export async function listBranches() {return httpClient.get("/api/indigo/sucursales");}
 
+// export async function createBranch(payload) {
+//   return httpClient.post("/api/indigo/sucursales",
+//     {
+//       nombre: payload.name,
+//       imagen: payload.image || null,
+//       pais: payload.country,
+//       estado: payload.state,
+//       municipio: payload.municipality,
+
+//       gerente_indigo_usuario_id:
+//         payload.managerMode === "existing"
+//           ? payload.managerId
+//           : null,
+
+//       nuevo_gerente_nombre:
+//         payload.managerMode === "new"
+//           ? payload.manager
+//           : null,
+//     }
+//   );
+// }
+
+
 export async function createBranch(payload) {
-  return httpClient.post("/api/indigo/sucursales",
-    {
-      nombre: payload.name,
-      imagen: payload.image || null,
-      pais: payload.country,
-      estado: payload.state,
-      municipio: payload.municipality,
-
-      gerente_indigo_usuario_id:
-        payload.managerMode === "existing"
-          ? payload.managerId
-          : null,
-
-      nuevo_gerente_nombre:
-        payload.managerMode === "new"
-          ? payload.manager
-          : null,
-    }
-  );
+  return httpClient.post("/api/indigo/sucursales", {
+    nombre: payload.name,
+    pais: payload.country,
+    estado: payload.state,
+    municipio: payload.municipality,
+    gerente_indigo_usuario_id:
+      payload.managerMode === "existing" ? payload.managerId : null,
+    nuevo_gerente_nombre:
+      payload.managerMode === "new" ? payload.manager : null,
+  });
 }
-
 
 export async function updateBranch(
   id,
@@ -54,18 +67,24 @@ export async function updateBranch(
 // Edicion acotada que usa el Gerente/Subgerente desde "Mi sucursal":
 // solo dirección, teléfonos y datos del subgerente - nunca nombre,
 // responsable ni ubicación (eso es del Dueño).
-export async function updateBranchContact(id, payload) {
-  return httpClient.put(`/api/indigo/sucursales/${id}`,
-    {
-      direccion: payload.address,
-      telefono: payload.phone,
-      gerente_telefono: payload.managerPhone,
-      subgerente_nombre: payload.subManager,
-      subgerente_telefono: payload.subManagerPhone,
-    }
-  );
-}
+// export async function updateBranchContact(id, payload) {
+//   return httpClient.put(`/api/indigo/sucursales/${id}`,
+//     {
+//       direccion: payload.address,
+//       telefono: payload.phone,
+//       gerente_telefono: payload.managerPhone,
+//       subgerente_nombre: payload.subManager,
+//       subgerente_telefono: payload.subManagerPhone,
+//     }
+//   );
+// }
 
+export async function updateBranchContact(id, payload) {
+  return httpClient.patch(`/api/indigo/sucursales/${id}/contacto`, {
+    direccion: payload.address,
+    telefono: payload.phone,
+  });
+}
 
 export async function deactivateBranch(id) {
   return httpClient.patch(`/api/indigo/sucursales/${id}/deactivate`);
