@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { Plus } from "lucide-react";
 
@@ -11,10 +11,9 @@ import FilterBar from "../../shared/filters/FilterBar";
 import SelectFilter from "../../shared/filters/SelectFilter";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
-import EmptyState from "../../shared/components/EmptyState";
 import ConfirmDialog from "../../shared/components/ConfirmDialog";
+import SidePanel from "../../shared/components/SidePanel";
 import Can from "../../shared/security/Can";
-import usePermissions from "../../shared/hooks/usePermissions";
 import useBranchScope from "../../shared/hooks/useBranchScope";
 import { ROLES } from "../../shared/security/roles";
 
@@ -22,28 +21,37 @@ import { listBranches } from "../branches/services/branchService";
 import usePatients from "../pacientes/hooks/usePatients";
 import useVentas from "./hooks/useVentas";
 import { filterVentas } from "./filterVentas";
-import { SALE_STATUSES } from "./constants";
+import { SALE_STATUSES, WORK_TYPES, PAYMENT_METHODS } from "./constants";
 import VentaTable from "./components/VentaTable";
+import VentaDetailPanel from "./components/VentaDetailPanel";
+import LiquidarSaldoPanel from "./components/LiquidarSaldoPanel";
+import { downloadPaymentReceipt, buildReceiptData } from "./pdfReceipt";
 
 
 export default function VentasPage() {
 
   const navigate = useNavigate();
-  const { can } = usePermissions();
-  const canManage = can("optica.sales.manage");
+  const location = useLocation();
 
   const { isOwner, branches, selectedBranch, setSelectedBranch, loadingBranches } = useBranchScope({
     listBranches,
     ownerRoles: [ROLES.OPTICA_DUENO],
+    alwaysLoad: true,
+    autoSelectFirst: false,
   });
 
-  const { patients } = usePatients(selectedBranch);
-  const { ventas, loading, error, cancel } = useVentas(selectedBranch);
+  // "" (Todas) trae pacientes de todas las sucursales, igual que el
+  // modulo Clientes del dueno.
+  const { patients } = usePatients(selectedBranch, { scopeToAll: !selectedBranch });
+  const { ventas, loading, error, liquidar, changeStatus, cancel } = useVentas(selectedBranch);
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [date, setDate] = useState("");
-  const [ventaToCancel, setVentaToCancel] = useState(null);
+  const [workType, setWorkType] = useState("");
+  const [viewingId, setViewingId] = useState(() => location.state?.viewVentaId ?? null);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [liquidatingId, setLiquidatingId] = useState(null);
 
 
   const patientsById = useMemo(() => {
@@ -52,39 +60,75 @@ export default function VentasPage() {
     return map;
   }, [patients]);
 
-  const ventasWithPatient = useMemo(
-    () => ventas.map((venta) => ({ ...venta, patientName: patientsById.get(venta.patientId) })),
-    [ventas, patientsById]
+  const branchesById = useMemo(() => {
+    const map = new Map();
+    branches.forEach((branch) => map.set(branch.id, branch.name));
+    return map;
+  }, [branches]);
+
+  // Con "Todas" cada venta puede ser de una sucursal distinta, asi que el
+  // nombre se busca por fila (no por la sucursal elegida en el filtro).
+  const ventasEnriched = useMemo(
+    () => ventas.map((venta) => ({
+      ...venta,
+      patientName: patientsById.get(venta.patientId),
+      branchName: branchesById.get(venta.branchId) ?? "",
+    })),
+    [ventas, patientsById, branchesById]
   );
 
   const filtered = useMemo(
-    () => filterVentas(ventasWithPatient, { query, status, date }),
-    [ventasWithPatient, query, status, date]
+    () => filterVentas(ventasEnriched, { query, status, date, workType }),
+    [ventasEnriched, query, status, date, workType]
   );
 
+  const viewingVenta = ventasEnriched.find((v) => v.id === viewingId) ?? null;
+  const liquidatingVenta = ventasEnriched.find((v) => v.id === liquidatingId) ?? null;
+
+  const handleConfirmLiquidar = async (monto) => {
+    const updated = await liquidar(liquidatingVenta.id, monto);
+    downloadPaymentReceipt({
+      ...buildReceiptData(liquidatingVenta),
+      date: new Date().toLocaleString("es-MX", { dateStyle: "full", timeStyle: "short" }),
+      paymentMethodLabel: PAYMENT_METHODS.find((m) => m.value === "efectivo")?.label,
+      montoPagado: monto,
+      saldoPendiente: updated.saldoPendiente,
+    });
+    setLiquidatingId(null);
+  };
+
   const kpis = useMemo(() => {
-    const activeSales = ventas.filter((v) => v.status === "completada");
-    const today = new Date().toISOString().slice(0, 10);
-    const salesToday = activeSales.filter((v) => (v.createdAt ?? "").slice(0, 10) === today);
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+
+    const thisMonth = ventas.filter((v) => {
+      if (!v.createdAt) return false;
+      const created = new Date(v.createdAt);
+      return created.getFullYear() === now.getFullYear() && created.getMonth() === now.getMonth();
+    });
+    const thisMonthActive = thisMonth.filter((v) => v.status !== "cancelada");
+    const todayActive = ventas.filter((v) => v.status !== "cancelada" && (v.createdAt ?? "").slice(0, 10) === today);
+    // "Pendientes de pago" es el adeudo (ver PAYMENT_STATUSES), no el
+    // estado del trabajo - son independientes.
+    const pendingPayment = ventas.filter((v) => v.status !== "cancelada" && v.paymentStatus === "en_adeudo");
 
     return [
       {
-        id: "total", type: "sales", title: "Total",
-        value: String(ventas.length), description: "Ventas registradas",
+        id: "monthTotal", type: "sales", title: "Total de ventas en el mes", color: "blue",
+        value: String(thisMonth.length), description: "Registradas este mes",
       },
       {
-        id: "revenue", type: "revenue", title: "Ingresos",
-        value: `$${activeSales.reduce((sum, v) => sum + v.total, 0).toLocaleString("es-MX")}`,
-        description: "Ventas completadas",
+        id: "monthAmount", type: "revenue", title: "Ventas del mes", color: "green",
+        value: `$${thisMonthActive.reduce((sum, v) => sum + v.total, 0).toLocaleString("es-MX")}`,
+        description: "Importe del mes",
       },
       {
-        id: "today", type: "appointments", title: "Ventas de hoy",
-        value: String(salesToday.length), description: "Registradas hoy",
+        id: "today", type: "appointments", title: "Ventas de hoy", color: "orange",
+        value: String(todayActive.length), description: "Registradas hoy",
       },
       {
-        id: "canceled", type: "canceled", title: "Canceladas",
-        value: String(ventas.filter((v) => v.status === "cancelada").length),
-        description: "Ventas anuladas",
+        id: "pending", type: "lowStock", title: "Ventas pendientes de pago", color: "red",
+        value: String(pendingPayment.length), description: "Saldo por cobrar",
       },
     ];
   }, [ventas]);
@@ -101,7 +145,7 @@ export default function VentasPage() {
         <Can permission="optica.sales.create">
           <Button
             className="inline-flex items-center gap-2 py-2.5 text-sm"
-            onClick={() => navigate("/opticas/ventas/nueva")}
+            onClick={() => navigate("/opticas/ventas/nueva", { state: { branchId: selectedBranch } })}
           >
             <Plus className="h-4 w-4" />
             Nueva venta
@@ -110,7 +154,9 @@ export default function VentasPage() {
       }
     >
 
-      <div className="space-y-6">
+      <div className="flex items-start gap-6">
+
+      <div className="min-w-0 flex-1 space-y-6 transition-all duration-300 ease-in-out">
 
         <KpiRow items={kpis} />
 
@@ -119,7 +165,7 @@ export default function VentasPage() {
             className="w-full sm:max-w-xs"
             value={query}
             onChange={setQuery}
-            placeholder="Buscar por paciente o producto"
+            placeholder="Buscar por folio, paciente, vendedor o producto"
           />
           <SelectFilter
             label="Estado"
@@ -144,43 +190,74 @@ export default function VentasPage() {
               label="Sucursal"
               value={selectedBranch}
               onChange={setSelectedBranch}
-              placeholder="Selecciona una sucursal"
-              options={branches.map((b) => ({ value: b.id, label: b.name }))}
+              options={[{ value: "", label: "Todas las sucursales" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
             />
           )}
+          <SelectFilter
+            label="Trabajo"
+            value={workType}
+            onChange={setWorkType}
+            placeholder="Todos los trabajos"
+            options={WORK_TYPES}
+          />
         </FilterBar>
 
-        {!selectedBranch ? (
-          <EmptyState
-            title="Selecciona una sucursal"
-            description="Elige una sucursal para ver sus ventas."
-          />
-        ) : loading ? (
+        {loading ? (
           <LoadingSpinner />
         ) : error ? (
           <ErrorState />
         ) : (
           <VentaTable
             ventas={filtered}
-            canCancel={canManage}
-            onView={(venta) => navigate(`/opticas/ventas/${venta.id}`)}
-            onCancel={(venta) => setVentaToCancel(venta)}
+            onView={(venta) => setViewingId(venta.id)}
           />
         )}
 
       </div>
 
+      <SidePanel
+        isOpen={Boolean(viewingVenta) || Boolean(liquidatingVenta)}
+        onClose={() => {
+          setViewingId(null);
+          setLiquidatingId(null);
+        }}
+        title={liquidatingVenta ? "Liquidar saldo" : "Detalle de venta"}
+      >
+        {liquidatingVenta ? (
+          <LiquidarSaldoPanel
+            venta={liquidatingVenta}
+            onCancel={() => setLiquidatingId(null)}
+            onConfirm={handleConfirmLiquidar}
+          />
+        ) : (
+          <VentaDetailPanel
+            venta={viewingVenta}
+            onLiquidar={(venta) => setLiquidatingId(venta.id)}
+            onChangeStatus={(venta, transition) => setConfirmAction({ action: "changeStatus", venta, transition })}
+            onCancel={(venta) => setConfirmAction({ action: "cancel", venta })}
+          />
+        )}
+      </SidePanel>
+
+      </div>
+
       <ConfirmDialog
-        open={Boolean(ventaToCancel)}
-        title="Cancelar venta"
+        open={Boolean(confirmAction)}
+        title={confirmAction?.action === "changeStatus" ? confirmAction.transition.label : "Cancelar venta"}
         description={
-          ventaToCancel &&
-          `¿Seguro que quieres cancelar esta venta por ${ventaToCancel.total ? `$${ventaToCancel.total.toLocaleString("es-MX")}` : ""}? Se repondrá el stock de los productos vendidos.`
+          confirmAction &&
+          (confirmAction.action === "changeStatus"
+            ? `¿Confirmas que quieres marcar la venta "${confirmAction.venta.folio}" como "${confirmAction.transition.label.toLowerCase()}"?`
+            : `¿Seguro que quieres cancelar la venta "${confirmAction.venta.folio}"? Esta acción no se puede deshacer.`)
         }
-        confirmLabel="Cancelar venta"
-        variant="danger"
-        onConfirm={() => cancel(ventaToCancel.id)}
-        onClose={() => setVentaToCancel(null)}
+        confirmLabel={confirmAction?.action === "changeStatus" ? confirmAction.transition.label : "Cancelar venta"}
+        variant={confirmAction?.action === "changeStatus" ? "primary" : "danger"}
+        onConfirm={() =>
+          confirmAction.action === "changeStatus"
+            ? changeStatus(confirmAction.venta.id, confirmAction.transition.value)
+            : cancel(confirmAction.venta.id)
+        }
+        onClose={() => setConfirmAction(null)}
       />
 
     </PageContainer>

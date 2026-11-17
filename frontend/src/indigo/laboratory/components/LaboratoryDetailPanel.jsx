@@ -6,6 +6,7 @@ import TabBar from "../../../shared/components/TabBar";
 import PriorityBadge from "./PriorityBadge";
 import JobTimeline from "./JobTimeline";
 import { SERVICE_TYPE_LABELS } from "../constants";
+import { formatDuration } from "../../../shared/utils/format";
 
 
 const TABS = [
@@ -61,13 +62,6 @@ export default function LaboratoryDetailPanel({ job }) {
   const totalMinutes = (job.deliveredAt ?? job.completedAt) && job.entryAt
     ? Math.round((new Date(job.deliveredAt ?? job.completedAt) - new Date(job.entryAt)) / 60000)
     : null;
-
-  const formatDuration = (minutes) => {
-    if (minutes == null) return "—";
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return h > 0 ? `${h} h ${m} min` : `${m} min`;
-  };
 
   return (
     <div className="space-y-6">

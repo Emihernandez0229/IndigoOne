@@ -1,10 +1,9 @@
-export const MAX_PRODUCT_PHOTOS = 3;
-
-export const ACCEPTED_PHOTO_TYPES = ["image/png", "image/jpeg"];
-
 export const PRODUCT_TYPES = [
   { value: "armazones", label: "Armazones" },
   { value: "micas", label: "Micas" },
+  { value: "accesorios", label: "Accesorios" },
+  { value: "estuches", label: "Estuches" },
+  { value: "otros", label: "Otros" },
 ];
 
 export const GENDERS = [
@@ -13,41 +12,28 @@ export const GENDERS = [
   { value: "unisex", label: "Unisex" },
 ];
 
-export const MATERIALS_BY_TYPE = {
-  armazones: [
-    "OKI Eyewear",
-    "JD Sport",
-    "Friend",
-    "Liam",
-    "Life",
-    "JM",
-    "Cactus",
-    "Eclipse",
-    "Fashion",
-    "Mar",
-    "Toki Kids",
-  ].map((label) => ({ value: label, label })),
+// Las micas se fabrican bajo receta, no se despachan de un stock fijo - esta
+// lista es solo informativa, para mostrar qué tratamientos ofrece Indigo.
+export const LENS_TREATMENTS = [
+  "Antirreflejante",
+  "Filtro luz azul",
+  "Fotocromático",
+  "Policarbonato",
+  "Alto índice",
+];
 
-  micas: [
-    "Progresivos Superfit",
-    "Photoflux",
-    "Resistant Flex",
-    "Antibue Premium",
-  ].map((label) => ({ value: label, label })),
+// Tipos de movimiento de inventario, en un solo lugar. Dashboard (Owner/
+// BranchManager) solo usa phrase/iconBg/iconColor para el feed de
+// actividad; Reportes (InventarioReportTab) solo usa label/sign/badge para
+// la tabla de movimientos - cada quien toma los campos que le sirven.
+// Las claves coinciden con el "tipo" real que guarda el back
+// (stock_movimientos.tipo: entrada/salida/ajuste/venta/devolucion); solo
+// entrada/salida/ajuste se capturan a mano (ver StockMovementModal), los
+// otros dos los genera el sistema solo.
+export const MOVIMIENTO_META = {
+  entrada: { label: "Entrada", phrase: "entrada", sign: 1, badge: "entrada", iconBg: "bg-success/10", iconColor: "text-success" },
+  salida: { label: "Salida", phrase: "salida", sign: -1, badge: "salida", iconBg: "bg-error/10", iconColor: "text-error" },
+  ajuste: { label: "Ajuste", phrase: "un ajuste", sign: 1, badge: "ajuste", iconBg: "bg-indigo-light", iconColor: "text-indigo-primary" },
+  venta: { label: "Venta", phrase: "una venta", sign: -1, badge: "salida", iconBg: "bg-error/10", iconColor: "text-error" },
+  devolucion: { label: "Devolución", phrase: "una devolución", sign: 1, badge: "entrada", iconBg: "bg-success/10", iconColor: "text-success" },
 };
-
-export const ALL_MATERIALS = [
-  ...MATERIALS_BY_TYPE.armazones,
-  ...MATERIALS_BY_TYPE.micas,
-];
-
-export const INVENTORY_STOCK_STATUSES = [
-  { value: "available", label: "Disponible" },
-  { value: "low_stock", label: "Bajo stock" },
-  { value: "out_of_stock", label: "Agotado" },
-];
-
-export const INVENTORY_STATUSES = [
-  ...INVENTORY_STOCK_STATUSES,
-  { value: "inactive", label: "Inactivo" },
-];

@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { Plus } from "lucide-react";
 
@@ -11,7 +10,8 @@ import FilterBar from "../../shared/filters/FilterBar";
 import SelectFilter from "../../shared/filters/SelectFilter";
 import LoadingSpinner from "../../shared/components/LoadingSpinner";
 import ErrorState from "../../shared/components/ErrorState";
-import EmptyState from "../../shared/components/EmptyState";
+import ConfirmDialog from "../../shared/components/ConfirmDialog";
+import SidePanel from "../../shared/components/SidePanel";
 import Can from "../../shared/security/Can";
 import usePermissions from "../../shared/hooks/usePermissions";
 import useBranchScope from "../../shared/hooks/useBranchScope";
@@ -24,25 +24,29 @@ import { filterCitas } from "./filterCitas";
 import { CITA_STATUSES } from "./constants";
 import CitaTable from "./components/CitaTable";
 import CitaFormModal from "./components/CitaFormModal";
+import CitaDetailPanel from "./components/CitaDetailPanel";
 
 
 export default function CitasPage() {
 
-  const navigate = useNavigate();
   const { can } = usePermissions();
 
   const { isOwner, branches, selectedBranch, setSelectedBranch, loadingBranches } = useBranchScope({
     listBranches,
     ownerRoles: [ROLES.OPTICA_DUENO],
+    alwaysLoad: true,
+    autoSelectFirst: false,
   });
 
-  const { patients } = usePatients(selectedBranch);
-  const { citas, loading, error, create, update } = useCitas(selectedBranch);
+  const { patients } = usePatients(selectedBranch, { scopeToAll: !selectedBranch });
+  const { citas, loading, error, create, update, changeStatus } = useCitas(selectedBranch);
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [date, setDate] = useState("");
   const [modal, setModal] = useState({ open: false, mode: "create", cita: null });
+  const [viewingCitaId, setViewingCitaId] = useState(null);
+  const [pendingStatus, setPendingStatus] = useState(null);
 
 
   const patientsById = useMemo(() => {
@@ -51,9 +55,19 @@ export default function CitasPage() {
     return map;
   }, [patients]);
 
+  const branchesById = useMemo(() => {
+    const map = new Map();
+    branches.forEach((branch) => map.set(branch.id, branch.name));
+    return map;
+  }, [branches]);
+
   const citasWithPatient = useMemo(
-    () => citas.map((cita) => ({ ...cita, patientName: patientsById.get(cita.patientId) })),
-    [citas, patientsById]
+    () => citas.map((cita) => ({
+      ...cita,
+      patientName: patientsById.get(cita.patientId),
+      branchName: branchesById.get(cita.branchId) ?? "",
+    })),
+    [citas, patientsById, branchesById]
   );
 
   const filtered = useMemo(
@@ -61,23 +75,26 @@ export default function CitasPage() {
     [citasWithPatient, query, status, date]
   );
 
+  const viewingCita = citasWithPatient.find((c) => c.id === viewingCitaId) ?? null;
+  const viewingPatient = patients.find((p) => p.id === viewingCita?.patientId) ?? null;
+
   const kpis = useMemo(() => [
     {
-      id: "total", type: "appointments", title: "Total",
+      id: "total", type: "appointments", title: "Total", color: "blue",
       value: String(citas.length), description: "Citas registradas",
     },
     {
-      id: "programada", type: "scheduled", title: "Programadas",
+      id: "programada", type: "scheduled", title: "Programadas", color: "orange",
       value: String(citas.filter((c) => c.status === "programada").length),
       description: "Por confirmar",
     },
     {
-      id: "confirmada", type: "confirmed", title: "Confirmadas",
+      id: "confirmada", type: "confirmed", title: "Confirmadas", color: "purple",
       value: String(citas.filter((c) => c.status === "confirmada").length),
       description: "Listas para atender",
     },
     {
-      id: "atendida", type: "available", title: "Atendidas",
+      id: "atendida", type: "available", title: "Atendidas", color: "green",
       value: String(citas.filter((c) => c.status === "atendida").length),
       description: "Completadas",
     },
@@ -85,6 +102,11 @@ export default function CitasPage() {
 
 
   const closeModal = () => setModal((m) => ({ ...m, open: false }));
+
+  const handleChangeStatus = async () => {
+    await changeStatus(viewingCitaId, pendingStatus.value);
+    setPendingStatus(null);
+  };
 
   const handleSubmit = async (payload) => {
     if (modal.mode === "edit" && modal.cita) {
@@ -111,7 +133,6 @@ export default function CitasPage() {
           <Button
             className="inline-flex items-center gap-2 py-2.5 text-sm"
             onClick={() => setModal({ open: true, mode: "create", cita: null })}
-            disabled={!selectedBranch}
           >
             <Plus className="h-4 w-4" />
             Nueva cita
@@ -120,63 +141,74 @@ export default function CitasPage() {
       }
     >
 
-      <div className="space-y-6">
+      <div className="flex items-start gap-6">
 
-        <KpiRow items={kpis} />
+        <div className="min-w-0 flex-1 space-y-6 transition-all duration-300 ease-in-out">
 
-        <FilterBar>
-          <SearchInput
-            className="w-full sm:max-w-xs"
-            value={query}
-            onChange={setQuery}
-            placeholder="Buscar por paciente"
-          />
-          <SelectFilter
-            label="Estado"
-            value={status}
-            onChange={setStatus}
-            placeholder="Todos los estados"
-            options={CITA_STATUSES}
-          />
-          <div className="w-full sm:w-auto">
-            <label className="mb-2 block text-sm font-medium text-text-primary">
-              Fecha
-            </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-surface px-4 py-3 text-text-primary outline-none transition focus:border-indigo-primary focus:ring-2 focus:ring-indigo-light"
+          <KpiRow items={kpis} />
+
+          <FilterBar>
+            <SearchInput
+              className="w-full sm:max-w-xs"
+              value={query}
+              onChange={setQuery}
+              placeholder="Buscar por paciente"
             />
-          </div>
-          {isOwner && (
             <SelectFilter
-              label="Sucursal"
-              value={selectedBranch}
-              onChange={setSelectedBranch}
-              placeholder="Selecciona una sucursal"
-              options={branches.map((b) => ({ value: b.id, label: b.name }))}
+              label="Estado"
+              value={status}
+              onChange={setStatus}
+              placeholder="Todos los estados"
+              options={CITA_STATUSES}
+            />
+            <div className="w-full sm:w-auto">
+              <label className="mb-2 block text-sm font-medium text-text-primary">
+                Fecha
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-surface px-4 py-3 text-text-primary outline-none transition focus:border-indigo-primary focus:ring-2 focus:ring-indigo-light"
+              />
+            </div>
+            {isOwner && (
+              <SelectFilter
+                label="Sucursal"
+                value={selectedBranch}
+                onChange={setSelectedBranch}
+                options={[{ value: "", label: "Todas las sucursales" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+              />
+            )}
+          </FilterBar>
+
+          {loading ? (
+            <LoadingSpinner />
+          ) : error ? (
+            <ErrorState />
+          ) : (
+            <CitaTable
+              citas={filtered}
+              canEdit={can("optica.appointment.manage")}
+              onView={(cita) => setViewingCitaId(cita.id)}
+              onEdit={(cita) => setModal({ open: true, mode: "edit", cita })}
             />
           )}
-        </FilterBar>
 
-        {!selectedBranch ? (
-          <EmptyState
-            title="Selecciona una sucursal"
-            description="Elige una sucursal para ver sus citas."
+        </div>
+
+        <SidePanel
+          isOpen={Boolean(viewingCita)}
+          onClose={() => setViewingCitaId(null)}
+          title="Detalle de cita"
+        >
+          <CitaDetailPanel
+            cita={viewingCita}
+            patient={viewingPatient}
+            canManage={can("optica.appointment.manage")}
+            onChangeStatus={(transition) => setPendingStatus(transition)}
           />
-        ) : loading ? (
-          <LoadingSpinner />
-        ) : error ? (
-          <ErrorState />
-        ) : (
-          <CitaTable
-            citas={filtered}
-            canEdit={can("optica.appointment.manage")}
-            onView={(cita) => navigate(`/opticas/citas/${cita.id}`)}
-            onEdit={(cita) => setModal({ open: true, mode: "edit", cita })}
-          />
-        )}
+        </SidePanel>
 
       </div>
 
@@ -189,6 +221,16 @@ export default function CitasPage() {
         defaultBranchId={selectedBranch}
         onClose={closeModal}
         onSubmit={handleSubmit}
+      />
+
+      <ConfirmDialog
+        open={Boolean(pendingStatus)}
+        title={pendingStatus?.label}
+        description={`¿Seguro que quieres marcar esta cita como "${pendingStatus?.label?.toLowerCase()}"? Esta acción no se puede deshacer.`}
+        confirmLabel={pendingStatus?.label}
+        variant={pendingStatus?.variant === "danger" ? "danger" : "primary"}
+        onConfirm={handleChangeStatus}
+        onClose={() => setPendingStatus(null)}
       />
 
     </PageContainer>

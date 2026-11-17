@@ -1,19 +1,6 @@
-export const PRODUCT_CATEGORIES = [
-  { value: "armazones", label: "Armazones" },
-  { value: "lentes_oftalmicos", label: "Lentes oftálmicos" },
-  { value: "lentes_contacto", label: "Lentes de contacto" },
-  { value: "soluciones", label: "Soluciones" },
-  { value: "estuches", label: "Estuches" },
-  { value: "panos", label: "Paños" },
-  { value: "cadenas", label: "Cadenas" },
-  { value: "accesorios", label: "Accesorios" },
-];
-
-export const SERVICE_CATEGORIES = [
-  { value: "consultas", label: "Consultas" },
-  { value: "ajustes", label: "Ajustes" },
-  { value: "reparaciones", label: "Reparaciones" },
-];
+// Las categorías de productos/servicios ya no son una lista fija: el back
+// las administra (categorias_productos / categorias_servicios) y se piden
+// con useCategoriasProductos()/useCategoriasServicios() (ver hooks/useCategorias.js).
 
 export const MEASUREMENT_UNITS = [
   { value: "pieza", label: "Pieza" },

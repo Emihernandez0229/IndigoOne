@@ -32,3 +32,17 @@ export const USER_ROLE_LABELS =
       ]
     )
   );
+
+
+// Modulo "Personal" (Dueño): solo lista/administra al personal que
+// pertenece a una sucursal - no aplica filtrar ni dar de alta otro Dueño.
+export const OPTICAS_PERSONAL_ROLES = OPTICAS_USER_ROLES.filter(
+  (role) => role.value !== ROLES.OPTICA_DUENO
+);
+
+
+// Modulo "Personal" (Jefe de sucursal): su equipo nunca incluye otro Jefe
+// de sucursal - solo puede dar de alta/editar personal operativo (Ventas).
+export const MANAGER_PERSONAL_ROLES = OPTICAS_USER_ROLES.filter(
+  (role) => role.value === ROLES.OPTICA_EMPLEADO
+);

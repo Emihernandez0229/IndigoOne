@@ -6,17 +6,14 @@ import UsersPage from "../opticas/users/UsersPage";
 import InventoryPage from "../opticas/inventory/InventoryPage";
 import InventoryDetailPage from "../opticas/inventory/InventoryDetailPage";
 import PacientesPage from "../opticas/pacientes/PacientesPage";
-import PatientDetailPage from "../opticas/pacientes/PatientDetailPage";
 import CitasPage from "../opticas/citas/CitasPage";
-import CitaDetailPage from "../opticas/citas/CitaDetailPage";
 import VentasPage from "../opticas/ventas/VentasPage";
 import NuevaVentaPage from "../opticas/ventas/NuevaVentaPage";
-import VentaDetailPage from "../opticas/ventas/VentaDetailPage";
-import LaboratorioPage from "../opticas/laboratorio/LaboratorioPage";
-import LaboratorioDetailPage from "../opticas/laboratorio/LaboratorioDetailPage";
+import NuevaConsultaPage from "../opticas/consultas/NuevaConsultaPage";
 import OpticaPage from "../opticas/optica/OpticaPage";
 import CatalogoPage from "../opticas/catalogo/CatalogoPage";
 import ReportesPage from "../opticas/reportes/ReportesPage";
+import ProfilePage from "../opticas/profile/ProfilePage";
 
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -34,6 +31,8 @@ export default function OpticasRoutes() {
       <Route index element={<Navigate to="dashboard" replace />} />
 
       <Route path="dashboard" element={<OpticasDashboard />} />
+
+      <Route path="perfil" element={<ProfilePage />} />
 
       <Route element={<ProtectedRoute permission="optica.settings.view" />}>
         <Route path="optica" element={<OpticaPage />} />
@@ -54,12 +53,6 @@ export default function OpticasRoutes() {
       <Route element={<ProtectedRoute permission="optica.sales.view" />}>
         <Route path="ventas" element={<VentasPage />} />
         <Route path="ventas/nueva" element={<NuevaVentaPage />} />
-        <Route path="ventas/:id" element={<VentaDetailPage />} />
-      </Route>
-
-      <Route element={<ProtectedRoute permission="optica.lab.view" />}>
-        <Route path="laboratorio" element={<LaboratorioPage />} />
-        <Route path="laboratorio/:id" element={<LaboratorioDetailPage />} />
       </Route>
 
       <Route element={<ProtectedRoute permission="optica.reports.view" />}>
@@ -68,12 +61,14 @@ export default function OpticasRoutes() {
 
       <Route element={<ProtectedRoute permission="optica.appointment.manage" />}>
         <Route path="citas" element={<CitasPage />} />
-        <Route path="citas/:id" element={<CitaDetailPage />} />
       </Route>
 
       <Route element={<ProtectedRoute permission="optica.patient.view" />}>
         <Route path="pacientes" element={<PacientesPage />} />
-        <Route path="pacientes/:id" element={<PatientDetailPage />} />
+      </Route>
+
+      <Route element={<ProtectedRoute permission="optica.consulta.manage" />}>
+        <Route path="pacientes/:patientId/consultas/nueva" element={<NuevaConsultaPage />} />
       </Route>
 
       <Route element={<ProtectedRoute permission="optica.inventory.view" />}>

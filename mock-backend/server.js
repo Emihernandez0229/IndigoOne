@@ -5,6 +5,38 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// El back real envuelve toda respuesta exitosa en {success, data} y
+// httpClient.js del front solo desenvuelve si encuentra esa clave "data"
+// exacta. El mock histórico mezcla tres formas: ya corregidas a {success,
+// data} (citas), con su propio sobre viejo {ok, pacientes}/{ok, venta}/etc,
+// o el objeto tal cual sin sobre - sin normalizar esto, el front recibía
+// el sobre viejo completo donde esperaba el arreglo/objeto de adentro y
+// tronaba. Se normaliza aquí una sola vez en vez de tocar cada ruta vieja.
+function desenvolverSobreViejo(body) {
+  if (!body || typeof body !== "object" || !("ok" in body)) return body;
+  const otrasClaves = Object.keys(body).filter((k) => k !== "ok");
+  if (otrasClaves.length === 0) return body.ok;
+  if (otrasClaves.length === 1) return body[otrasClaves[0]];
+  return body; // forma inesperada con mas de una clave extra - no tocar
+}
+
+app.use((req, res, next) => {
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    const limpio = desenvolverSobreViejo(body);
+    // El back real a veces manda {success, data} y a veces {message, data}
+    // (ej. altas de usuarios) - cualquiera de las dos ya trae la clave
+    // "data" que httpClient.js busca, así que ambas cuentan como "ya en
+    // formato nuevo" y no se deben volver a envolver.
+    const yaEnvuelto = limpio && typeof limpio === "object" && ("success" in limpio || "data" in limpio);
+    if (res.statusCode >= 200 && res.statusCode < 300 && !yaEnvuelto) {
+      return originalJson({ success: true, data: limpio });
+    }
+    return originalJson(limpio);
+  };
+  next();
+});
+
 let nextId = 1000;
 const newId = () => String(nextId++);
 
@@ -47,6 +79,18 @@ app.post("/api/auth/login", (req, res) => {
       password_pendiente_cambio: false,
     },
   });
+});
+
+// "Mi perfil" (todos los roles, Indigo y Ópticas): cambio de contraseña -
+// el back real no pide la contraseña actual, solo la nueva (ver
+// login.service.js, POST /api/auth/login/cambiar-password). El mock no
+// guarda contraseñas reales, así que solo se simula el éxito.
+app.post("/api/auth/login/cambiar-password", (req, res) => {
+  const { passwordNueva } = req.body;
+  if (!passwordNueva || passwordNueva.length < 6) {
+    return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
+  }
+  res.json({ mensaje: "Contraseña actualizada correctamente" });
 });
 
 // =========================================================
@@ -675,35 +719,90 @@ app.post("/api/indigo/laboratorio/:id/detalles", (req, res) => {
 });
 
 let indigoInventario = [
-  { id: "inv-1", displayId: 1, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", gender: "hombre", measurements: "56-17-140", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 48, stockReserved: 6, stockMin: 10, cost: 450, active: true, photos: [
+  { id: "inv-1", displayId: 1, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", shape: "Aviador", frameMaterial: "Metal", lensCompatibility: ["Monofocal", "Progresiva"], gender: "hombre", measurements: "56-17-140", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 48, stockReserved: 6, stockMin: 10, cost: 450, active: true, photos: [
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23c9a15a'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='20' text-anchor='middle'%3EFoto 1%3C/text%3E%3C/svg%3E",
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='20' text-anchor='middle'%3EFoto 2%3C/text%3E%3C/svg%3E",
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%234f46e5'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='20' text-anchor='middle'%3EFoto 3%3C/text%3E%3C/svg%3E"
   ] },
-  { id: "inv-1b", displayId: 2, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", gender: "hombre", measurements: "56-17-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 22, stockReserved: 2, stockMin: 10, cost: 450, active: true, photos: [] },
-  { id: "inv-1c", displayId: 3, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", gender: "hombre", measurements: "56-17-140", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 8, stockReserved: 0, stockMin: 10, cost: 450, active: true, photos: [] },
-  { id: "inv-2", displayId: 4, code: "ARM-002", model: "Wayfarer Mini", description: "Armazón de acetato compacto, ideal para rostros pequeños.", color: "Negro", type: "armazones", material: "JD Sport", gender: "unisex", measurements: "50-19-135", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 3, stockReserved: 1, stockMin: 5, cost: 380, active: true, photos: [] },
-  { id: "inv-3", displayId: 5, code: "ARM-003", model: "Round Vintage", description: "Armazón redondo de inspiración vintage.", color: "Carey", type: "armazones", material: "Cactus", gender: "mujer", measurements: "48-20-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 0, stockReserved: 0, stockMin: 4, cost: 500, active: true, photos: [] },
-  { id: "inv-4", displayId: 6, code: "MIC-001", model: "Progresiva HD", description: "Mica progresiva de alta definición.", color: "Transparente", type: "micas", material: "Progresivos Superfit", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 14, stockReserved: 4, stockMin: 8, cost: 900, active: true, photos: [] },
+  { id: "inv-1b", displayId: 2, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", shape: "Aviador", frameMaterial: "Metal", lensCompatibility: ["Monofocal", "Progresiva"], gender: "hombre", measurements: "56-17-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 22, stockReserved: 2, stockMin: 10, cost: 450, active: true, photos: [] },
+  { id: "inv-1c", displayId: 3, code: "ARM-001", model: "Aviador Classic", description: "Armazón metálico estilo aviador, clásico y ligero.", color: "Dorado", type: "armazones", material: "OKI Eyewear", shape: "Aviador", frameMaterial: "Metal", lensCompatibility: ["Monofocal", "Progresiva"], gender: "hombre", measurements: "56-17-140", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 8, stockReserved: 0, stockMin: 10, cost: 450, active: true, photos: [] },
+  { id: "inv-2", displayId: 4, code: "ARM-002", model: "Wayfarer Mini", description: "Armazón de acetato compacto, ideal para rostros pequeños.", color: "Negro", type: "armazones", material: "JD Sport", shape: "Wayfarer", frameMaterial: "Acetato", lensCompatibility: ["Monofocal"], gender: "unisex", measurements: "50-19-135", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 3, stockReserved: 1, stockMin: 5, cost: 380, active: true, photos: [] },
+  { id: "inv-3", displayId: 5, code: "ARM-003", model: "Round Vintage", description: "Armazón redondo de inspiración vintage.", color: "Carey", type: "armazones", material: "Cactus", shape: "Redondo", frameMaterial: "Acetato", lensCompatibility: ["Monofocal", "Progresiva"], gender: "mujer", measurements: "48-20-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 0, stockReserved: 0, stockMin: 4, cost: 500, active: true, photos: [] },
+  { id: "inv-4", displayId: 6, code: "MIC-001", model: "Progresiva HD", description: "Visión de lejos, intermedia y de cerca sin línea visible.", color: "Transparente", type: "micas", material: "Progresivos Superfit", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 14, stockReserved: 4, stockMin: 8, cost: 900, active: true, photos: [] },
+  { id: "inv-4b", displayId: 15, code: "MIC-002", model: "Monofocal", description: "Un solo campo de visión, para lejos o para cerca.", color: "Transparente", type: "micas", material: "Photoflux", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 30, stockReserved: 0, stockMin: 5, cost: 250, active: true, photos: [] },
+  { id: "inv-4c", displayId: 16, code: "MIC-003", model: "Bifocal", description: "Dos campos de visión, con segmento visible.", color: "Transparente", type: "micas", material: "Resistant Flex", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 20, stockReserved: 0, stockMin: 5, cost: 400, active: true, photos: [] },
   { id: "inv-5", displayId: 7, code: "ACC-001", model: "Cordón para lentes ajustable", description: "Cordón ajustable para sujetar lentes.", color: "Negro", type: "accesorios", material: "Nylon", gender: "unisex", measurements: "70cm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 120, stockReserved: 10, stockMin: 20, cost: 35, active: true, photos: [] },
   { id: "inv-5b", displayId: 8, code: "ACC-001", model: "Cordón para lentes ajustable", description: "Cordón ajustable para sujetar lentes.", color: "Negro", type: "accesorios", material: "Nylon", gender: "unisex", measurements: "70cm", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 95, stockReserved: 5, stockMin: 20, cost: 35, active: true, photos: [] },
   { id: "inv-6", displayId: 9, code: "ACC-002", model: "Paño de microfibra", description: "Paño de microfibra para limpieza de lentes.", color: "Azul", type: "accesorios", material: "Microfibra", gender: "unisex", measurements: "15x15 cm", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 260, stockReserved: 0, stockMin: 30, cost: 18, active: true, photos: [] },
   { id: "inv-7", displayId: 10, code: "EST-001", model: "Estuche rígido con cierre", description: "Estuche rígido con cierre para armazones.", color: "Negro", type: "estuches", material: "EVA", gender: "unisex", measurements: "16x6x5 cm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 85, stockReserved: 8, stockMin: 15, cost: 60, active: true, photos: [] },
   { id: "inv-7b", displayId: 11, code: "EST-001", model: "Estuche rígido con cierre", description: "Estuche rígido con cierre para armazones.", color: "Negro", type: "estuches", material: "EVA", gender: "unisex", measurements: "16x6x5 cm", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 40, stockReserved: 2, stockMin: 15, cost: 60, active: true, photos: [] },
   { id: "inv-8", displayId: 12, code: "OTR-001", model: "Kit de destornilladores para lentes", description: "Kit de mini destornilladores para ajuste de armazones.", color: "Gris", type: "otros", material: "Metal", gender: "unisex", measurements: "N/A", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 18, stockReserved: 0, stockMin: 5, cost: 45, active: true, photos: [] },
-  { id: "inv-9", displayId: 13, code: "ARM-004", model: "Armazón al aire titanio", description: "Armazón al aire de titanio, ultraligero.", color: "Plata", type: "armazones", material: "Friend", gender: "hombre", measurements: "54-18-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 0, stockReserved: 0, stockMin: 6, cost: 1150, active: true, photos: [] },
-  { id: "inv-10", displayId: 14, code: "ARM-005", model: "Armazón infantil flexible", description: "Armazón flexible resistente para niños.", color: "Azul", type: "armazones", material: "Toki Kids", gender: "unisex", measurements: "44-16-125", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 6, stockReserved: 1, stockMin: 8, cost: 420, active: true, photos: [] },
+  { id: "inv-9", displayId: 13, code: "ARM-004", model: "Armazón al aire titanio", description: "Armazón al aire de titanio, ultraligero.", color: "Plata", type: "armazones", material: "Friend", shape: "Al aire", frameMaterial: "Titanio", lensCompatibility: ["Monofocal", "Progresiva", "Bifocal"], gender: "hombre", measurements: "54-18-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 0, stockReserved: 0, stockMin: 6, cost: 1150, active: true, photos: [] },
+  { id: "inv-10", displayId: 14, code: "ARM-005", model: "Armazón infantil flexible", description: "Armazón flexible resistente para niños.", color: "Azul", type: "armazones", material: "Toki Kids", shape: "Rectangular", frameMaterial: "TR90", lensCompatibility: ["Monofocal"], gender: "unisex", measurements: "44-16-125", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 6, stockReserved: 1, stockMin: 8, cost: 420, active: true, photos: [] },
+
+  // --- 20 productos extra para probar el catálogo con más volumen ---
+  { id: "inv-11", displayId: 17, code: "ARM-006", model: "Clubmaster Retro", description: "Armazón estilo clubmaster con ceja marcada.", color: "Carey", type: "armazones", material: "Eclipse", shape: "Clubmaster", frameMaterial: "Acetato", lensCompatibility: ["Monofocal", "Progresiva"], gender: "hombre", measurements: "52-18-145", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 15, stockReserved: 2, stockMin: 6, cost: 410, active: true, photos: [] },
+  { id: "inv-12", displayId: 18, code: "ARM-007", model: "Cat Eye Elegance", description: "Armazón cat eye con detalles metálicos.", color: "Rosa", type: "armazones", material: "Mar", shape: "Cat eye", frameMaterial: "Acetato", lensCompatibility: ["Monofocal"], gender: "mujer", measurements: "53-16-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 9, stockReserved: 1, stockMin: 5, cost: 530, active: true, photos: [] },
+  { id: "inv-13", displayId: 19, code: "ARM-008", model: "Square Bold", description: "Armazón cuadrado de pasta gruesa.", color: "Negro mate", type: "armazones", material: "Fashion", shape: "Cuadrado", frameMaterial: "Acetato", lensCompatibility: ["Monofocal", "Progresiva"], gender: "unisex", measurements: "54-19-145", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 2, stockReserved: 0, stockMin: 5, cost: 390, active: true, photos: [] },
+  { id: "inv-14", displayId: 20, code: "ARM-009", model: "Oversized Chic", description: "Armazón oversized de moda.", color: "Habano", type: "armazones", material: "Life", shape: "Oversized", frameMaterial: "Acetato", lensCompatibility: ["Monofocal"], gender: "mujer", measurements: "56-17-145", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 0, stockReserved: 0, stockMin: 4, cost: 470, active: true, photos: [] },
+  { id: "inv-15", displayId: 21, code: "ARM-010", model: "Sport Flex", description: "Armazón deportivo flexible resistente a impactos.", color: "Azul marino", type: "armazones", material: "JM", shape: "Deportivo", frameMaterial: "TR90", lensCompatibility: ["Monofocal", "Progresiva"], gender: "hombre", measurements: "55-18-140", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 20, stockReserved: 3, stockMin: 8, cost: 360, active: true, photos: [] },
+  { id: "inv-16", displayId: 22, code: "ARM-011", model: "Vintage Panto", description: "Armazón panto de inspiración vintage.", color: "Dorado", type: "armazones", material: "OKI Eyewear", shape: "Panto", frameMaterial: "Metal", lensCompatibility: ["Monofocal", "Progresiva"], gender: "unisex", measurements: "49-21-140", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 5, stockReserved: 0, stockMin: 6, cost: 480, active: true, photos: [] },
+  { id: "inv-17", displayId: 23, code: "ARM-012", model: "Browline Classic", description: "Armazón browline café con dorado.", color: "Café", type: "armazones", material: "Cactus", shape: "Browline", frameMaterial: "Metal", lensCompatibility: ["Monofocal"], gender: "hombre", measurements: "51-20-145", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 11, stockReserved: 1, stockMin: 5, cost: 420, active: true, photos: [] },
+  { id: "inv-18", displayId: 24, code: "ARM-013", model: "Kids Round", description: "Armazón redondo infantil, ligero y resistente.", color: "Verde", type: "armazones", material: "Toki Kids", shape: "Redondo", frameMaterial: "TR90", lensCompatibility: ["Monofocal"], gender: "unisex", measurements: "46-17-125", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 18, stockReserved: 2, stockMin: 8, cost: 300, active: true, photos: [] },
+  { id: "inv-19", displayId: 25, code: "ARM-014", model: "Titanium Light", description: "Armazón de titanio ultraligero para uso diario.", color: "Gris", type: "armazones", material: "Friend", shape: "Rectangular", frameMaterial: "Titanio", lensCompatibility: ["Monofocal", "Progresiva", "Bifocal"], gender: "hombre", measurements: "55-17-140", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 3, stockReserved: 0, stockMin: 5, cost: 980, active: true, photos: [] },
+  { id: "inv-20", displayId: 26, code: "ARM-015", model: "Minimal Rimless", description: "Armazón al aire minimalista.", color: "Plata", type: "armazones", material: "Eclipse", shape: "Al aire", frameMaterial: "Titanio", lensCompatibility: ["Monofocal", "Progresiva"], gender: "unisex", measurements: "54-18-140", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 7, stockReserved: 0, stockMin: 6, cost: 650, active: true, photos: [] },
+
+  { id: "inv-21", displayId: 27, code: "MIC-004", model: "Ocupacional", description: "Mica de uso ocupacional, enfocada a distancia intermedia.", color: "Transparente", type: "micas", material: "Photoflux", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 25, stockReserved: 0, stockMin: 8, cost: 350, active: true, photos: [] },
+  { id: "inv-22", displayId: 28, code: "MIC-005", model: "Polarizada", description: "Mica polarizada, reduce el reflejo de luz intensa.", color: "Gris", type: "micas", material: "Resistant Flex", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 15, stockReserved: 0, stockMin: 5, cost: 600, active: true, photos: [] },
+  { id: "inv-23", displayId: 29, code: "MIC-006", model: "Fotocromática", description: "Mica que se oscurece automáticamente con la luz solar.", color: "Transparente", type: "micas", material: "Antibue Premium", gender: "unisex", measurements: "70mm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 10, stockReserved: 0, stockMin: 5, cost: 750, active: true, photos: [] },
+
+  { id: "inv-24", displayId: 30, code: "ACC-003", model: "Spray limpiador de lentes", description: "Spray antiempañante y limpiador para lentes.", color: "Transparente", type: "accesorios", material: "Antiempañante", gender: "unisex", measurements: "60ml", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 150, stockReserved: 10, stockMin: 30, cost: 55, active: true, photos: [] },
+  { id: "inv-25", displayId: 31, code: "ACC-004", model: "Cadena para lentes", description: "Cadena decorativa para sujetar lentes.", color: "Dorado", type: "accesorios", material: "Metal", gender: "unisex", measurements: "75cm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 60, stockReserved: 5, stockMin: 15, cost: 90, active: true, photos: [] },
+  { id: "inv-26", displayId: 32, code: "ACC-005", model: "Funda de microfibra", description: "Funda suave de microfibra para transportar lentes.", color: "Gris", type: "accesorios", material: "Microfibra", gender: "unisex", measurements: "17x8 cm", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 80, stockReserved: 0, stockMin: 20, cost: 25, active: true, photos: [] },
+
+  { id: "inv-27", displayId: 33, code: "EST-002", model: "Estuche semirrígido", description: "Estuche semirrígido con broche magnético.", color: "Café", type: "estuches", material: "EVA", gender: "unisex", measurements: "16x6x5 cm", branchId: "suc-2", branchName: "Indigo CDMX", stockAvailable: 50, stockReserved: 3, stockMin: 15, cost: 70, active: true, photos: [] },
+  { id: "inv-28", displayId: 34, code: "EST-003", model: "Estuche de viaje compacto", description: "Estuche compacto plegable para viaje.", color: "Azul", type: "estuches", material: "Nylon", gender: "unisex", measurements: "14x5x4 cm", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 30, stockReserved: 0, stockMin: 10, cost: 95, active: true, photos: [] },
+
+  { id: "inv-29", displayId: 35, code: "OTR-002", model: "Kit de limpieza completo", description: "Kit con paño, spray y destornillador de ajuste.", color: "Gris", type: "otros", material: "Mixto", gender: "unisex", measurements: "N/A", branchId: "suc-1", branchName: "Indigo Tapachula", stockAvailable: 40, stockReserved: 0, stockMin: 10, cost: 120, active: true, photos: [] },
+  { id: "inv-30", displayId: 36, code: "OTR-003", model: "Soporte exhibidor de mostrador", description: "Soporte para exhibir armazones en mostrador.", color: "Transparente", type: "otros", material: "Acrílico", gender: "unisex", measurements: "20x15 cm", branchId: "suc-3", branchName: "Indigo Monterrey", stockAvailable: 10, stockReserved: 0, stockMin: 3, cost: 200, active: true, photos: [] },
 ];
 
 let opticaSucursales = [
-  { id: "osuc-1", displayId: 1, name: "Optica Centro", address: "Calle 5 #100", phone: "9611112222", manager: "Marta", managerId: "u-oenc-1", staff: 2, products: 5, status: "active" },
-  { id: "osuc-2", displayId: 2, name: "Optica Norte", address: "Av. Norte 300", phone: "9613334444", manager: null, managerId: null, staff: 0, products: 0, status: "active" },
+  {
+    id: "osuc-1", displayId: 1, name: "Optica Centro",
+    image: "", address: "Calle 5 #100", phone: "9611112222",
+    country: "México", state: "Chiapas", municipality: "Tapachula",
+    manager: "Marta", managerId: "u-oenc-1", managerPhone: "9611112223",
+    staff: 2, products: 5, customers: 34, labJobs: 6, status: "active",
+    staffList: [
+      { name: "Marta", role: "Jefe de sucursal" },
+      { name: "Luis", role: "Empleado" },
+    ],
+  },
+  {
+    id: "osuc-2", displayId: 2, name: "Optica Norte",
+    image: "", address: "Av. Norte 300", phone: "9613334444",
+    country: "México", state: "Ciudad de México", municipality: "Cuauhtémoc",
+    manager: null, managerId: null, managerPhone: "",
+    staff: 0, products: 0, customers: 0, labJobs: 0, status: "active",
+    staffList: [],
+  },
 ];
 
 let opticaUsuarios = [
-  { id: "u-odue-1", displayId: 1, name: "Sofia", username: "OPTDUENO1", role: "optica:dueno", branchId: null, branchName: "Sin sucursal", status: "active" },
-  { id: "u-oenc-1", displayId: 2, name: "Marta", username: "OPTGTE1", role: "optica:encargado", branchId: "osuc-1", branchName: "Optica Centro", status: "active" },
-  { id: "u-oemp-1", displayId: 3, name: "Luis", username: "OPTEMP1", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active" },
+  { id: "u-odue-1", displayId: 1, name: "Sofia", username: "OPTDUENO1", role: "optica:dueno", branchId: null, branchName: "Sin sucursal", status: "active", phone: "", email: "sofia@optica.mx" },
+  { id: "u-oenc-1", displayId: 2, name: "Marta", username: "OPTGTE1", role: "optica:encargado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611112223", email: "marta@optica.mx" },
+  { id: "u-oemp-1", displayId: 3, name: "Luis", username: "OPTEMP1", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114444", email: "luis@optica.mx" },
+  { id: "u-oemp-2", displayId: 4, name: "Ana Torres", username: "OPTEMP2", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114445", email: "ana.torres@optica.mx" },
+  { id: "u-oemp-3", displayId: 5, name: "Jorge Ramírez", username: "OPTEMP3", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114446", email: "jorge.ramirez@optica.mx" },
+  { id: "u-oemp-4", displayId: 6, name: "Paola Méndez", username: "OPTEMP4", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114447", email: "paola.mendez@optica.mx" },
+  { id: "u-oemp-5", displayId: 7, name: "Diego Castillo", username: "OPTEMP5", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "inactive", phone: "9611114448", email: "diego.castillo@optica.mx" },
+  { id: "u-oemp-6", displayId: 8, name: "Valeria Nuñez", username: "OPTEMP6", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114449", email: "valeria.nunez@optica.mx" },
+  { id: "u-oemp-7", displayId: 9, name: "Hugo Pacheco", username: "OPTEMP7", role: "optica:empleado", branchId: "osuc-1", branchName: "Optica Centro", status: "active", phone: "9611114450", email: "hugo.pacheco@optica.mx" },
+  { id: "u-oenc-2", displayId: 10, name: "Renata Solís", username: "OPTGTE2", role: "optica:encargado", branchId: "osuc-2", branchName: "Optica Norte", status: "active", phone: "9611114451", email: "renata.solis@optica.mx" },
+  { id: "u-oemp-8", displayId: 11, name: "Iván Cordero", username: "OPTEMP8", role: "optica:empleado", branchId: "osuc-2", branchName: "Optica Norte", status: "active", phone: "9611114452", email: "ivan.cordero@optica.mx" },
+  { id: "u-oemp-9", displayId: 12, name: "Fernanda Ibarra", username: "OPTEMP9", role: "optica:empleado", branchId: "osuc-2", branchName: "Optica Norte", status: "active", phone: "9611114453", email: "fernanda.ibarra@optica.mx" },
+  { id: "u-oemp-10", displayId: 13, name: "Ricardo Villa", username: "OPTEMP10", role: "optica:empleado", branchId: "osuc-2", branchName: "Optica Norte", status: "inactive", phone: "9611114454", email: "ricardo.villa@optica.mx" },
 ];
 
 let opticaInventario = [
@@ -711,6 +810,8 @@ let opticaInventario = [
   { id: "oinv-1b", displayId: 2, code: "OPT-001", model: "Redonda Slim", description: "Armazón redondo delgado, línea premium.", color: "Azul", type: "armazones", material: "Life", gender: "mujer", measurements: "50-18-138", branchId: "osuc-2", branchName: "Optica Norte", stockAvailable: 3, stockReserved: 0, stockMin: 4, cost: 620, active: true, photos: [] },
   { id: "oinv-2", displayId: 3, code: "OPT-002", model: "Clasica", description: "Armazón clásico de pasta.", color: "Café", type: "armazones", material: "Fashion", gender: "unisex", measurements: "52-19-140", branchId: "osuc-1", branchName: "Optica Centro", stockAvailable: 0, stockReserved: 0, stockMin: 3, cost: 300, active: true, photos: [] },
   { id: "oinv-3", displayId: 4, code: "MIC-OPT-001", model: "Antireflejante Plus", description: "Mica con tratamiento antirreflejante.", color: "Transparente", type: "micas", material: "Resistant Flex", gender: "unisex", measurements: "65mm", branchId: "osuc-1", branchName: "Optica Centro", stockAvailable: 9, stockReserved: 2, stockMin: 5, cost: 480, active: true, photos: [] },
+  { id: "oinv-4", displayId: 5, code: "EST-OPT-001", model: "Estuche Rígido", description: "Estuche rígido con forro interior.", color: "Negro", type: "estuches", material: "Estándar", gender: "unisex", measurements: "16x6cm", branchId: "osuc-1", branchName: "Optica Centro", stockAvailable: 12, stockReserved: 0, stockMin: 5, cost: 85, active: true, photos: [] },
+  { id: "oinv-5", displayId: 6, code: "ACC-OPT-001", model: "Cordón Deportivo", description: "Cordón ajustable para armazones.", color: "Negro", type: "accesorios", material: "Estándar", gender: "unisex", measurements: "70cm", branchId: "osuc-2", branchName: "Optica Norte", stockAvailable: 20, stockReserved: 0, stockMin: 8, cost: 45, active: true, photos: [] },
 ];
 
 // =========================================================
@@ -1180,29 +1281,221 @@ registrarCrud("/api/indigo/inventario", () => indigoInventario, {
 
 // ---- Ópticas ----
 
-registrarCrud("/api/opticas/sucursales", () => opticaSucursales, {
-  crear: (body) => ({
-    id: newId(), displayId: opticaSucursales.length + 1,
-    name: body.nombre, address: body.direccion || null, phone: body.telefono || null,
-    manager: body.nuevo_gerente_nombre || null, managerId: body.gerente_optica_usuario_id || null,
-    staff: 0, products: 0, status: "active",
-  }),
-  actualizar: (body) => ({
-    name: body.nombre, address: body.direccion || null, phone: body.telefono || null,
-  }),
+// opticaSucursales se queda en su shape viejo (camelCase, con manager/
+// staff/etc. pegados) porque Ventas/Pacientes/Reportes/Dashboard todavia
+// lo usan asi - estas rutas traducen al shape real del back en la
+// frontera (solo id/nombre/direccion/telefono/activo, SIN gerente ni
+// conteos pegados: eso lo resuelve el front cruzando con Personal/
+// Catálogo, ver withManagerInfo/withBranchCounts en branchService.js),
+// igual criterio que usuarioAFormatoBack.
+function sucursalAFormatoBack(s) {
+  return {
+    id: s.id,
+    optica_id: "opt-1",
+    nombre: s.name,
+    direccion: s.address || null,
+    telefono: s.phone || null,
+    activo: s.status !== "inactive",
+    created_at: s.created_at || new Date().toISOString(),
+  };
+}
+
+app.get("/api/opticas/sucursales", (req, res) => {
+  res.json(opticaSucursales.map(sucursalAFormatoBack));
+});
+
+// Alta de sucursal - el back no soporta crear un gerente nuevo aquí
+// (crearSucursalSchema es estricto), solo asignar uno que ya exista.
+// Responde {sucursal, gerente_asignado}, no la sucursal sola.
+app.post("/api/opticas/sucursales", (req, res) => {
+  const { nombre, direccion, telefono, gerente_optica_usuario_id } = req.body;
+  const id = newId();
+  const managerId = gerente_optica_usuario_id || null;
+  const managerUser = managerId ? opticaUsuarios.find((u) => u.id === managerId) : null;
+
+  const nueva = {
+    id, displayId: opticaSucursales.length + 1,
+    name: nombre, image: "", address: direccion || "", phone: telefono || "",
+    country: "", state: "", municipality: "",
+    manager: managerUser?.name ?? null, managerId, managerPhone: managerUser?.phone ?? "",
+    staff: managerId ? 1 : 0, products: 0, customers: 0, status: "active",
+    staffList: managerUser ? [{ name: managerUser.name, role: "optica:encargado" }] : [],
+  };
+  opticaSucursales.push(nueva);
+
+  if (managerUser) {
+    managerUser.branchId = id;
+    managerUser.branchName = nombre;
+  }
+
+  res.status(201).json({
+    message: "Sucursal creada correctamente",
+    data: { sucursal: sucursalAFormatoBack(nueva), gerente_asignado: managerId ? { sucursal_id: id, optica_usuario_id: managerId } : null },
+  });
+});
+
+// Editar sucursal - el back solo acepta nombre/dirección/teléfono aquí,
+// el gerente se asigna/cambia por su propio endpoint (ver abajo).
+app.patch("/api/opticas/sucursales/:id", (req, res) => {
+  const sucursal = opticaSucursales.find((s) => s.id === req.params.id);
+  if (!sucursal) return res.status(404).json({ error: "Sucursal no encontrada" });
+
+  if (req.body.nombre !== undefined) sucursal.name = req.body.nombre;
+  if (req.body.direccion !== undefined) sucursal.address = req.body.direccion;
+  if (req.body.telefono !== undefined) sucursal.phone = req.body.telefono;
+
+  res.json({ message: "Sucursal actualizada correctamente", data: sucursalAFormatoBack(sucursal) });
+});
+
+app.patch("/api/opticas/sucursales/:id/desactivar", (req, res) => {
+  const sucursal = opticaSucursales.find((s) => s.id === req.params.id);
+  if (!sucursal) return res.status(404).json({ error: "Sucursal no encontrada" });
+  sucursal.status = "inactive";
+  res.json({ message: "Sucursal desactivada correctamente", data: sucursalAFormatoBack(sucursal) });
+});
+
+app.patch("/api/opticas/sucursales/:id/activar", (req, res) => {
+  const sucursal = opticaSucursales.find((s) => s.id === req.params.id);
+  if (!sucursal) return res.status(404).json({ error: "Sucursal no encontrada" });
+  sucursal.status = "active";
+  res.json({ message: "Sucursal activada correctamente", data: sucursalAFormatoBack(sucursal) });
+});
+
+// Asignar gerente - solo si la sucursal NO tiene uno todavía.
+app.post("/api/opticas/sucursales/gerente", (req, res) => {
+  const { sucursal_id, optica_usuario_id } = req.body;
+  const sucursal = opticaSucursales.find((s) => s.id === sucursal_id);
+  if (!sucursal) return res.status(404).json({ error: "La sucursal no existe" });
+  if (sucursal.managerId) return res.status(409).json({ error: "La sucursal ya tiene un gerente asignado" });
+
+  const usuario = opticaUsuarios.find((u) => u.id === optica_usuario_id);
+  if (!usuario) return res.status(404).json({ error: "El usuario no existe o no pertenece a esta óptica" });
+
+  sucursal.managerId = usuario.id;
+  sucursal.manager = usuario.name;
+  sucursal.managerPhone = usuario.phone || "";
+  usuario.branchId = sucursal.id;
+  usuario.branchName = sucursal.name;
+
+  res.status(201).json({
+    message: "Gerente asignado correctamente",
+    data: { sucursal_id, optica_usuario_id, created_at: new Date().toISOString() },
+  });
+});
+
+// Cambiar gerente - solo si la sucursal YA tiene uno (lo reemplaza).
+app.patch("/api/opticas/sucursales/:id/gerente", (req, res) => {
+  const sucursal = opticaSucursales.find((s) => s.id === req.params.id);
+  if (!sucursal) return res.status(404).json({ error: "Sucursal no encontrada" });
+  if (!sucursal.managerId) return res.status(409).json({ error: "La sucursal no tiene un gerente asignado" });
+
+  const usuario = opticaUsuarios.find((u) => u.id === req.body.optica_usuario_id);
+  if (!usuario) return res.status(404).json({ error: "El usuario no existe o no pertenece a esta óptica" });
+
+  const anterior = opticaUsuarios.find((u) => u.id === sucursal.managerId);
+  if (anterior) anterior.branchId = null;
+
+  sucursal.managerId = usuario.id;
+  sucursal.manager = usuario.name;
+  sucursal.managerPhone = usuario.phone || "";
+  usuario.branchId = sucursal.id;
+  usuario.branchName = sucursal.name;
+
+  res.json({
+    message: "Gerente cambiado correctamente",
+    data: { sucursal_id: sucursal.id, optica_usuario_id: usuario.id, created_at: new Date().toISOString() },
+  });
 });
 
 app.get("/api/opticas/sucursales/gerentes-disponibles", (req, res) => {
-  res.json([{ id: "u-oenc-2", nombre: "Ana" }]);
+  const currentManagerId = req.query.gerente_actual_id;
+  const asignados = new Set(opticaSucursales.map((s) => s.managerId).filter(Boolean));
+  const disponibles = opticaUsuarios.filter(
+    (u) => u.role === "optica:encargado" &&
+      (!asignados.has(u.id) || u.id === currentManagerId)
+  );
+  res.json(disponibles.map((u) => ({ id: u.id, nombre: u.name })));
 });
 
-registrarCrud("/api/opticas/usuarios", () => opticaUsuarios, {
-  crear: (body) => ({
+// opticaUsuarios sigue guardándose en el shape viejo (name/username/role
+// con prefijo "optica:"/branchId) porque Sucursales y Ventas todavía
+// dependen de ese shape en este mock - estas rutas traducen al shape real
+// del back (nombre/telefono/email/usuario/rol/sucursal_id/activo) igual
+// que hace usuarios.repository.js. El usuario y la contraseña ya NO se
+// generan en el front: el back los genera al crear y los regresa una sola
+// vez en credencial_provisional (ver usuarios.service.js del back).
+function usuarioAFormatoBack(u) {
+  return {
+    id: u.id,
+    optica_id: "opt-1",
+    sucursal_id: u.branchId || null,
+    nombre: u.name,
+    telefono: u.phone || null,
+    email: u.email || null,
+    usuario: u.username,
+    rol: (u.role || "").split(":")[1] || u.role,
+    activo: u.status !== "inactive",
+    dado_de_alta_por: null,
+    created_at: u.created_at || new Date().toISOString(),
+  };
+}
+
+function generarCredencial(prefijo) {
+  return `${prefijo}${String(Math.floor(100000 + Math.random() * 900000))}`;
+}
+
+app.get("/api/opticas/usuarios", (req, res) => {
+  res.json(opticaUsuarios.map(usuarioAFormatoBack));
+});
+
+// Alta de Jefe de sucursal (solo Dueño) - nunca lleva sucursal: se asigna
+// después desde el módulo Sucursales.
+app.post("/api/opticas/usuarios/gerentes", (req, res) => {
+  const { nombre, telefono, email } = req.body;
+  const credencial = generarCredencial("GTE");
+  const nuevo = {
     id: newId(), displayId: opticaUsuarios.length + 1,
-    name: body.nombre, username: "NEW" + Math.floor(Math.random() * 10000),
-    role: "optica:empleado", branchId: body.sucursal_id || null,
-    branchName: "Optica Centro", status: "active",
-  }),
+    name: nombre, username: credencial, role: "optica:encargado",
+    branchId: null, branchName: "Sin asignar", status: "active",
+    phone: telefono || "", email: email || "", created_at: new Date().toISOString(),
+  };
+  opticaUsuarios.unshift(nuevo);
+  res.status(201).json({
+    message: "Gerente creado con éxito",
+    data: { ...usuarioAFormatoBack(nuevo), credencial_provisional: credencial },
+  });
+});
+
+// Alta de Ventas (Dueño en cualquier sucursal, Jefe de sucursal solo en la suya).
+app.post("/api/opticas/usuarios/empleados", (req, res) => {
+  const { nombre, telefono, email, sucursal_id } = req.body;
+  const branch = opticaSucursales.find((s) => s.id === sucursal_id);
+  const credencial = generarCredencial("EMP");
+  const nuevo = {
+    id: newId(), displayId: opticaUsuarios.length + 1,
+    name: nombre, username: credencial, role: "optica:empleado",
+    branchId: sucursal_id || null, branchName: branch?.name || "Sin asignar", status: "active",
+    phone: telefono || "", email: email || "", created_at: new Date().toISOString(),
+  };
+  opticaUsuarios.unshift(nuevo);
+  res.status(201).json({
+    message: "Empleado creado con éxito",
+    data: { ...usuarioAFormatoBack(nuevo), credencial_provisional: credencial },
+  });
+});
+
+// Editar personal / "Mi perfil": el back solo permite nombre/teléfono/
+// correo/activo (ni el rol ni la sucursal se pueden cambiar aquí).
+app.patch("/api/opticas/usuarios/:id", (req, res) => {
+  const user = opticaUsuarios.find((u) => u.id === req.params.id);
+  if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+
+  if (req.body.nombre !== undefined) user.name = req.body.nombre;
+  if (req.body.telefono !== undefined) user.phone = req.body.telefono;
+  if (req.body.email !== undefined) user.email = req.body.email;
+  if (req.body.activo !== undefined) user.status = req.body.activo ? "active" : "inactive";
+
+  res.json({ message: "Usuario actualizado correctamente", data: usuarioAFormatoBack(user) });
 });
 
 app.get("/api/opticas/usuarios/opciones-formulario", (req, res) => {
@@ -1259,28 +1552,53 @@ let opticaPacientes = [
   { id: "opac-1", sucursal_id: "osuc-1", nombre: "JUAN PÉREZ", telefono: "9611234567", email: "juan@example.com", fecha_nacimiento: "1990-05-20", created_at: "2026-01-10T10:00:00.000Z", updated_at: "2026-01-10T10:00:00.000Z", active: true },
   { id: "opac-2", sucursal_id: "osuc-1", nombre: "MARÍA LÓPEZ", telefono: "9619876543", email: "maria@example.com", fecha_nacimiento: "1985-11-02", created_at: "2026-02-05T10:00:00.000Z", updated_at: "2026-02-05T10:00:00.000Z", active: true },
   { id: "opac-3", sucursal_id: "osuc-2", nombre: "CARLOS RUIZ", telefono: "9615551234", email: null, fecha_nacimiento: null, created_at: "2026-03-01T10:00:00.000Z", updated_at: "2026-03-01T10:00:00.000Z", active: true },
+  { id: "opac-4", sucursal_id: "osuc-1", nombre: "LAURA HERNÁNDEZ", telefono: "9611234568", email: "laura.hernandez@example.com", fecha_nacimiento: "1992-03-14", created_at: "2026-02-10T10:00:00.000Z", updated_at: "2026-02-10T10:00:00.000Z", active: true },
+  { id: "opac-5", sucursal_id: "osuc-1", nombre: "PEDRO GÓMEZ", telefono: "9611234569", email: "pedro.gomez@example.com", fecha_nacimiento: "1978-07-22", created_at: "2026-02-12T10:00:00.000Z", updated_at: "2026-02-12T10:00:00.000Z", active: true },
+  { id: "opac-6", sucursal_id: "osuc-1", nombre: "SOFÍA RAMÍREZ", telefono: "9611234570", email: "sofia.ramirez@example.com", fecha_nacimiento: "1999-01-30", created_at: "2026-02-15T10:00:00.000Z", updated_at: "2026-02-15T10:00:00.000Z", active: true },
+  { id: "opac-7", sucursal_id: "osuc-1", nombre: "MIGUEL TORRES", telefono: "9611234571", email: null, fecha_nacimiento: "1995-09-18", created_at: "2026-02-18T10:00:00.000Z", updated_at: "2026-02-18T10:00:00.000Z", active: false },
+  { id: "opac-8", sucursal_id: "osuc-1", nombre: "ANDREA CASTRO", telefono: "9611234572", email: "andrea.castro@example.com", fecha_nacimiento: "1988-12-05", created_at: "2026-02-20T10:00:00.000Z", updated_at: "2026-02-20T10:00:00.000Z", active: true },
+  { id: "opac-9", sucursal_id: "osuc-1", nombre: "ROBERTO DÍAZ", telefono: "9611234573", email: "roberto.diaz@example.com", fecha_nacimiento: "1983-04-11", created_at: "2026-02-22T10:00:00.000Z", updated_at: "2026-02-22T10:00:00.000Z", active: true },
+  { id: "opac-10", sucursal_id: "osuc-2", nombre: "CLAUDIA VARGAS", telefono: "9615551235", email: "claudia.vargas@example.com", fecha_nacimiento: "1991-06-25", created_at: "2026-02-24T10:00:00.000Z", updated_at: "2026-02-24T10:00:00.000Z", active: true },
+  { id: "opac-11", sucursal_id: "osuc-2", nombre: "FERNANDO MORALES", telefono: "9615551236", email: "fernando.morales@example.com", fecha_nacimiento: "1987-10-09", created_at: "2026-02-26T10:00:00.000Z", updated_at: "2026-02-26T10:00:00.000Z", active: true },
+  { id: "opac-12", sucursal_id: "osuc-2", nombre: "PATRICIA JIMÉNEZ", telefono: "9615551237", email: null, fecha_nacimiento: "1996-02-17", created_at: "2026-02-27T10:00:00.000Z", updated_at: "2026-02-27T10:00:00.000Z", active: true },
+  { id: "opac-13", sucursal_id: "osuc-2", nombre: "ALEJANDRO SANTOS", telefono: "9615551238", email: "alejandro.santos@example.com", fecha_nacimiento: "1980-08-03", created_at: "2026-02-28T10:00:00.000Z", updated_at: "2026-02-28T10:00:00.000Z", active: false },
 ];
 
 // Imita el contrato real de /api/opticas/pacientes: respuestas envueltas
 // en { ok, paciente } / { ok, pacientes }. Los endpoints /deactivate y
 // /activate NO existen en el backend real todavía (ver aviso al final).
 
+// Agrega sucursal_nombre (lookup) a lo que ya trae cada registro, para que
+// el frontend nunca tenga que resolverlo aparte - mismo criterio que
+// indigoLaboratorio/branchName.
+function withBranchName(paciente) {
+  const branch = opticaSucursales.find((s) => s.id === paciente.sucursal_id);
+  return { ...paciente, sucursal_nombre: branch?.name ?? null };
+}
+
+// Módulo "Clientes" del Dueño: todos los pacientes de la óptica, de todas
+// las sucursales a la vez - sin necesidad de elegir una primero. El
+// Encargado/Empleado siguen usando /sucursal/:sucursalId (una a la vez).
+app.get("/api/opticas/pacientes", (req, res) => {
+  res.json({ ok: true, pacientes: opticaPacientes.map(withBranchName) });
+});
+
 app.get("/api/opticas/pacientes/sucursal/:sucursalId", (req, res) => {
-  const pacientes = opticaPacientes.filter((p) => p.sucursal_id === req.params.sucursalId);
+  const pacientes = opticaPacientes.filter((p) => p.sucursal_id === req.params.sucursalId).map(withBranchName);
   res.json({ ok: true, pacientes });
 });
 
 app.get("/api/opticas/pacientes/:id", (req, res) => {
   const paciente = opticaPacientes.find((p) => p.id === req.params.id);
   if (!paciente) return res.status(404).json({ error: "Paciente no encontrado" });
-  res.json({ ok: true, paciente });
+  res.json({ ok: true, paciente: withBranchName(paciente) });
 });
 
 app.post("/api/opticas/pacientes", (req, res) => {
   const body = req.body;
   const paciente = {
     id: newId(),
-    sucursal_id: body.sucursalId || "osuc-1",
+    sucursal_id: body.sucursalId || null,
     nombre: String(body.nombre || "").toUpperCase(),
     telefono: body.telefono || null,
     email: body.email || null,
@@ -1290,7 +1608,7 @@ app.post("/api/opticas/pacientes", (req, res) => {
     active: true,
   };
   opticaPacientes.unshift(paciente);
-  res.status(201).json({ ok: true, paciente });
+  res.status(201).json({ ok: true, paciente: withBranchName(paciente) });
 });
 
 app.patch("/api/opticas/pacientes/:id", (req, res) => {
@@ -1305,7 +1623,7 @@ app.patch("/api/opticas/pacientes/:id", (req, res) => {
     fecha_nacimiento: body.fechaNacimiento !== undefined ? body.fechaNacimiento : opticaPacientes[idx].fecha_nacimiento,
     updated_at: new Date().toISOString(),
   };
-  res.json({ ok: true, paciente: opticaPacientes[idx] });
+  res.json({ ok: true, paciente: withBranchName(opticaPacientes[idx]) });
 });
 
 // NO existen todavía en el backend real (propuesta de contrato):
@@ -1313,14 +1631,80 @@ app.patch("/api/opticas/pacientes/:id/deactivate", (req, res) => {
   const idx = opticaPacientes.findIndex((p) => p.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Paciente no encontrado" });
   opticaPacientes[idx] = { ...opticaPacientes[idx], active: false };
-  res.json({ ok: true, paciente: opticaPacientes[idx] });
+  res.json({ ok: true, paciente: withBranchName(opticaPacientes[idx]) });
 });
 
 app.patch("/api/opticas/pacientes/:id/activate", (req, res) => {
   const idx = opticaPacientes.findIndex((p) => p.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Paciente no encontrado" });
   opticaPacientes[idx] = { ...opticaPacientes[idx], active: true };
-  res.json({ ok: true, paciente: opticaPacientes[idx] });
+  res.json({ ok: true, paciente: withBranchName(opticaPacientes[idx]) });
+});
+
+let opticaConsultas = [
+  {
+    id: "ocons-1", sucursal_id: "osuc-1", cliente_final_id: "opac-1",
+    fecha_examen: "2026-09-15",
+    od_esfera: "-2.00", od_cilindro: "-0.50", od_eje: 90, od_adicion: null,
+    oi_esfera: "-2.25", oi_cilindro: "-0.25", oi_eje: 85, oi_adicion: null,
+    dip: "62.0", observaciones: "Paciente refiere fatiga visual al leer de cerca.",
+    registrado_por: "u-oenc-1", created_at: "2026-09-15T11:00:00.000Z",
+  },
+  {
+    id: "ocons-2", sucursal_id: "osuc-1", cliente_final_id: "opac-1",
+    fecha_examen: "2026-03-10",
+    od_esfera: "-1.75", od_cilindro: "-0.50", od_eje: 90, od_adicion: null,
+    oi_esfera: "-2.00", oi_cilindro: "-0.25", oi_eje: 85, oi_adicion: null,
+    dip: "62.0", observaciones: "",
+    registrado_por: "u-oemp-1", created_at: "2026-03-10T09:30:00.000Z",
+  },
+];
+
+function clienteNombreConsulta(id) {
+  return opticaPacientes.find((p) => p.id === id)?.nombre ?? "—";
+}
+
+// Modulo nuevo (no hay nada viejo que imitar) - ya en el formato real del
+// back: GET / regresa { success, data } directo, POST regresa
+// { success, data }. Filtros de query iguales a listarConsultasQuerySchema.
+app.get("/api/opticas/consultas", (req, res) => {
+  const { sucursalId, clienteId, desde, hasta } = req.query;
+  let consultas = opticaConsultas;
+  if (sucursalId) consultas = consultas.filter((c) => c.sucursal_id === sucursalId);
+  if (clienteId) consultas = consultas.filter((c) => c.cliente_final_id === clienteId);
+  if (desde) consultas = consultas.filter((c) => c.fecha_examen >= desde);
+  if (hasta) consultas = consultas.filter((c) => c.fecha_examen <= hasta);
+
+  const data = consultas
+    .slice()
+    .sort((a, b) => (a.fecha_examen < b.fecha_examen ? 1 : -1))
+    .map((c) => ({ ...c, cliente_nombre: clienteNombreConsulta(c.cliente_final_id) }));
+
+  res.json({ success: true, data });
+});
+
+app.get("/api/opticas/consultas/:consultaId", (req, res) => {
+  const consulta = opticaConsultas.find((c) => c.id === req.params.consultaId);
+  if (!consulta) return res.status(404).json({ error: "Consulta no encontrada" });
+  res.json({ success: true, data: { ...consulta, cliente_nombre: clienteNombreConsulta(consulta.cliente_final_id) } });
+});
+
+app.post("/api/opticas/consultas", (req, res) => {
+  const body = req.body;
+  const consulta = {
+    id: newId(),
+    sucursal_id: body.sucursalId || null,
+    cliente_final_id: body.clienteId,
+    fecha_examen: body.fechaExamen,
+    od_esfera: body.od?.esfera ?? null, od_cilindro: body.od?.cilindro ?? null, od_eje: body.od?.eje ?? null, od_adicion: body.od?.adicion ?? null,
+    oi_esfera: body.oi?.esfera ?? null, oi_cilindro: body.oi?.cilindro ?? null, oi_eje: body.oi?.eje ?? null, oi_adicion: body.oi?.adicion ?? null,
+    dip: body.dip ?? null,
+    observaciones: body.observaciones || null,
+    registrado_por: null,
+    created_at: new Date().toISOString(),
+  };
+  opticaConsultas.unshift(consulta);
+  res.status(201).json({ success: true, data: { ...consulta, cliente_nombre: clienteNombreConsulta(consulta.cliente_final_id) } });
 });
 
 function daysFromNow(days, hour = 10) {
@@ -1338,6 +1722,25 @@ let opticaCitas = [
   { id: "ocit-6", sucursal_id: "osuc-1", cliente_final_id: "opac-1", fecha_hora: daysFromNow(-3, 17), motivo: "Consulta de seguimiento", estado: "no_asistio", creado_por: "u-oemp-1", created_at: daysFromNow(-7) },
   { id: "ocit-4", sucursal_id: "osuc-2", cliente_final_id: "opac-3", fecha_hora: daysFromNow(3, 16), motivo: "Consulta inicial", estado: "programada", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
   { id: "ocit-7", sucursal_id: "osuc-2", cliente_final_id: "opac-3", fecha_hora: daysFromNow(4, 9), motivo: "Adaptación de lentes de contacto", estado: "confirmada", creado_por: "u-odue-1", created_at: daysFromNow(-2) },
+  { id: "ocit-8", sucursal_id: "osuc-1", cliente_final_id: "opac-4", fecha_hora: daysFromNow(5, 10), motivo: "Revisión anual", estado: "programada", creado_por: "u-oenc-1", created_at: daysFromNow(-1) },
+  { id: "ocit-9", sucursal_id: "osuc-1", cliente_final_id: "opac-5", fecha_hora: daysFromNow(6, 11), motivo: "Ajuste de armazón", estado: "programada", creado_por: "u-oemp-1", created_at: daysFromNow(-1) },
+  { id: "ocit-10", sucursal_id: "osuc-1", cliente_final_id: "opac-6", fecha_hora: daysFromNow(-4, 10), motivo: "Entrega de lentes", estado: "atendida", creado_por: "u-oenc-1", created_at: daysFromNow(-8) },
+  { id: "ocit-11", sucursal_id: "osuc-1", cliente_final_id: "opac-7", fecha_hora: daysFromNow(-5, 9), motivo: "Consulta inicial", estado: "no_asistio", creado_por: "u-oemp-1", created_at: daysFromNow(-9) },
+  { id: "ocit-12", sucursal_id: "osuc-1", cliente_final_id: "opac-8", fecha_hora: daysFromNow(7, 12), motivo: "Revisión de graduación", estado: "confirmada", creado_por: "u-oenc-1", created_at: daysFromNow(-1) },
+  { id: "ocit-13", sucursal_id: "osuc-1", cliente_final_id: "opac-9", fecha_hora: daysFromNow(-6, 16), motivo: "Reparación de armazón", estado: "cancelada", creado_por: "u-oemp-1", created_at: daysFromNow(-10) },
+  { id: "ocit-14", sucursal_id: "osuc-2", cliente_final_id: "opac-10", fecha_hora: daysFromNow(8, 10), motivo: "Consulta inicial", estado: "programada", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
+  { id: "ocit-15", sucursal_id: "osuc-2", cliente_final_id: "opac-11", fecha_hora: daysFromNow(9, 11), motivo: "Revisión anual", estado: "confirmada", creado_por: "u-odue-1", created_at: daysFromNow(-2) },
+  { id: "ocit-16", sucursal_id: "osuc-2", cliente_final_id: "opac-12", fecha_hora: daysFromNow(-7, 9), motivo: "Entrega de lentes", estado: "atendida", creado_por: "u-odue-1", created_at: daysFromNow(-11) },
+  { id: "ocit-17", sucursal_id: "osuc-2", cliente_final_id: "opac-13", fecha_hora: daysFromNow(-8, 13), motivo: "Adaptación de lentes de contacto", estado: "no_asistio", creado_por: "u-odue-1", created_at: daysFromNow(-12) },
+
+  // Citas de hoy, para que la agenda del dashboard (Dueño) tenga algo que
+  // mostrar sin esperar a que se agenden citas reales.
+  { id: "ocit-18", sucursal_id: "osuc-1", cliente_final_id: "opac-1", fecha_hora: daysFromNow(0, 9), motivo: "Revisión anual", estado: "confirmada", creado_por: "u-oenc-1", created_at: daysFromNow(-1) },
+  { id: "ocit-19", sucursal_id: "osuc-1", cliente_final_id: "opac-4", fecha_hora: daysFromNow(0, 10), motivo: "Entrega de lentes", estado: "confirmada", creado_por: "u-oemp-1", created_at: daysFromNow(-1) },
+  { id: "ocit-20", sucursal_id: "osuc-1", cliente_final_id: "opac-5", fecha_hora: daysFromNow(0, 11), motivo: "Ajuste de armazón", estado: "programada", creado_por: "u-oenc-1", created_at: daysFromNow(-1) },
+  { id: "ocit-21", sucursal_id: "osuc-2", cliente_final_id: "opac-10", fecha_hora: daysFromNow(0, 12), motivo: "Consulta inicial", estado: "programada", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
+  { id: "ocit-22", sucursal_id: "osuc-1", cliente_final_id: "opac-7", fecha_hora: daysFromNow(0, 14), motivo: "Reparación de armazón", estado: "confirmada", creado_por: "u-oemp-1", created_at: daysFromNow(-1) },
+  { id: "ocit-23", sucursal_id: "osuc-2", cliente_final_id: "opac-11", fecha_hora: daysFromNow(0, 16), motivo: "Adaptación de lentes de contacto", estado: "programada", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
 ];
 
 // Contrato propuesto para citas: respuestas { success, data } (igual que
@@ -1347,7 +1750,7 @@ let opticaCitas = [
 
 app.get("/api/opticas/citas", (req, res) => {
   const { sucursalId } = req.query;
-  const citas = opticaCitas.filter((c) => c.sucursal_id === sucursalId);
+  const citas = sucursalId ? opticaCitas.filter((c) => c.sucursal_id === sucursalId) : opticaCitas;
   res.json({ success: true, data: citas });
 });
 
@@ -1361,7 +1764,7 @@ app.post("/api/opticas/citas", (req, res) => {
   const body = req.body;
   const cita = {
     id: newId(),
-    sucursal_id: body.sucursalId || "osuc-1",
+    sucursal_id: body.sucursalId || null,
     cliente_final_id: body.clienteId,
     fecha_hora: body.fechaHora,
     motivo: body.motivo,
@@ -1394,90 +1797,217 @@ app.patch("/api/opticas/citas/:id/estado", (req, res) => {
 
 let opticaVentas = [
   {
-    id: "oven-1", sucursal_id: "osuc-1", paciente_id: "opac-1", metodo_pago: "efectivo",
+    id: "oven-1", folio: "VEN-000001", sucursal_id: "osuc-1", paciente_id: "opac-1", metodo_pago: "efectivo",
+    tipo_trabajo: "venta_directa", prioridad: "normal",
     estado: "completada", creado_por: "u-oenc-1", created_at: daysFromNow(-1),
+    en_proceso_at: daysFromNow(-1), completada_at: daysFromNow(-1), cancelada_at: null, pagada_at: daysFromNow(-1),
     items: [{ producto_id: "oinv-1", codigo: "OPT-001", modelo: "Redonda Slim", cantidad: 1, precio_unitario: 620, subtotal: 620 }],
     subtotal: 620, iva: 99.2, total: 719.2, monto_pagado: 719.2, saldo_pendiente: 0,
   },
   {
-    id: "oven-2", sucursal_id: "osuc-1", paciente_id: "opac-1", metodo_pago: "credito",
-    estado: "completada", creado_por: "u-oemp-1", created_at: daysFromNow(0),
+    id: "oven-2", folio: "VEN-000002", sucursal_id: "osuc-1", paciente_id: "opac-1", metodo_pago: "credito",
+    tipo_trabajo: "trabajo_interno", prioridad: "urgente",
+    estado: "pendiente", creado_por: "u-oemp-1", created_at: daysFromNow(0),
+    en_proceso_at: null, completada_at: null, cancelada_at: null, pagada_at: null,
     items: [{ producto_id: "oinv-3", codigo: "MIC-OPT-001", modelo: "Antireflejante Plus", cantidad: 2, precio_unitario: 480, subtotal: 960 }],
     subtotal: 960, iva: 153.6, total: 1113.6, monto_pagado: 700, saldo_pendiente: 413.6,
   },
   {
-    id: "oven-3", sucursal_id: "osuc-1", paciente_id: "opac-2", metodo_pago: "efectivo",
+    id: "oven-3", folio: "VEN-000003", sucursal_id: "osuc-1", paciente_id: "opac-2", metodo_pago: "efectivo",
+    tipo_trabajo: "venta_directa", prioridad: "normal",
     estado: "cancelada", creado_por: "u-oenc-1", created_at: daysFromNow(-3),
+    en_proceso_at: null, completada_at: null, cancelada_at: daysFromNow(-3), pagada_at: null,
     items: [{ producto_id: "oinv-1", codigo: "OPT-001", modelo: "Redonda Slim", cantidad: 1, precio_unitario: 620, subtotal: 620 }],
     subtotal: 620, iva: 99.2, total: 719.2, monto_pagado: 719.2, saldo_pendiente: 0,
   },
   {
-    id: "oven-4", sucursal_id: "osuc-2", paciente_id: "opac-3", metodo_pago: "transferencia",
+    id: "oven-4", folio: "VEN-000004", sucursal_id: "osuc-2", paciente_id: "opac-3", metodo_pago: "transferencia",
+    tipo_trabajo: "venta_directa", prioridad: "normal",
     estado: "completada", creado_por: "u-odue-1", created_at: daysFromNow(-2),
+    en_proceso_at: daysFromNow(-2), completada_at: daysFromNow(-2), cancelada_at: null, pagada_at: daysFromNow(-2),
     items: [{ producto_id: "oinv-1b", codigo: "OPT-001", modelo: "Redonda Slim", cantidad: 1, precio_unitario: 620, subtotal: 620 }],
     subtotal: 620, iva: 99.2, total: 719.2, monto_pagado: 719.2, saldo_pendiente: 0,
   },
+  {
+    id: "oven-5", folio: "VEN-000005", sucursal_id: "osuc-1", paciente_id: "opac-4", metodo_pago: "efectivo",
+    tipo_trabajo: "orden_laboratorio", prioridad: "urgente",
+    estado: "en_proceso", creado_por: "u-oenc-1", created_at: daysFromNow(-1),
+    en_proceso_at: daysFromNow(-1), completada_at: null, cancelada_at: null, pagada_at: daysFromNow(-1),
+    items: [{ producto_id: "oinv-4", codigo: "EST-OPT-001", modelo: "Estuche Rígido", cantidad: 1, precio_unitario: 85, subtotal: 85 }],
+    subtotal: 85, iva: 13.6, total: 98.6, monto_pagado: 98.6, saldo_pendiente: 0,
+  },
+  {
+    id: "oven-6", folio: "VEN-000006", sucursal_id: "osuc-1", paciente_id: "opac-5", metodo_pago: "debito",
+    tipo_trabajo: "trabajo_interno", prioridad: "normal",
+    estado: "completada", creado_por: "u-oemp-1", created_at: daysFromNow(-4),
+    en_proceso_at: daysFromNow(-4), completada_at: daysFromNow(-4), cancelada_at: null, pagada_at: daysFromNow(-4),
+    items: [{ producto_id: "oinv-5", codigo: "ACC-OPT-001", modelo: "Cordón Deportivo", cantidad: 1, precio_unitario: 45, subtotal: 45 }],
+    subtotal: 45, iva: 7.2, total: 52.2, monto_pagado: 52.2, saldo_pendiente: 0,
+  },
 ];
+
+function nextVentaFolio() {
+  const nums = opticaVentas
+    .map((v) => parseInt(String(v.folio).replace(/\D/g, ""), 10))
+    .filter((n) => !Number.isNaN(n));
+  const max = nums.length ? Math.max(...nums) : 0;
+  return `VEN-${String(max + 1).padStart(6, "0")}`;
+}
+
+function withVendedorName(venta) {
+  const vendedor = opticaUsuarios.find((u) => u.id === venta.creado_por);
+  return { ...venta, vendedor_nombre: vendedor?.name ?? "" };
+}
 
 // Contrato propuesto para ventas (modulo nuevo, sin nada en el back real):
 // respuestas { ok, venta } / { ok, ventas }, con ?sucursalId= en el listado
-// igual que pacientes/citas. Al crear una venta se descuenta el stock del
-// producto en opticaInventario; al cancelar, se repone.
+// igual que pacientes/citas - sin sucursalId (o vacio) regresa las de
+// todas las sucursales ("Todas"). Al crear una venta se descuenta el
+// stock del producto; al cancelar, se repone.
+//
+// "estado" y los pagos son independientes:
+// - estado: pendiente -> en_proceso -> completada (o cancelada, solo
+//   mientras esta "pendiente"). Se mueve con PATCH /:id/estado, igual
+//   que /api/opticas/laboratorio/:id/estado.
+// - pago: no se guarda como estado, se deriva de saldo_pendiente
+//   (liquidada si es 0, en_adeudo si no) - PATCH /:id/liquidar solo
+//   abona al saldo, nunca toca "estado".
 
 app.get("/api/opticas/ventas", (req, res) => {
   const { sucursalId } = req.query;
-  const ventas = opticaVentas.filter((v) => v.sucursal_id === sucursalId);
+  const ventas = (sucursalId ? opticaVentas.filter((v) => v.sucursal_id === sucursalId) : opticaVentas)
+    .map(withVendedorName);
   res.json({ ok: true, ventas });
 });
 
 app.get("/api/opticas/ventas/:id", (req, res) => {
   const venta = opticaVentas.find((v) => v.id === req.params.id);
   if (!venta) return res.status(404).json({ error: "Venta no encontrada" });
-  res.json({ ok: true, venta });
+  res.json({ ok: true, venta: withVendedorName(venta) });
 });
 
 app.post("/api/opticas/ventas", (req, res) => {
   const body = req.body;
 
   const items = (body.items || []).map((item) => {
-    const producto = opticaInventario.find((p) => p.id === item.productoId);
+    let codigo = "";
+    let modelo = "";
 
-    if (producto) {
-      producto.stockAvailable = Math.max(0, producto.stockAvailable - Number(item.cantidad));
+    if (item.itemType === "servicio") {
+      const servicio = opticaServicios.find((s) => s.id === item.productoId);
+      codigo = servicio?.codigo ?? "";
+      modelo = servicio?.nombre ?? "";
+    } else {
+      const producto = opticaProductos.find((p) => p.id === item.productoId);
+      codigo = producto?.codigo ?? "";
+      modelo = producto?.nombre ?? "";
+
+      const branchStock = producto?.stock_por_sucursal?.find((s) => s.sucursal_id === body.sucursalId);
+      if (branchStock) {
+        branchStock.stock = Math.max(0, branchStock.stock - Number(item.cantidad));
+        opticaMovimientos.unshift({
+          id: newId(), producto_id: producto.id, sucursal_id: body.sucursalId,
+          tipo: "ventas", cantidad: Number(item.cantidad), motivo: "",
+          creado_por: body.creadoPor || null,
+          created_at: new Date().toISOString(),
+        });
+      }
     }
 
     return {
       producto_id: item.productoId,
-      codigo: producto?.code ?? "",
-      modelo: producto?.model ?? "",
+      item_type: item.itemType === "servicio" ? "servicio" : "producto",
+      codigo,
+      modelo,
       cantidad: Number(item.cantidad),
       precio_unitario: Number(item.precioUnitario),
       subtotal: Number(item.cantidad) * Number(item.precioUnitario),
     };
   });
 
+  // El front (igual que el back real, ver backend/ventas/helpers/calculos.js)
+  // nunca manda iva/total/saldoPendiente ya calculados - solo manda tasaIva
+  // y montoPagado. Antes esto se tomaba de body.iva/body.total/
+  // body.saldoPendiente (siempre undefined) y por eso el IVA nunca se
+  // aplicaba y el saldo pendiente siempre quedaba en 0, aunque el pago
+  // fuera parcial.
   const subtotal = body.subtotal ?? items.reduce((sum, item) => sum + item.subtotal, 0);
-  const iva = body.iva ?? 0;
-  const total = body.total ?? subtotal + iva;
+  const tasaIva = Number(body.tasaIva ?? 0);
+  const iva = body.iva ?? Math.round(subtotal * tasaIva) / 100;
+  const total = body.total ?? Math.round((subtotal + iva) * 100) / 100;
+  const tipoTrabajo = body.tipoTrabajo || "venta_directa";
+  const montoPagado = Math.round(Number(body.montoPagado ?? total) * 100) / 100;
+  const saldoPendiente = Math.max(0, Math.round((total - montoPagado) * 100) / 100);
+  const ahora = new Date().toISOString();
 
   const venta = {
     id: newId(),
+    folio: nextVentaFolio(),
     sucursal_id: body.sucursalId,
     paciente_id: body.pacienteId || null,
+    creado_por: body.creadoPor || null,
+    tipo_trabajo: tipoTrabajo,
+    prioridad: body.prioridad === "urgente" ? "urgente" : "normal",
     metodo_pago: body.metodoPago,
-    estado: "completada",
-    creado_por: "mock-user",
-    created_at: new Date().toISOString(),
+    estado: "pendiente",
+    created_at: ahora,
+    en_proceso_at: null,
+    completada_at: null,
+    cancelada_at: null,
+    pagada_at: saldoPendiente <= 0 ? ahora : null,
     items,
     subtotal,
     iva,
     total,
-    monto_pagado: body.montoPagado ?? total,
-    saldo_pendiente: body.saldoPendiente ?? 0,
+    monto_pagado: montoPagado,
+    saldo_pendiente: saldoPendiente,
   };
 
   opticaVentas.unshift(venta);
-  res.status(201).json({ ok: true, venta });
+  res.status(201).json({ ok: true, venta: withVendedorName(venta) });
+});
+
+// Abono al saldo pendiente - puede ser parcial o liquidar todo de una vez
+// (si no mandan "monto", se asume el saldo completo). Solo pasa a
+// "pagada" cuando el saldo llega a 0.
+app.patch("/api/opticas/ventas/:id/liquidar", (req, res) => {
+  const idx = opticaVentas.findIndex((v) => v.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Venta no encontrada" });
+
+  const venta = opticaVentas[idx];
+  const monto = Math.round(Math.max(0, Math.min(Number(req.body.monto ?? venta.saldo_pendiente), venta.saldo_pendiente)) * 100) / 100;
+  // Centavo de tolerancia para que un resto de punto flotante (ej.
+  // 2.8e-14) no deje el saldo pendiente por error de redondeo.
+  const saldoRestante = Math.max(0, Math.round((venta.saldo_pendiente - monto) * 100) / 100);
+  const quedaLiquidada = saldoRestante <= 0.01;
+
+  opticaVentas[idx] = {
+    ...venta,
+    monto_pagado: Math.round((venta.monto_pagado + monto) * 100) / 100,
+    saldo_pendiente: quedaLiquidada ? 0 : saldoRestante,
+    pagada_at: quedaLiquidada ? (venta.pagada_at ?? new Date().toISOString()) : venta.pagada_at,
+  };
+  res.json({ ok: true, venta: withVendedorName(opticaVentas[idx]) });
+});
+
+// Transicion del estado del trabajo (pendiente -> en_proceso ->
+// completada), igual patron que /api/opticas/laboratorio/:id/estado.
+// Nunca toca los campos de pago.
+app.patch("/api/opticas/ventas/:id/estado", (req, res) => {
+  const idx = opticaVentas.findIndex((v) => v.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Venta no encontrada" });
+
+  const venta = opticaVentas[idx];
+  const estado = req.body.estado;
+  const ahora = new Date().toISOString();
+
+  opticaVentas[idx] = {
+    ...venta,
+    estado,
+    en_proceso_at: estado === "en_proceso" ? (venta.en_proceso_at ?? ahora) : venta.en_proceso_at,
+    completada_at: estado === "completada" ? (venta.completada_at ?? ahora) : venta.completada_at,
+  };
+  res.json({ ok: true, venta: withVendedorName(opticaVentas[idx]) });
 });
 
 app.patch("/api/opticas/ventas/:id/cancelar", (req, res) => {
@@ -1487,93 +2017,16 @@ app.patch("/api/opticas/ventas/:id/cancelar", (req, res) => {
   const venta = opticaVentas[idx];
 
   venta.items.forEach((item) => {
-    const producto = opticaInventario.find((p) => p.id === item.producto_id);
-    if (producto) {
-      producto.stockAvailable += item.cantidad;
+    if (item.item_type === "servicio") return;
+    const producto = opticaProductos.find((p) => p.id === item.producto_id);
+    const branchStock = producto?.stock_por_sucursal?.find((s) => s.sucursal_id === venta.sucursal_id);
+    if (branchStock) {
+      branchStock.stock += item.cantidad;
     }
   });
 
-  opticaVentas[idx] = { ...venta, estado: "cancelada" };
-  res.json({ ok: true, venta: opticaVentas[idx] });
-});
-
-let opticaLaboratorio = [
-  {
-    id: "olab-1", sucursal_id: "osuc-1", paciente_id: null, venta_id: "oven-2",
-    items: [{ producto_id: "oinv-3", codigo: "MIC-OPT-001", modelo: "Antireflejante Plus" }],
-    receta: { od_esfera: "-1.50", od_cilindro: "-0.50", od_eje: "90", oi_esfera: "-1.25", oi_cilindro: "-0.25", oi_eje: "85", adicion: "", dp: "62" },
-    observaciones: "Cliente pidió entrega antes del viernes.",
-    estado: "en_proceso", creado_por: "u-oemp-1", created_at: daysFromNow(0),
-  },
-  {
-    id: "olab-2", sucursal_id: "osuc-1", paciente_id: "opac-1", venta_id: "oven-1",
-    items: [{ producto_id: "oinv-1", codigo: "OPT-001", modelo: "Redonda Slim" }],
-    receta: { od_esfera: "-2.00", od_cilindro: "0.00", od_eje: "0", oi_esfera: "-2.25", oi_cilindro: "0.00", oi_eje: "0", adicion: "+1.00", dp: "60" },
-    observaciones: "",
-    estado: "pendiente", creado_por: "u-oenc-1", created_at: daysFromNow(-1),
-  },
-  {
-    id: "olab-3", sucursal_id: "osuc-1", paciente_id: "opac-2", venta_id: "oven-3",
-    items: [{ producto_id: "oinv-1", codigo: "OPT-001", modelo: "Redonda Slim" }],
-    receta: { od_esfera: "-0.75", od_cilindro: "-0.25", od_eje: "180", oi_esfera: "-0.75", oi_cilindro: "0.00", oi_eje: "0", adicion: "", dp: "61" },
-    observaciones: "",
-    estado: "listo", creado_por: "u-oenc-1", created_at: daysFromNow(-4),
-  },
-];
-
-// Contrato propuesto para laboratorio (modulo nuevo, sin nada en el back
-// real): respuestas { ok, orden } / { ok, ordenes }, con ?sucursalId= en
-// el listado igual que pacientes/citas/ventas. Cada orden nace ligada a
-// una venta (venta_id) desde el flujo de Ventas.
-
-app.get("/api/opticas/laboratorio", (req, res) => {
-  const { sucursalId } = req.query;
-  const ordenes = opticaLaboratorio.filter((o) => o.sucursal_id === sucursalId);
-  res.json({ ok: true, ordenes });
-});
-
-app.get("/api/opticas/laboratorio/:id", (req, res) => {
-  const orden = opticaLaboratorio.find((o) => o.id === req.params.id);
-  if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
-  res.json({ ok: true, orden });
-});
-
-app.post("/api/opticas/laboratorio", (req, res) => {
-  const body = req.body;
-  const orden = {
-    id: newId(),
-    sucursal_id: body.sucursalId,
-    paciente_id: body.pacienteId || null,
-    venta_id: body.ventaId || null,
-    items: (body.items || []).map((item) => ({
-      producto_id: item.productoId,
-      codigo: item.codigo,
-      modelo: item.modelo,
-    })),
-    receta: {
-      od_esfera: body.receta?.odEsfera || null,
-      od_cilindro: body.receta?.odCilindro || null,
-      od_eje: body.receta?.odEje || null,
-      oi_esfera: body.receta?.oiEsfera || null,
-      oi_cilindro: body.receta?.oiCilindro || null,
-      oi_eje: body.receta?.oiEje || null,
-      adicion: body.receta?.adicion || null,
-      dp: body.receta?.dp || null,
-    },
-    observaciones: body.observaciones || null,
-    estado: "pendiente",
-    creado_por: "mock-user",
-    created_at: new Date().toISOString(),
-  };
-  opticaLaboratorio.unshift(orden);
-  res.status(201).json({ ok: true, orden });
-});
-
-app.patch("/api/opticas/laboratorio/:id/estado", (req, res) => {
-  const idx = opticaLaboratorio.findIndex((o) => o.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Orden no encontrada" });
-  opticaLaboratorio[idx] = { ...opticaLaboratorio[idx], estado: req.body.estado };
-  res.json({ ok: true, orden: opticaLaboratorio[idx] });
+  opticaVentas[idx] = { ...venta, estado: "cancelada", cancelada_at: new Date().toISOString() };
+  res.json({ ok: true, venta: withVendedorName(opticaVentas[idx]) });
 });
 
 // ---- Optica (informacion general de la empresa) ----
@@ -1586,7 +2039,7 @@ let opticaInfo = {
   responsable_sanitario: "Dra. Marta Sánchez",
   telefono: "9611234567",
   correo: "contacto@opticavision.mx",
-  sitio_web: "www.opticavision.mx",
+  correo_fiscal: "fiscal@opticavision.mx",
   calle: "Av. Central",
   numero_exterior: "123",
   numero_interior: "",
@@ -1595,99 +2048,561 @@ let opticaInfo = {
   municipio: "Tapachula",
   estado_direccion: "Chiapas",
   pais: "México",
-  moneda: "MXN",
   regimen_fiscal: "general_personas_morales",
-  impuesto_predeterminado: "16",
-  folio_inicial_ventas: "000001",
-  serie_documentos: "VTA",
-  texto_documentos: "Gracias por su compra.",
   color_principal: "#1E3AAB",
   color_secundario: "#60DAFA",
   eslogan: "Cuidando tu visión desde 1998",
-  pie_documentos: "Gracias por su preferencia.",
 };
 
-app.get("/api/opticas/informacion", (req, res) => {
-  res.json({ ok: true, info: opticaInfo });
+// El front ya manda/espera snake_case (ver opticaService.js), así que aquí
+// no hace falta traducir nombres de campo, solo imitar las 4 rutas reales:
+// operativa (cualquier rol), completa/crear/actualizar (dueño).
+
+app.get("/api/opticas/configuracion/operativa", (req, res) => {
+  const { nombre_comercial, logo_url, color_principal, color_secundario, eslogan } = opticaInfo;
+  res.json({ nombre_comercial, logo_url, color_principal, color_secundario, eslogan });
 });
 
-app.put("/api/opticas/informacion", (req, res) => {
-  const body = req.body;
-  opticaInfo = {
-    logo_url: body.logoUrl ?? "",
-    nombre_comercial: body.nombreComercial,
-    razon_social: body.razonSocial,
-    rfc: body.rfc,
-    responsable_sanitario: body.responsableSanitario,
-    telefono: body.telefono,
-    correo: body.correo,
-    sitio_web: body.sitioWeb,
-    calle: body.calle,
-    numero_exterior: body.numeroExterior,
-    numero_interior: body.numeroInterior,
-    colonia: body.colonia,
-    codigo_postal: body.codigoPostal,
-    municipio: body.municipio,
-    estado_direccion: body.estadoDireccion,
-    pais: body.pais,
-    moneda: body.moneda,
-    regimen_fiscal: body.regimenFiscal,
-    impuesto_predeterminado: body.impuestoPredeterminado,
-    folio_inicial_ventas: body.folioInicialVentas,
-    serie_documentos: body.serieDocumentos,
-    texto_documentos: body.textoDocumentos,
-    color_principal: body.colorPrincipal,
-    color_secundario: body.colorSecundario,
-    eslogan: body.eslogan,
-    pie_documentos: body.pieDocumentos,
+app.get("/api/opticas/configuracion", (req, res) => {
+  res.json(opticaInfo);
+});
+
+app.post("/api/opticas/configuracion", (req, res) => {
+  opticaInfo = { ...opticaInfo, ...req.body };
+  res.status(201).json(opticaInfo);
+});
+
+app.patch("/api/opticas/configuracion", (req, res) => {
+  opticaInfo = { ...opticaInfo, ...req.body };
+  res.json(opticaInfo);
+});
+
+// ---- Productos, Servicios y Stock (catalogo + existencias por sucursal) ----
+// Alineado con el back real: productos/servicios son por óptica (no por
+// sucursal), las existencias viven aparte en Stock, y las categorías son
+// catálogos fijos con id numérico (categorias_productos/categorias_servicios).
+
+const categoriasProductos = [
+  { id: 1, nombre: "Armazones" }, { id: 2, nombre: "Lentes oftálmicos" }, { id: 3, nombre: "Lentes de contacto" },
+  { id: 4, nombre: "Soluciones" }, { id: 5, nombre: "Estuches" }, { id: 6, nombre: "Paños" },
+  { id: 7, nombre: "Cadenas" }, { id: 8, nombre: "Accesorios" }, { id: 9, nombre: "Otros" },
+];
+const categoriasServicios = [
+  { id: 1, nombre: "Consulta" }, { id: 2, nombre: "Ajustes" }, { id: 3, nombre: "Reparaciones" }, { id: 4, nombre: "Otros" },
+];
+const categoriaProductoNombre = (id) => categoriasProductos.find((c) => c.id === id)?.nombre ?? "";
+const categoriaServicioNombre = (id) => categoriasServicios.find((c) => c.id === id)?.nombre ?? "";
+
+const CATEGORIA_PRODUCTO_POR_SLUG = {
+  armazones: 1, lentes_oftalmicos: 2, lentes_contacto: 3, soluciones: 4,
+  estuches: 5, panos: 6, cadenas: 7, accesorios: 8,
+};
+const CATEGORIA_SERVICIO_POR_SLUG = { consultas: 1, ajustes: 2, reparaciones: 3 };
+
+// Semilla con la forma vieja (categoria en texto, stock embebido por
+// producto) - se transforma abajo a la forma real: productos sin stock
+// embebido + un arreglo de Stock aparte por producto+sucursal.
+const opticaProductosSemilla = [
+  { id: "oprod-1", display_id: 1, codigo: "ARM-CAT-001", nombre: "Armazón Clásico", categoria: "armazones", marca: "OKI Eyewear", descripcion: "Armazón de acetato clásico.", precio_venta: 890, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 10 }, { sucursal_id: "osuc-2", stock: 4 }], stock_minimo: 5 },
+  { id: "oprod-2", display_id: 2, codigo: "MIC-CAT-001", nombre: "Mica Antireflejante", categoria: "lentes_oftalmicos", marca: "Resistant Flex", descripcion: "Mica con tratamiento antirreflejante.", precio_venta: 650, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 6 }, { sucursal_id: "osuc-1", stock: 3 }], stock_minimo: 5 },
+  { id: "oprod-3", display_id: 3, codigo: "SOL-CAT-001", nombre: "Solución multipropósito", categoria: "soluciones", marca: "OptiCare", descripcion: "Solución para lentes de contacto 355ml.", precio_venta: 180, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 31 }, { sucursal_id: "osuc-2", stock: 14 }], stock_minimo: 10 },
+  { id: "oprod-4", display_id: 4, codigo: "ARM-CAT-002", nombre: "Armazón Aviador Metal", categoria: "armazones", marca: "OKI Eyewear", descripcion: "Armazón metálico estilo aviador.", precio_venta: 920, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 8 }, { sucursal_id: "osuc-2", stock: 4 }], stock_minimo: 5 },
+  { id: "oprod-5", display_id: 5, codigo: "ARM-CAT-003", nombre: "Armazón Wayfarer", categoria: "armazones", marca: "JD Sport", descripcion: "Armazón compacto estilo wayfarer.", precio_venta: 780, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 2 }, { sucursal_id: "osuc-1", stock: 1 }], stock_minimo: 5 },
+  { id: "oprod-6", display_id: 6, codigo: "ARM-CAT-004", nombre: "Armazón Redondo Vintage", categoria: "armazones", marca: "Cactus", descripcion: "Armazón redondo de inspiración vintage.", precio_venta: 850, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0 }, { sucursal_id: "osuc-2", stock: 0 }], stock_minimo: 4 },
+  { id: "oprod-7", display_id: 7, codigo: "ARM-CAT-005", nombre: "Armazón Infantil", categoria: "armazones", marca: "Toki Kids", descripcion: "Armazón flexible resistente para niños.", precio_venta: 620, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 18 }, { sucursal_id: "osuc-1", stock: 7 }], stock_minimo: 8 },
+  { id: "oprod-8", display_id: 8, codigo: "MIC-CAT-002", nombre: "Mica Progresiva HD", categoria: "lentes_oftalmicos", marca: "Progresivos Superfit", descripcion: "Mica progresiva de alta definición.", precio_venta: 1800, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 6 }, { sucursal_id: "osuc-2", stock: 2 }], stock_minimo: 5 },
+  { id: "oprod-9", display_id: 9, codigo: "MIC-CAT-003", nombre: "Mica Fotocromática", categoria: "lentes_oftalmicos", marca: "Antibue Premium", descripcion: "Mica que se oscurece con la luz solar.", precio_venta: 1200, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 4 }, { sucursal_id: "osuc-1", stock: 2 }], stock_minimo: 5 },
+  { id: "oprod-10", display_id: 10, codigo: "MIC-CAT-004", nombre: "Mica Filtro Luz Azul", categoria: "lentes_oftalmicos", marca: "Photoflux", descripcion: "Mica con filtro de luz azul.", precio_venta: 950, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0 }, { sucursal_id: "osuc-2", stock: 0 }], stock_minimo: 5 },
+  { id: "oprod-11", display_id: 11, codigo: "LEN-CAT-001", nombre: "Lentes de contacto mensuales", categoria: "lentes_contacto", marca: "Acuvue", descripcion: "Caja de lentes de contacto de uso mensual.", precio_venta: 550, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 28 }, { sucursal_id: "osuc-1", stock: 12 }], stock_minimo: 10 },
+  { id: "oprod-12", display_id: 12, codigo: "LEN-CAT-002", nombre: "Lentes de contacto diarios", categoria: "lentes_contacto", marca: "Biofinity", descripcion: "Caja de 30 lentes de contacto diarios.", precio_venta: 680, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 11 }, { sucursal_id: "osuc-2", stock: 4 }], stock_minimo: 10 },
+  { id: "oprod-13", display_id: 13, codigo: "SOL-CAT-002", nombre: "Gotas humectantes", categoria: "soluciones", marca: "OptiFree", descripcion: "Gotas humectantes para ojo seco.", precio_venta: 150, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 35 }, { sucursal_id: "osuc-1", stock: 15 }], stock_minimo: 10 },
+  { id: "oprod-14", display_id: 14, codigo: "SOL-CAT-003", nombre: "Solución para lentes rígidos", categoria: "soluciones", marca: "Boston", descripcion: "Solución limpiadora para lentes rígidos.", precio_venta: 220, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 1 }, { sucursal_id: "osuc-2", stock: 1 }], stock_minimo: 5 },
+  { id: "oprod-15", display_id: 15, codigo: "EST-CAT-001", nombre: "Estuche rígido", categoria: "estuches", marca: "Genérico", descripcion: "Estuche rígido con cierre.", precio_venta: 150, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 21 }, { sucursal_id: "osuc-1", stock: 9 }], stock_minimo: 10 },
+  { id: "oprod-16", display_id: 16, codigo: "EST-CAT-002", nombre: "Estuche semirrígido", categoria: "estuches", marca: "Genérico", descripcion: "Estuche semirrígido con broche.", precio_venta: 120, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 13 }, { sucursal_id: "osuc-2", stock: 5 }], stock_minimo: 10 },
+  { id: "oprod-17", display_id: 17, codigo: "PAN-CAT-001", nombre: "Paño de microfibra", categoria: "panos", marca: "Zeiss", descripcion: "Paño de microfibra para limpieza.", precio_venta: 60, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 70 }, { sucursal_id: "osuc-1", stock: 30 }], stock_minimo: 20 },
+  { id: "oprod-18", display_id: 18, codigo: "PAN-CAT-002", nombre: "Paño antibacterial", categoria: "panos", marca: "Clean Optics", descripcion: "Paño antibacterial para limpieza de lentes.", precio_venta: 70, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 0 }, { sucursal_id: "osuc-2", stock: 0 }], stock_minimo: 15 },
+  { id: "oprod-19", display_id: 19, codigo: "CAD-CAT-001", nombre: "Cadena deportiva", categoria: "cadenas", marca: "Genérico", descripcion: "Cadena deportiva ajustable para lentes.", precio_venta: 90, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 15 }, { sucursal_id: "osuc-1", stock: 7 }], stock_minimo: 10 },
+  { id: "oprod-20", display_id: 20, codigo: "CAD-CAT-002", nombre: "Cadena decorativa", categoria: "cadenas", marca: "Genérico", descripcion: "Cadena decorativa para lentes.", precio_venta: 110, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 4 }, { sucursal_id: "osuc-2", stock: 1 }], stock_minimo: 8 },
+  { id: "oprod-21", display_id: 21, codigo: "ACC-CAT-001", nombre: "Spray limpiador", categoria: "accesorios", marca: "OptiClean", descripcion: "Spray limpiador para lentes.", precio_venta: 85, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 42 }, { sucursal_id: "osuc-1", stock: 18 }], stock_minimo: 15 },
+  { id: "oprod-22", display_id: 22, codigo: "ACC-CAT-002", nombre: "Kit de ajuste de armazones", categoria: "accesorios", marca: "Genérico", descripcion: "Kit de mini herramientas para ajuste.", precio_venta: 200, stock_por_sucursal: [{ sucursal_id: "osuc-1", stock: 7 }, { sucursal_id: "osuc-2", stock: 3 }], stock_minimo: 5 },
+  { id: "oprod-23", display_id: 23, codigo: "ACC-CAT-003", nombre: "Funda protectora", categoria: "accesorios", marca: "Genérico", descripcion: "Funda protectora acolchada.", precio_venta: 95, stock_por_sucursal: [{ sucursal_id: "osuc-2", stock: 1 }, { sucursal_id: "osuc-1", stock: 0 }], stock_minimo: 5 },
+];
+
+let opticaStock = [];
+let opticaProductos = opticaProductosSemilla.map((p) => {
+  (p.stock_por_sucursal ?? []).forEach((s) => {
+    opticaStock.push({ producto_id: p.id, sucursal_id: s.sucursal_id, cantidad: s.stock });
+  });
+  const categoria_id = CATEGORIA_PRODUCTO_POR_SLUG[p.categoria] ?? 9;
+  return {
+    id: p.id, display_id: p.display_id, sku: p.codigo, nombre: p.nombre,
+    categoria_id, categoria_nombre: categoriaProductoNombre(categoria_id),
+    marca: p.marca, descripcion: p.descripcion,
+    precio_venta: p.precio_venta, stock_minimo: p.stock_minimo, activo: true,
   };
-  res.json({ ok: true, info: opticaInfo });
 });
 
-// ---- Productos y servicios (catalogo, no depende de sucursal) ----
-
-let opticaProductos = [
-  { id: "oprod-1", display_id: 1, codigo: "ARM-CAT-001", codigo_barras: "", nombre: "Armazón Clásico", categoria: "armazones", marca: "OKI Eyewear", descripcion: "Armazón de acetato clásico.", precio_venta: 890, costo: 450, impuesto: 16, unidad_medida: "pieza", active: true },
-  { id: "oprod-2", display_id: 2, codigo: "MIC-CAT-001", codigo_barras: "", nombre: "Mica Antireflejante", categoria: "lentes_oftalmicos", marca: "Resistant Flex", descripcion: "Mica con tratamiento antirreflejante.", precio_venta: 650, costo: 320, impuesto: 16, unidad_medida: "pieza", active: true },
-  { id: "oprod-3", display_id: 3, codigo: "SOL-CAT-001", codigo_barras: "", nombre: "Solución multipropósito", categoria: "soluciones", marca: "OptiCare", descripcion: "Solución para lentes de contacto 355ml.", precio_venta: 180, costo: 90, impuesto: 16, unidad_medida: "pieza", active: true },
+const opticaServiciosSemilla = [
+  { id: "oserv-1", display_id: 1, codigo: "SRV-001", nombre: "Examen de la vista", categoria: "consultas", descripcion: "Evaluación completa de agudeza visual.", precio: 300 },
+  { id: "oserv-2", display_id: 2, codigo: "SRV-002", nombre: "Ajuste de armazón", categoria: "ajustes", descripcion: "Ajuste y calibración de armazón.", precio: 0 },
+  { id: "oserv-3", display_id: 3, codigo: "SRV-003", nombre: "Reparación de armazón", categoria: "reparaciones", descripcion: "Reparación de bisagra o varilla.", precio: 150 },
 ];
+let opticaServicios = opticaServiciosSemilla.map((s) => {
+  const categoria_id = CATEGORIA_SERVICIO_POR_SLUG[s.categoria] ?? 4;
+  return {
+    id: s.id, display_id: s.display_id, codigo: s.codigo, nombre: s.nombre,
+    categoria_id, categoria_nombre: categoriaServicioNombre(categoria_id),
+    descripcion: s.descripcion, precio: s.precio, activo: true,
+  };
+});
 
-let opticaServicios = [
-  { id: "oserv-1", display_id: 1, codigo: "SRV-001", nombre: "Examen de la vista", categoria: "consultas", descripcion: "Evaluación completa de agudeza visual.", precio: 300, impuesto: 16, duracion_estimada: 30, active: true },
-  { id: "oserv-2", display_id: 2, codigo: "SRV-002", nombre: "Ajuste de armazón", categoria: "ajustes", descripcion: "Ajuste y calibración de armazón.", precio: 0, impuesto: 0, duracion_estimada: 10, active: true },
-  { id: "oserv-3", display_id: 3, codigo: "SRV-003", nombre: "Reparación de armazón", categoria: "reparaciones", descripcion: "Reparación de bisagra o varilla.", precio: 150, impuesto: 16, duracion_estimada: 20, active: true },
-];
+function nombreUsuarioOptica(id) {
+  return opticaUsuarios.find((u) => u.id === id)?.name ?? "—";
+}
 
-registrarCrud("/api/opticas/productos", () => opticaProductos, {
-  crear: (body) => ({
+// -- Productos --
+
+app.get("/api/opticas/productos/categorias", (req, res) => res.json(categoriasProductos));
+
+app.get("/api/opticas/productos", (req, res) => res.json(opticaProductos));
+
+app.get("/api/opticas/productos/:id", (req, res) => {
+  const producto = opticaProductos.find((p) => p.id === req.params.id);
+  if (!producto) return res.status(404).json({ error: "Producto no encontrado" });
+  res.json(producto);
+});
+
+app.post("/api/opticas/productos", (req, res) => {
+  const categoria_id = Number(req.body.categoriaId);
+  const nuevo = {
     id: newId(), display_id: opticaProductos.length + 1,
-    codigo: body.codigo, codigo_barras: body.codigo_barras || "", nombre: body.nombre,
-    categoria: body.categoria, marca: body.marca, descripcion: body.descripcion || "",
-    precio_venta: Number(body.precio_venta), costo: Number(body.costo),
-    impuesto: Number(body.impuesto) || 0, unidad_medida: body.unidad_medida || "pieza",
-    active: true,
-  }),
-  actualizar: (body) => ({
-    codigo: body.codigo, codigo_barras: body.codigo_barras || "", nombre: body.nombre,
-    categoria: body.categoria, marca: body.marca, descripcion: body.descripcion || "",
-    precio_venta: Number(body.precio_venta), costo: Number(body.costo),
-    impuesto: Number(body.impuesto) || 0, unidad_medida: body.unidad_medida || "pieza",
-  }),
+    sku: req.body.sku || null, nombre: req.body.nombre,
+    categoria_id, categoria_nombre: categoriaProductoNombre(categoria_id),
+    marca: req.body.marca || null, descripcion: req.body.descripcion || null,
+    precio_venta: Number(req.body.precioVenta), stock_minimo: Number(req.body.stockMinimo) || 0,
+    activo: true,
+  };
+  opticaProductos.unshift(nuevo);
+  res.status(201).json(nuevo);
 });
 
-registrarCrud("/api/opticas/servicios", () => opticaServicios, {
-  crear: (body) => ({
+app.patch("/api/opticas/productos/:id", (req, res) => {
+  const idx = opticaProductos.findIndex((p) => p.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Producto no encontrado" });
+  const cambios = { ...req.body };
+  if (cambios.categoriaId !== undefined) {
+    cambios.categoria_id = Number(cambios.categoriaId);
+    cambios.categoria_nombre = categoriaProductoNombre(cambios.categoria_id);
+    delete cambios.categoriaId;
+  }
+  if (cambios.precioVenta !== undefined) { cambios.precio_venta = Number(cambios.precioVenta); delete cambios.precioVenta; }
+  if (cambios.stockMinimo !== undefined) { cambios.stock_minimo = Number(cambios.stockMinimo); delete cambios.stockMinimo; }
+  opticaProductos[idx] = { ...opticaProductos[idx], ...cambios };
+  res.json(opticaProductos[idx]);
+});
+
+app.patch("/api/opticas/productos/:id/estado", (req, res) => {
+  const idx = opticaProductos.findIndex((p) => p.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Producto no encontrado" });
+  opticaProductos[idx] = { ...opticaProductos[idx], activo: Boolean(req.body.activo) };
+  res.json(opticaProductos[idx]);
+});
+
+// -- Servicios --
+
+app.get("/api/opticas/servicios/categorias", (req, res) => res.json(categoriasServicios));
+
+app.get("/api/opticas/servicios", (req, res) => res.json(opticaServicios));
+
+app.post("/api/opticas/servicios", (req, res) => {
+  const categoria_id = Number(req.body.categoriaId);
+  const nuevo = {
     id: newId(), display_id: opticaServicios.length + 1,
-    codigo: body.codigo, nombre: body.nombre, categoria: body.categoria,
-    descripcion: body.descripcion || "", precio: Number(body.precio),
-    impuesto: Number(body.impuesto) || 0, duracion_estimada: Number(body.duracion_estimada) || 0,
-    active: true,
-  }),
-  actualizar: (body) => ({
-    codigo: body.codigo, nombre: body.nombre, categoria: body.categoria,
-    descripcion: body.descripcion || "", precio: Number(body.precio),
-    impuesto: Number(body.impuesto) || 0, duracion_estimada: Number(body.duracion_estimada) || 0,
-  }),
+    codigo: req.body.codigo || null, nombre: req.body.nombre,
+    categoria_id, categoria_nombre: categoriaServicioNombre(categoria_id),
+    descripcion: req.body.descripcion || null, precio: Number(req.body.precio), activo: true,
+  };
+  opticaServicios.unshift(nuevo);
+  res.status(201).json(nuevo);
+});
+
+app.patch("/api/opticas/servicios/:id", (req, res) => {
+  const idx = opticaServicios.findIndex((s) => s.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Servicio no encontrado" });
+  const cambios = { ...req.body };
+  if (cambios.categoriaId !== undefined) {
+    cambios.categoria_id = Number(cambios.categoriaId);
+    cambios.categoria_nombre = categoriaServicioNombre(cambios.categoria_id);
+    delete cambios.categoriaId;
+  }
+  if (cambios.precio !== undefined) cambios.precio = Number(cambios.precio);
+  opticaServicios[idx] = { ...opticaServicios[idx], ...cambios };
+  res.json(opticaServicios[idx]);
+});
+
+app.patch("/api/opticas/servicios/:id/estado", (req, res) => {
+  const idx = opticaServicios.findIndex((s) => s.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Servicio no encontrado" });
+  opticaServicios[idx] = { ...opticaServicios[idx], activo: Boolean(req.body.activo) };
+  res.json(opticaServicios[idx]);
+});
+
+// -- Stock (existencias + movimientos, separado del catálogo) --
+
+let opticaMovimientos = [
+  { id: "omov-1", producto_id: "oprod-11", sucursal_id: "osuc-1", tipo: "entrada", cantidad: 20, cantidad_anterior: 0, cantidad_nueva: 20, motivo: "Reabastecimiento de proveedor", creado_por: "u-oenc-1", created_at: daysFromNow(0) },
+  { id: "omov-2", producto_id: "oprod-3", sucursal_id: "osuc-1", tipo: "salida", cantidad: 2, cantidad_anterior: 33, cantidad_nueva: 31, motivo: "Venta mostrador", creado_por: "u-oemp-1", created_at: daysFromNow(0) },
+  { id: "omov-3", producto_id: "oprod-11", sucursal_id: "osuc-2", tipo: "salida", cantidad: 2, cantidad_anterior: 30, cantidad_nueva: 28, motivo: "Venta mostrador", creado_por: "u-odue-1", created_at: daysFromNow(0) },
+  { id: "omov-4", producto_id: "oprod-7", sucursal_id: "osuc-2", tipo: "salida", cantidad: 2, cantidad_anterior: 20, cantidad_nueva: 18, motivo: "Venta mostrador", creado_por: "u-odue-1", created_at: daysFromNow(-1) },
+  { id: "omov-5", producto_id: "oprod-3", sucursal_id: "osuc-1", tipo: "salida", cantidad: 3, cantidad_anterior: 34, cantidad_nueva: 31, motivo: "Venta mostrador", creado_por: "u-oemp-1", created_at: daysFromNow(-1) },
+  { id: "omov-6", producto_id: "oprod-15", sucursal_id: "osuc-1", tipo: "entrada", cantidad: 10, cantidad_anterior: 0, cantidad_nueva: 10, motivo: "Reabastecimiento de proveedor", creado_por: "u-oenc-1", created_at: daysFromNow(-2) },
+  { id: "omov-7", producto_id: "oprod-1", sucursal_id: "osuc-2", tipo: "ajuste", cantidad: 1, cantidad_anterior: 3, cantidad_nueva: 4, motivo: "Conteo físico", creado_por: "u-odue-1", created_at: daysFromNow(-3) },
+  { id: "omov-8", producto_id: "oprod-9", sucursal_id: "osuc-1", tipo: "salida", cantidad: 1, cantidad_anterior: 3, cantidad_nueva: 2, motivo: "Producto dañado", creado_por: "u-oenc-1", created_at: daysFromNow(-4) },
+];
+
+app.get("/api/opticas/stock", (req, res) => {
+  const { sucursalId } = req.query;
+  const filas = opticaStock
+    .filter((s) => !sucursalId || s.sucursal_id === sucursalId)
+    .map((s) => {
+      const producto = opticaProductos.find((p) => p.id === s.producto_id);
+      if (!producto) return null;
+      return {
+        producto_id: s.producto_id, nombre: producto.nombre, sku: producto.sku, marca: producto.marca,
+        activo: producto.activo, categoria_id: producto.categoria_id, categoria_nombre: producto.categoria_nombre,
+        precio_venta: producto.precio_venta, cantidad: s.cantidad, stock_minimo: producto.stock_minimo,
+      };
+    })
+    .filter(Boolean);
+  res.json(filas);
+});
+
+app.get("/api/opticas/stock/:productoId/movimientos", (req, res) => {
+  const { sucursalId } = req.query;
+  const filas = opticaMovimientos
+    .filter((m) => m.producto_id === req.params.productoId && (!sucursalId || m.sucursal_id === sucursalId))
+    .map((m) => ({
+      id: m.id, tipo: m.tipo, cantidad: m.cantidad,
+      cantidad_anterior: m.cantidad_anterior, cantidad_nueva: m.cantidad_nueva,
+      motivo: m.motivo, realizado_por: m.creado_por, realizado_por_nombre: nombreUsuarioOptica(m.creado_por),
+      created_at: m.created_at,
+    }))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  res.json(filas);
+});
+
+app.patch("/api/opticas/stock/:productoId", (req, res) => {
+  const { sucursalId, tipo, cantidad, motivo } = req.body;
+  let entry = opticaStock.find((s) => s.producto_id === req.params.productoId && s.sucursal_id === sucursalId);
+  if (!entry) {
+    entry = { producto_id: req.params.productoId, sucursal_id: sucursalId, cantidad: 0 };
+    opticaStock.push(entry);
+  }
+
+  const cantidadAnterior = entry.cantidad;
+  const cantidadNum = Math.max(0, Number(cantidad) || 0);
+  let cantidadNueva;
+  if (tipo === "entrada") cantidadNueva = cantidadAnterior + cantidadNum;
+  else if (tipo === "salida") cantidadNueva = Math.max(0, cantidadAnterior - cantidadNum);
+  else cantidadNueva = cantidadNum; // ajuste: valor absoluto
+
+  entry.cantidad = cantidadNueva;
+
+  const movimiento = {
+    id: newId(), producto_id: req.params.productoId, sucursal_id: sucursalId,
+    tipo, cantidad: Math.abs(cantidadNueva - cantidadAnterior),
+    cantidad_anterior: cantidadAnterior, cantidad_nueva: cantidadNueva,
+    motivo: motivo || "", creado_por: null, created_at: new Date().toISOString(),
+  };
+  opticaMovimientos.unshift(movimiento);
+
+  res.json({
+    stock: { producto_id: req.params.productoId, sucursal_id: sucursalId, cantidad: cantidadNueva },
+    movimiento,
+  });
+});
+
+// =========================================================
+// REPORTES (modulo nuevo del back real, hecho por Leo) - resumenes
+// calculados aqui mismo en JS sobre los arreglos de arriba, imitando las
+// sumas/conteos que el back hace con SQL. No se implementa /inventario ni
+// /inventario/movimientos: el front no los usa (la pestaña Inventario de
+// Reportes sigue viendo datos reales via Catalogo/Stock) y, en el back
+// real, /inventario/movimientos hoy ademas es inalcanzable por un bug de
+// rutas (ver conversacion con Leo).
+// =========================================================
+
+function sucursalIdsDeQuery(req) {
+  const { sucursalId } = req.query;
+  if (sucursalId) return [sucursalId];
+  return opticaSucursales.map((s) => s.id);
+}
+
+function enRangoFecha(fechaIso, desde, hasta) {
+  if (!fechaIso) return false;
+  const t = new Date(fechaIso).getTime();
+  if (desde && t < new Date(desde).getTime()) return false;
+  if (hasta && t >= new Date(hasta).getTime()) return false;
+  return true;
+}
+
+// Mismo default que el back real (periodo="month") cuando no mandan
+// desde/hasta - ver reportes.schema.js/resolverRango.
+function periodoADesdeHasta(periodo) {
+  const ahora = new Date();
+  let desde;
+  if (periodo === "day") { desde = new Date(ahora); desde.setHours(0, 0, 0, 0); }
+  else if (periodo === "week") { desde = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000); }
+  else if (periodo === "year") { desde = new Date(ahora.getFullYear(), 0, 1); }
+  else { desde = new Date(ahora.getFullYear(), ahora.getMonth(), 1); }
+  return { desde: desde.toISOString(), hasta: ahora.toISOString() };
+}
+
+function resolverRangoQuery(query) {
+  if (query.desde || query.hasta) return { desde: query.desde, hasta: query.hasta };
+  return periodoADesdeHasta(query.periodo || "month");
+}
+
+function redondear(n) {
+  return Math.round((Number(n) || 0) * 100) / 100;
+}
+
+// Solo cuenta ventas totalmente pagadas, igual que `v.monto_pagado = v.total`
+// del back real (ver reporte.repository.js, #base).
+function ventasFiltradas(sucursalIds, desde, hasta) {
+  return opticaVentas.filter((v) =>
+    sucursalIds.includes(v.sucursal_id) &&
+    v.estado !== "cancelada" &&
+    v.monto_pagado === v.total &&
+    enRangoFecha(v.created_at, desde, hasta)
+  );
+}
+
+function contarCitas(citas) {
+  return {
+    total: citas.length,
+    programadas: citas.filter((c) => c.estado === "programada").length,
+    confirmadas: citas.filter((c) => c.estado === "confirmada").length,
+    atendidas: citas.filter((c) => c.estado === "atendida").length,
+    canceladas: citas.filter((c) => c.estado === "cancelada").length,
+    no_asistio: citas.filter((c) => c.estado === "no_asistio").length,
+  };
+}
+
+function agruparVentas(ventas, agrupar, limit) {
+  if (agrupar === "producto" || agrupar === "servicio") {
+    const map = new Map();
+    ventas.forEach((v) => {
+      (v.items || []).forEach((item) => {
+        const tipo = item.item_type || "producto";
+        if (tipo !== agrupar) return;
+        const key = item.modelo || item.codigo || "Sin nombre";
+        const entry = map.get(key) || { etiqueta: key, cantidad: 0, total: 0 };
+        entry.cantidad += Number(item.cantidad || 0);
+        entry.total += Number(item.subtotal || 0);
+        map.set(key, entry);
+      });
+    });
+    return [...map.values()]
+      .sort((a, b) => b.total - a.total)
+      .slice(0, limit)
+      .map((r) => ({ ...r, total: redondear(r.total) }));
+  }
+
+  const keyFn = agrupar === "sucursal" ? (v) => v.sucursal_id
+    : agrupar === "empleado" ? (v) => v.creado_por
+    : (v) => (v.created_at || "").slice(0, 10);
+
+  const labelFn = agrupar === "sucursal" ? (k) => opticaSucursales.find((s) => s.id === k)?.name ?? "—"
+    : agrupar === "empleado" ? (k) => nombreUsuarioOptica(k)
+    : (k) => k;
+
+  const map = new Map();
+  ventas.forEach((v) => {
+    const key = keyFn(v);
+    const entry = map.get(key) || { etiqueta: labelFn(key), operaciones: 0, total: 0 };
+    entry.operaciones += 1;
+    entry.total += Number(v.total || 0);
+    map.set(key, entry);
+  });
+
+  return [...map.values()]
+    .map((e) => ({ ...e, total: redondear(e.total), ticket_promedio: redondear(e.total / e.operaciones) }))
+    .sort((a, b) => (agrupar === "dia" ? (a.etiqueta < b.etiqueta ? -1 : 1) : b.total - a.total))
+    .slice(0, limit);
+}
+
+app.get("/api/opticas/reportes/resumen", (req, res) => {
+  const { desde, hasta } = resolverRangoQuery(req.query);
+  const sucursalIds = sucursalIdsDeQuery(req);
+
+  const ventas = ventasFiltradas(sucursalIds, desde, hasta);
+  const total = ventas.reduce((sum, v) => sum + Number(v.total || 0), 0);
+  const operaciones = ventas.length;
+
+  const citas = opticaCitas.filter((c) => sucursalIds.includes(c.sucursal_id) && enRangoFecha(c.fecha_hora, desde, hasta));
+
+  const pacientesScope = opticaPacientes.filter((p) => sucursalIds.includes(p.sucursal_id));
+  const nuevos = pacientesScope.filter((p) => enRangoFecha(p.created_at, desde, hasta)).length;
+
+  const ventasRango = opticaVentas.filter((v) =>
+    sucursalIds.includes(v.sucursal_id) && v.estado !== "cancelada" && enRangoFecha(v.created_at, desde, hasta));
+  const comprasPorCliente = new Map();
+  ventasRango.forEach((v) => {
+    if (v.paciente_id) comprasPorCliente.set(v.paciente_id, (comprasPorCliente.get(v.paciente_id) || 0) + 1);
+  });
+  const recurrentes = [...comprasPorCliente.values()].filter((n) => n >= 2).length;
+
+  const citasAtendidas = opticaCitas.filter((c) =>
+    sucursalIds.includes(c.sucursal_id) && c.estado === "atendida" && enRangoFecha(c.fecha_hora, desde, hasta));
+  const atendidos = new Set(citasAtendidas.map((c) => c.cliente_final_id)).size;
+
+  res.json({
+    success: true,
+    data: {
+      periodo: req.query.desde || req.query.hasta ? "personalizado" : (req.query.periodo || "month"),
+      sucursales: sucursalIds.length,
+      ventas: { total: redondear(total), operaciones, ticket_promedio: operaciones > 0 ? redondear(total / operaciones) : 0 },
+      citas: contarCitas(citas),
+      clientes: { total: pacientesScope.length, nuevos, recurrentes, atendidos },
+      inventario: null,
+    },
+  });
+});
+
+app.get("/api/opticas/reportes/ventas", (req, res) => {
+  const { desde, hasta } = resolverRangoQuery(req.query);
+  const { agrupar, vendedorId, productoId, servicioId, limit } = req.query;
+  const sucursalIds = sucursalIdsDeQuery(req);
+
+  let ventas = ventasFiltradas(sucursalIds, desde, hasta);
+  if (vendedorId) ventas = ventas.filter((v) => v.creado_por === vendedorId);
+
+  let total;
+  let operaciones;
+  if (productoId || servicioId) {
+    let suma = 0;
+    const idsConMatch = new Set();
+    ventas.forEach((v) => {
+      (v.items || []).forEach((item) => {
+        const tipo = item.item_type || "producto";
+        if (productoId && tipo === "producto" && item.producto_id === productoId) {
+          suma += Number(item.subtotal || 0);
+          idsConMatch.add(v.id);
+        }
+        if (servicioId && tipo === "servicio" && item.producto_id === servicioId) {
+          suma += Number(item.subtotal || 0);
+          idsConMatch.add(v.id);
+        }
+      });
+    });
+    total = suma;
+    operaciones = idsConMatch.size;
+  } else {
+    total = ventas.reduce((sum, v) => sum + Number(v.total || 0), 0);
+    operaciones = ventas.length;
+  }
+
+  res.json({
+    success: true,
+    data: {
+      total: redondear(total),
+      operaciones,
+      ticket_promedio: operaciones > 0 ? redondear(total / operaciones) : 0,
+      agrupar: agrupar || null,
+      desglose: agrupar ? agruparVentas(ventas, agrupar, Number(limit) || 20) : null,
+    },
+  });
+});
+
+app.get("/api/opticas/reportes/servicios", (req, res) => {
+  const { desde, hasta } = resolverRangoQuery(req.query);
+  const { servicioId, limit } = req.query;
+  const sucursalIds = sucursalIdsDeQuery(req);
+  const ventas = ventasFiltradas(sucursalIds, desde, hasta);
+
+  const map = new Map();
+  let solicitados = 0, realizados = 0, ingreso = 0;
+
+  ventas.forEach((v) => {
+    (v.items || []).forEach((item) => {
+      if ((item.item_type || "producto") !== "servicio") return;
+      if (servicioId && item.producto_id !== servicioId) return;
+
+      const cantidad = Number(item.cantidad || 0);
+      const subtotal = Number(item.subtotal || 0);
+      solicitados += cantidad;
+      ingreso += subtotal;
+      if (v.estado === "completada") realizados += cantidad;
+
+      const key = item.producto_id;
+      const entry = map.get(key) || { servicio_id: key, etiqueta: item.modelo || item.codigo, cantidad: 0, realizados: 0, ingreso: 0 };
+      entry.cantidad += cantidad;
+      if (v.estado === "completada") entry.realizados += cantidad;
+      entry.ingreso += subtotal;
+      map.set(key, entry);
+    });
+  });
+
+  const ranking = [...map.values()]
+    .sort((a, b) => b.cantidad - a.cantidad || b.ingreso - a.ingreso)
+    .slice(0, Number(limit) || 10)
+    .map((r) => ({ ...r, ingreso: redondear(r.ingreso) }));
+
+  res.json({ success: true, data: { solicitados, realizados, ingreso: redondear(ingreso), ranking } });
+});
+
+app.get("/api/opticas/reportes/clientes", (req, res) => {
+  const { desde, hasta } = resolverRangoQuery(req.query);
+  const sucursalIds = sucursalIdsDeQuery(req);
+
+  const pacientesScope = opticaPacientes.filter((p) => sucursalIds.includes(p.sucursal_id));
+  const nuevos = pacientesScope.filter((p) => enRangoFecha(p.created_at, desde, hasta)).length;
+
+  const ventasScope = opticaVentas.filter((v) =>
+    sucursalIds.includes(v.sucursal_id) && v.estado !== "cancelada" && enRangoFecha(v.created_at, desde, hasta));
+  const comprasPorCliente = new Map();
+  ventasScope.forEach((v) => {
+    if (v.paciente_id) comprasPorCliente.set(v.paciente_id, (comprasPorCliente.get(v.paciente_id) || 0) + 1);
+  });
+  const recurrentes = [...comprasPorCliente.values()].filter((n) => n >= 2).length;
+
+  const citasScope = opticaCitas.filter((c) =>
+    sucursalIds.includes(c.sucursal_id) && c.estado === "atendida" && enRangoFecha(c.fecha_hora, desde, hasta));
+  const atendidos = new Set(citasScope.map((c) => c.cliente_final_id)).size;
+
+  res.json({ success: true, data: { total: pacientesScope.length, nuevos, recurrentes, atendidos } });
+});
+
+app.get("/api/opticas/reportes/citas", (req, res) => {
+  const { desde, hasta } = resolverRangoQuery(req.query);
+  const { estado, agrupar } = req.query;
+  const sucursalIds = sucursalIdsDeQuery(req);
+
+  let citas = opticaCitas.filter((c) => sucursalIds.includes(c.sucursal_id) && enRangoFecha(c.fecha_hora, desde, hasta));
+  if (estado) citas = citas.filter((c) => c.estado === estado);
+
+  let desglose = null;
+  if (agrupar === "dia") {
+    const map = new Map();
+    citas.forEach((c) => {
+      const key = (c.fecha_hora || "").slice(0, 10);
+      map.set(key, [...(map.get(key) || []), c]);
+    });
+    desglose = [...map.entries()]
+      .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+      .map(([etiqueta, list]) => ({ etiqueta, ...contarCitas(list) }));
+  } else if (agrupar === "sucursal") {
+    const map = new Map();
+    citas.forEach((c) => {
+      map.set(c.sucursal_id, [...(map.get(c.sucursal_id) || []), c]);
+    });
+    desglose = [...map.entries()]
+      .map(([sid, list]) => ({ etiqueta: opticaSucursales.find((s) => s.id === sid)?.name ?? "—", ...contarCitas(list) }))
+      .sort((a, b) => b.total - a.total);
+  }
+
+  res.json({ success: true, data: { ...contarCitas(citas), agrupar: agrupar || null, desglose } });
 });
 
 const PORT = 4001;

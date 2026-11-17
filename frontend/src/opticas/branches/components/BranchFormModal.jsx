@@ -1,54 +1,35 @@
 import { useEffect, useState } from "react";
 import Modal from "../../../shared/components/Modal";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
 import Button from "../../../shared/components/Button";
-import { useAuth } from "../../../shared/context/AuthContext";
-import { ROLES } from "../../../shared/security/roles";
-import {listAvailableManagers} from "../services/branchService";
+import { onlyLetters } from "../../../shared/utils/textInput";
+import { listAvailableManagers } from "../services/branchService";
+import { useFormValidation } from "../../../shared/hooks/useFormValidation";
 
 
-const NEW_MANAGER = "__nuevo__";
+const NAME_MAX_LENGTH = 40;
 
 
-const EMPTY = {
-  name: "",
-  address: "",
-  managerId: "",
-  manager: "",
-  managerMode: "none",
-  phone: "",
-};
+const EMPTY = { name: "", managerId: "" };
 
 
 function crearFormDesdeSucursal(branch) {
-
-  if (!branch) {
-    return {
-      ...EMPTY
-    };
-  }
-
-
-  return {
-    ...EMPTY,
-    name:
-      branch.name ?? "",
-    address:
-      branch.address ?? "",
-    managerId:
-      branch.managerId ?? "",
-    manager:
-      branch.manager ?? "",
-    managerMode:
-      branch.managerId
-        ? "existing"
-        : "none",
-    phone:
-      branch.phone ?? "",
-  };
+  if (!branch) return { ...EMPTY };
+  return { ...EMPTY, name: branch.name ?? "" };
 }
 
 
+/**
+ * Alta y edición de sucursal para el Dueño de óptica. El back no soporta
+ * crear un jefe de sucursal nuevo al mismo tiempo que la sucursal
+ * (crearSucursalSchema es estricto) - solo asignar uno que ya exista o
+ * dejarla sin asignar (se asigna después desde "Asignar gerente"). Tampoco
+ * soporta cambiar el gerente por esta misma ruta al editar - por eso el
+ * selector de jefe de sucursal solo aparece al crear.
+ * Dirección y teléfono no se capturan aquí - los agrega el Encargado desde
+ * "Mi sucursal" (MyBranchEditModal), igual que en Indigo.
+ */
 export default function BranchFormModal({
   open,
   mode = "create",
@@ -57,284 +38,75 @@ export default function BranchFormModal({
   onSubmit,
 }) {
 
-  const [form, setForm] =
-    useState(
-      () => crearFormDesdeSucursal(branch)
-    );
+  const [form, setForm] = useState(() => crearFormDesdeSucursal(branch));
+  const { errors, validate, clearError, resetErrors, setErrors } = useFormValidation();
+  const [saving, setSaving] = useState(false);
+  const [managers, setManagers] = useState([]);
+  const [loadingManagers, setLoadingManagers] = useState(false);
 
-  const [errors, setErrors] =
-    useState({});
-  const [saving, setSaving] =
-    useState(false);
-  const [managers, setManagers] =
-    useState([]);
-  const [loadingManagers, setLoadingManagers] =
-    useState(false);
-  const { user: currentUser } = useAuth();
-
-  const readOnly =
-    mode === "view";
-  const isEdit =
-    mode === "edit";
-
-  const isGerenteEditor =
-    isEdit &&
-    currentUser?.role === ROLES.OPTICA_ENCARGADO;
-
-  const lockNameAndManager =
-    readOnly || isGerenteEditor;
-
+  const isCreate = mode === "create";
 
   const titles = {
     create: "Nueva sucursal",
     edit: "Editar sucursal",
-    view: "Detalle de sucursal",
   };
 
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-    setForm(
-      crearFormDesdeSucursal(branch)
-    );
-    setErrors({});
-  }, [
-    open,
-    branch
-  ]);
+    if (!open) return;
+    setForm(crearFormDesdeSucursal(branch));
+    resetErrors();
+  }, [open, branch, resetErrors]);
 
 
   useEffect(() => {
-
-    if (!open || readOnly || isGerenteEditor) {
-      return;
-    }
+    if (!open || !isCreate) return;
 
     let active = true;
 
     (async () => {
-
       try {
         setLoadingManagers(true);
-        const data =
-          await listAvailableManagers(
-            isEdit
-              ? branch?.managerId
-              : null
-          );
-        if (active) {
-          setManagers(
-            Array.isArray(data)
-              ? data
-              : []
-          );
-        }
-
+        const data = await listAvailableManagers();
+        if (active) setManagers(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error(
-          "Error al cargar gerentes:",
-          error
-        );
-        if (active) {
-          setManagers([]);
-        }
+        console.error("Error al cargar jefes de sucursal:", error);
+        if (active) setManagers([]);
       } finally {
-        if (active) {
-          setLoadingManagers(false);
-        }
+        if (active) setLoadingManagers(false);
       }
     })();
 
     return () => {
       active = false;
     };
-  }, [
-    open,
-    readOnly,
-    isGerenteEditor,
-    isEdit,
-    branch?.managerId
-  ]);
+  }, [open, isCreate]);
 
-  const set = (field) => (event) => {
 
-    const value =
-      event?.target
-        ? event.target.value
-        : event;
-
-    setForm((prev) => ({
-      ...prev,
-      [field]: value ?? "",
-    }));
-
+  const set = (field, transform) => (event) => {
+    const raw = event?.target ? event.target.value : event;
+    const value = transform ? transform(raw ?? "") : raw;
+    setForm((prev) => ({ ...prev, [field]: value ?? "" }));
+    clearError(field);
   };
 
-
-  const handleManagerChange = (event) => {
-    const value =
-      event.target.value;
-
-
-    if (value === NEW_MANAGER) {
-      setForm((prev) => ({
-        ...prev,
-        managerMode:
-          "new",
-        managerId:
-          "",
-        manager:
-          "",
-      }));
-      setErrors((prev) => ({
-        ...prev,
-        manager: undefined,
-      }));
-      return;
-    }
-
-    if (value === "") {
-      setForm((prev) => ({
-        ...prev,
-        managerMode:
-          "none",
-        managerId:
-          "",
-        manager:
-          "",
-      }));
-      setErrors((prev) => ({
-        ...prev,
-        manager: undefined,
-      }));
-      return;
-    }
-
-    const selected =
-      managers.find(
-        (manager) =>
-          manager.id === value
-      );
-
-
-    setForm((prev) => ({
-      ...prev,
-      managerMode:
-        "existing",
-      managerId:
-        value,
-      manager:
-        selected?.nombre ?? "",
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      manager: undefined,
-    }));
-  };
-
-  const handleNewManagerChange = (event) => {
-
-    const value =
-      event.target.value;
-
-    setForm((prev) => ({
-      ...prev,
-      manager:
-        value,
-      managerMode:
-        "new",
-      managerId:
-        "",
-    }));
-
-
-    if (value.trim()) {
-      setErrors((prev) => ({
-        ...prev,
-        manager: undefined,
-      }));
-    }
-  };
-
-  const cancelNewManager = () => {
-    setForm(
-      crearFormDesdeSucursal(branch)
-    );
-    setErrors({});
-  };
 
   const handleSubmit = async (event) => {
-
     event.preventDefault();
 
+    const name = String(form.name ?? "").trim();
 
-    const nextErrors = {};
-
-
-    const name =
-      String(
-        form.name ?? ""
-      ).trim();
-
-    const address =
-      String(
-        form.address ?? ""
-      ).trim();
-
-    const phone =
-      String(
-        form.phone ?? ""
-      ).trim();
-
-    const manager =
-      String(
-        form.manager ?? ""
-      ).trim();
-
-    if (!name) {
-      nextErrors.name =
-        "El nombre es obligatorio.";
-    }
-
-    if (
-      form.managerMode === "new" &&
-      !manager
-    ) {
-
-      nextErrors.manager =
-        "El nombre del jefe de sucursal es obligatorio.";
-    }
-
-
-    setErrors(
-      nextErrors
-    );
-
-    if (
-      Object.keys(nextErrors).length > 0
-    ) {
-      return;
-    }
-
+    const isValid = validate([
+      ["name", !name, "El nombre es obligatorio."],
+    ]);
+    if (!isValid) return;
 
     try {
       setSaving(true);
-
-      await onSubmit({
-        name,
-        address,
-        managerId:
-          form.managerId || null,
-        manager,
-        managerMode:
-          form.managerMode,
-        phone,
-      });
-
+      await onSubmit({ name, managerId: isCreate ? form.managerId : undefined });
       onClose();
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar la sucursal. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -342,281 +114,48 @@ export default function BranchFormModal({
 
 
   return (
-    <Modal
-      isOpen={open}
-      onClose={onClose}
-      title={titles[mode]}
-      size="lg"
-    >
+    <Modal isOpen={open} onClose={onClose} title={titles[mode]} size="lg">
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-4"
-      >
-
-        {/* Nombre */}
+      <form onSubmit={handleSubmit} className="space-y-4">
 
         <Input
           label="Nombre de sucursal"
           value={form.name ?? ""}
-          onChange={set("name")}
+          onChange={set("name", (v) => onlyLetters(v, NAME_MAX_LENGTH))}
           error={errors.name}
-          disabled={lockNameAndManager}
         />
 
+        {isCreate && (
+          <div className="w-full">
+            <label htmlFor="branch-manager" className="mb-2 block text-sm font-medium text-text-primary">
+              Responsable (Jefe de Sucursal)
+            </label>
 
-        {/* Dirección */}
-
-        <Input
-          label="Dirección"
-          value={form.address ?? ""}
-          onChange={set("address")}
-          error={errors.address}
-          disabled={readOnly}
-        />
-
-
-        {/* Responsable + teléfono */}
-
-        <div className="grid gap-4 sm:grid-cols-2">
-
-          {/* Responsable */}
-
-          {lockNameAndManager ? (
-
-            <div className="w-full">
-
-              <span
-                className="
-                  mb-2
-                  block
-                  text-sm
-                  font-medium
-                  text-text-primary
-                "
-              >
-                Responsable
-              </span>
-
-
-              <div
-                className="
-                  rounded-xl
-                  border
-                  border-gray-200
-                  bg-surface
-                  px-4
-                  py-3
-                  text-text-primary
-                  opacity-50
-                "
-              >
-                {
-                  form.manager ||
-                  "Sin asignar"
-                }
-              </div>
-
-            </div>
-
-          ) : form.managerMode === "new" ? (
-
-            <div className="w-full">
-              <label
-                htmlFor="branch-new-manager"
-                className="
-                  mb-2
-                  block
-                  text-sm
-                  font-medium
-                  text-text-primary"
-              >
-                Responsable
-              </label>
-
-
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Input
-                    id="branch-new-manager"
-                    value={
-                      form.manager ?? ""
-                    }
-                    onChange={
-                      handleNewManagerChange
-                    }
-                    error={
-                      errors.manager
-                    }
-                    placeholder="Nombre del jefe de sucursal"
-                    autoFocus
-                  />
-                </div>
-
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={
-                    cancelNewManager
-                  }
-                >
-                  Cancelar
-                </Button>
-
-              </div>
-
-              <p
-                className="
-                  mt-1
-                  text-xs
-                  text-text-secondary "
-              >
-                Se creará automaticamente
-                como jefe de sucursal.
-              </p>
-
-            </div>
-
-          ) : (
-
-            <div className="w-full">
-
-              <label
-                htmlFor="branch-manager"
-                className="
-                  mb-2
-                  block
-                  text-sm
-                  font-medium
-                  text-text-primary
-                "
-              >
-                Responsable
-              </label>
-
-
-              <select
-                id="branch-manager"
-                value={
-                  form.managerId ?? ""
-                }
-                onChange={
-                  handleManagerChange
-                }
-                disabled={
-                  loadingManagers
-                }
-                className="
-                  w-full
-                  rounded-xl
-                  border
-                  border-gray-200
-                  bg-surface
-                  px-4
-                  py-3
-                  text-text-primary
-                  outline-none
-                  transition
-                  focus:border-indigo-primary
-                  focus:ring-2
-                  focus:ring-indigo-light
-                  disabled:cursor-not-allowed
-                  disabled:opacity-50
-                "
-              >
-
-                <option value="">
-                  {
-                    loadingManagers
-                      ? "Cargando..."
-                      : "Sin asignar"
-                  }
-                </option>
-
-
-                {managers.map(
-                  (manager) => (
-
-                    <option
-                      key={manager.id}
-                      value={manager.id}
-                    >
-                      {manager.nombre}
-                    </option>
-                  )
-                )}
-
-                <option
-                  value={NEW_MANAGER}
-                >
-                  Nuevo jefe de sucursal
-                </option>
-              </select>
-
-
-              {managers.length === 0 &&
-                !loadingManagers && (
-
-                  <p
-                    className="
-                      mt-1
-                      text-xs
-                      text-text-secondary
-                    "
-                  >
-                    No hay jefes de sucursal disponibles.
-                  </p>
-                )}
-            </div>
-          )}
-
-          {/* Teléfono */}
-
-          <Input
-            label="Teléfono"
-            value={form.phone ?? ""}
-            onChange={set("phone")}
-            disabled={readOnly}
-          />
-
-        </div>
-
-        {/* Botones */}
-
-        <div
-          className="
-            flex
-            justify-end
-            gap-3
-            pt-2
-          "
-        >
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-          >
-            {
-              readOnly
-                ? "Cerrar"
-                : "Cancelar"
-            }
-          </Button>
-          {!readOnly && (
-
-            <Button
-              type="submit"
-              disabled={saving}
+            <Select
+              id="branch-manager"
+              value={form.managerId ?? ""}
+              onChange={set("managerId")}
+              disabled={loadingManagers}
             >
-              {
-                saving
-                  ? "Guardando..."
-                  : "Guardar"
-              }
-            </Button>
-          )}
+              <option value="">{loadingManagers ? "Cargando..." : "Sin asignar (se asigna después)"}</option>
+              {managers.map((manager) => (
+                <option key={manager.id} value={manager.id}>{manager.nombre}</option>
+              ))}
+            </Select>
+
+            {!loadingManagers && managers.length === 0 && (
+              <p className="mt-1.5 text-xs text-text-secondary">
+                No hay jefes de sucursal disponibles - puedes asignar uno después desde el detalle de la sucursal.
+              </p>
+            )}
+          </div>
+        )}
+
+        {errors.submit && <p className="text-sm text-error">{errors.submit}</p>}
+
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar"}</Button>
         </div>
       </form>
     </Modal>

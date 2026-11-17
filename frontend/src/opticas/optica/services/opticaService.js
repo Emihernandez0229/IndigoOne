@@ -11,7 +11,7 @@ function mapInfo(raw) {
     responsableSanitario: raw.responsable_sanitario ?? raw.responsableSanitario ?? "",
     telefono: raw.telefono ?? "",
     correo: raw.correo ?? "",
-    sitioWeb: raw.sitio_web ?? raw.sitioWeb ?? "",
+    correoFiscal: raw.correo_fiscal ?? raw.correoFiscal ?? "",
 
     calle: raw.calle ?? "",
     numeroExterior: raw.numero_exterior ?? raw.numeroExterior ?? "",
@@ -20,60 +20,82 @@ function mapInfo(raw) {
     codigoPostal: raw.codigo_postal ?? raw.codigoPostal ?? "",
     municipio: raw.municipio ?? "",
     estadoDireccion: raw.estado_direccion ?? raw.estadoDireccion ?? "",
-    pais: raw.pais ?? "",
+    pais: raw.pais ?? "México",
 
-    moneda: raw.moneda ?? "MXN",
     regimenFiscal: raw.regimen_fiscal ?? raw.regimenFiscal ?? "",
-    impuestoPredeterminado: String(raw.impuesto_predeterminado ?? raw.impuestoPredeterminado ?? "16"),
-    folioInicialVentas: raw.folio_inicial_ventas ?? raw.folioInicialVentas ?? "",
-    serieDocumentos: raw.serie_documentos ?? raw.serieDocumentos ?? "",
-    textoDocumentos: raw.texto_documentos ?? raw.textoDocumentos ?? "",
 
     colorPrincipal: raw.color_principal ?? raw.colorPrincipal ?? "#1E3AAB",
     colorSecundario: raw.color_secundario ?? raw.colorSecundario ?? "#60DAFA",
     eslogan: raw.eslogan ?? "",
-    pieDocumentos: raw.pie_documentos ?? raw.pieDocumentos ?? "",
+  };
+}
+
+// Forma vacía (mismos defaults que mapInfo) para cuando la óptica todavía
+// no tiene fila en optica_configuracion - ver getOpticaInfo().
+export function emptyOpticaInfo() {
+  return mapInfo({});
+}
+
+
+function emptyToUndefined(value) {
+  const trimmed = typeof value === "string" ? value.trim() : value;
+  return trimmed === "" || trimmed == null ? undefined : trimmed;
+}
+
+// Inverso de mapInfo(): camelCase -> snake_case, y los campos vacíos se
+// omiten (no se mandan como "") porque varios son opcionales-pero-no-vacíos
+// en el back (ej. correo valida formato de email incluso siendo opcional).
+function toConfiguracionPayload(payload) {
+  return {
+    nombre_comercial: emptyToUndefined(payload.nombreComercial),
+    responsable_sanitario: emptyToUndefined(payload.responsableSanitario),
+    razon_social: emptyToUndefined(payload.razonSocial),
+    telefono: emptyToUndefined(payload.telefono),
+    correo: emptyToUndefined(payload.correo),
+
+    calle: emptyToUndefined(payload.calle),
+    numero_exterior: emptyToUndefined(payload.numeroExterior),
+    numero_interior: emptyToUndefined(payload.numeroInterior),
+    colonia: emptyToUndefined(payload.colonia),
+    codigo_postal: emptyToUndefined(payload.codigoPostal),
+    municipio: emptyToUndefined(payload.municipio),
+    estado_direccion: emptyToUndefined(payload.estadoDireccion),
+    pais: emptyToUndefined(payload.pais),
+
+    rfc: emptyToUndefined(payload.rfc),
+    regimen_fiscal: emptyToUndefined(payload.regimenFiscal),
+    correo_fiscal: emptyToUndefined(payload.correoFiscal),
+
+    logo_url: emptyToUndefined(payload.logoUrl),
+    color_principal: emptyToUndefined(payload.colorPrincipal),
+    color_secundario: emptyToUndefined(payload.colorSecundario),
+    eslogan: emptyToUndefined(payload.eslogan),
   };
 }
 
 
-export async function getOpticaInfo() {
-  const { info } = await httpClient.get("/api/opticas/informacion");
+/**
+ * El Dueño ve la configuración completa; Encargado/Empleado solo pueden
+ * pedir la versión operativa (nombre_comercial, logo_url, colores,
+ * eslogan - ver configuracion.routes.js del back, GET / es solo dueño).
+ */
+export async function getOpticaInfo(isOwner) {
+  const path = isOwner ? "/api/opticas/configuracion" : "/api/opticas/configuracion/operativa";
+  const info = await httpClient.get(path);
+  return mapInfo(info);
+}
+
+
+// Solo se usa la primera vez: si la óptica aún no tiene fila en
+// optica_configuracion, getOpticaInfo() truena con 404 y hay que crear en
+// vez de actualizar (ver OpticaPage.jsx).
+export async function createOpticaInfo(payload) {
+  const info = await httpClient.post("/api/opticas/configuracion", toConfiguracionPayload(payload));
   return mapInfo(info);
 }
 
 
 export async function updateOpticaInfo(payload) {
-  const { info } = await httpClient.put("/api/opticas/informacion", {
-    logoUrl: payload.logoUrl,
-    nombreComercial: payload.nombreComercial,
-    razonSocial: payload.razonSocial,
-    rfc: payload.rfc,
-    responsableSanitario: payload.responsableSanitario,
-    telefono: payload.telefono,
-    correo: payload.correo,
-    sitioWeb: payload.sitioWeb,
-
-    calle: payload.calle,
-    numeroExterior: payload.numeroExterior,
-    numeroInterior: payload.numeroInterior,
-    colonia: payload.colonia,
-    codigoPostal: payload.codigoPostal,
-    municipio: payload.municipio,
-    estadoDireccion: payload.estadoDireccion,
-    pais: payload.pais,
-
-    moneda: payload.moneda,
-    regimenFiscal: payload.regimenFiscal,
-    impuestoPredeterminado: payload.impuestoPredeterminado,
-    folioInicialVentas: payload.folioInicialVentas,
-    serieDocumentos: payload.serieDocumentos,
-    textoDocumentos: payload.textoDocumentos,
-
-    colorPrincipal: payload.colorPrincipal,
-    colorSecundario: payload.colorSecundario,
-    eslogan: payload.eslogan,
-    pieDocumentos: payload.pieDocumentos,
-  });
+  const info = await httpClient.patch("/api/opticas/configuracion", toConfiguracionPayload(payload));
   return mapInfo(info);
 }

@@ -6,7 +6,6 @@ import {
   Users,
   UserCog,
   Building2,
-  FlaskConical,
   Glasses,
   BarChart3,
   PackageSearch,
@@ -41,7 +40,7 @@ export const opticaNavigation = [
   },
 
   {
-    label: "Usuarios",
+    label: "Personal",
     path: "/opticas/usuarios",
     icon: UserCog,
     permission: "optica.user.view",
@@ -69,13 +68,6 @@ export const opticaNavigation = [
   },
 
   {
-    label: "Laboratorio",
-    path: "/opticas/laboratorio",
-    icon: FlaskConical,
-    permission: "optica.lab.view",
-  },
-
-  {
     label: "Productos y servicios",
     path: "/opticas/productos-servicios",
     icon: PackageSearch,
@@ -83,7 +75,7 @@ export const opticaNavigation = [
   },
 
   {
-    label: "Inventario",
+    label: "Catálogo Índigo",
     path: "/opticas/inventario",
     icon: Glasses,
     permission: "optica.inventory.view",

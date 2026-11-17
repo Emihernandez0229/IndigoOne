@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
+import { Building2, FileText, Phone, Mail, User } from "lucide-react";
 import Input from "../../../shared/components/Input";
 import Button from "../../../shared/components/Button";
-import ImageUploadField from "../../../shared/components/ImageUploadField";
-import { isValidEmail, isValidMexicanPhone, isValidUrl, isValidRFC } from "../../../shared/utils/validators";
+import { isValidEmail, isValidMexicanPhone } from "../../../shared/utils/validators";
+import { onlyLetters, onlyDigits } from "../../../shared/utils/textInput";
+import { OpticaCardHeader, OpticaFieldChip, OpticaCardDecoration } from "./OpticaCardParts";
 
 
-export default function InformacionGeneralTab({ info, canManage, onSave }) {
+const NAME_MAX = 50;
+
+
+export default function InformacionGeneralTab({ info, fullInfo = true, canManage, onSave, onCancel }) {
 
   const [form, setForm] = useState(info);
   const [errors, setErrors] = useState({});
@@ -14,24 +19,44 @@ export default function InformacionGeneralTab({ info, canManage, onSave }) {
   useEffect(() => setForm(info), [info]);
 
   if (!canManage) {
+    // El Encargado solo puede pedir la configuración "operativa" del back
+    // (nombre_comercial, logo, colores, eslogan) - razón social, teléfono,
+    // correo y responsable sanitario no le llegan en absoluto, así que no
+    // tiene sentido mostrarle esos chips vacíos.
+    if (!fullInfo) {
+      return (
+        <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6">
+          <OpticaCardDecoration />
+          <OpticaCardHeader icon={Building2} title="Información de la empresa" description="Datos básicos que identifican a tu empresa." tone="blue" />
+          <div className="relative space-y-5">
+            <OpticaFieldChip icon={Building2} label="Nombre comercial" value={info.nombreComercial} tone="blue" />
+          </div>
+        </div>
+      );
+    }
     return (
-      <div className="rounded-2xl border border-gray-200 bg-surface p-6">
-        <p className="mb-4 text-sm text-text-secondary">Datos básicos que identifican a tu empresa.</p>
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <Field label="Nombre comercial" value={info.nombreComercial} />
-          <Field label="Razón social" value={info.razonSocial} />
-          <Field label="RFC" value={info.rfc} />
-          <Field label="Responsable sanitario" value={info.responsableSanitario} />
-          <Field label="Teléfono general" value={info.telefono} />
-          <Field label="Correo general" value={info.correo} />
-          <Field label="Sitio web" value={info.sitioWeb} />
-        </dl>
+      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6">
+        <OpticaCardDecoration />
+        <OpticaCardHeader icon={Building2} title="Información de la empresa" description="Datos básicos que identifican a tu empresa." tone="blue" />
+        <div className="relative grid gap-5 sm:grid-cols-2 sm:gap-x-8">
+          <div className="space-y-5 sm:border-r sm:border-gray-100 sm:pr-8">
+            <OpticaFieldChip icon={Building2} label="Nombre comercial" value={info.nombreComercial} tone="blue" />
+            <OpticaFieldChip icon={Phone} label="Teléfono general" value={info.telefono} tone="teal" />
+            <OpticaFieldChip icon={User} label="Responsable sanitario" value={info.responsableSanitario} optional tone="purple" />
+          </div>
+          <div className="space-y-5">
+            <OpticaFieldChip icon={FileText} label="Razón social" value={info.razonSocial} tone="amber" />
+            <OpticaFieldChip icon={Mail} label="Correo general" value={info.correo} tone="rose" />
+          </div>
+        </div>
       </div>
     );
   }
 
-  const set = (field) => (event) => {
-    setForm((prev) => ({ ...prev, [field]: event.target.value }));
+  const set = (field, transform) => (event) => {
+    const raw = event.target.value;
+    const value = transform ? transform(raw) : raw;
+    setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
@@ -41,11 +66,10 @@ export default function InformacionGeneralTab({ info, canManage, onSave }) {
     const nextErrors = {};
     if (!String(form.nombreComercial ?? "").trim()) nextErrors.nombreComercial = "El nombre comercial es obligatorio.";
     if (!String(form.razonSocial ?? "").trim()) nextErrors.razonSocial = "La razón social es obligatoria.";
-    if (!String(form.rfc ?? "").trim()) nextErrors.rfc = "El RFC es obligatorio.";
-    else if (!isValidRFC(form.rfc)) nextErrors.rfc = "El RFC no tiene un formato válido.";
-    if (form.telefono && !isValidMexicanPhone(form.telefono)) nextErrors.telefono = "El teléfono debe tener 10 dígitos.";
-    if (form.correo && !isValidEmail(form.correo)) nextErrors.correo = "El correo no es válido.";
-    if (form.sitioWeb && !isValidUrl(form.sitioWeb)) nextErrors.sitioWeb = "El sitio web no es válido.";
+    if (!String(form.telefono ?? "").trim()) nextErrors.telefono = "El teléfono es obligatorio.";
+    else if (!isValidMexicanPhone(form.telefono)) nextErrors.telefono = "El teléfono debe tener 10 dígitos.";
+    if (!String(form.correo ?? "").trim()) nextErrors.correo = "El correo es obligatorio.";
+    else if (!isValidEmail(form.correo)) nextErrors.correo = "El correo no es válido.";
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -53,6 +77,8 @@ export default function InformacionGeneralTab({ info, canManage, onSave }) {
     try {
       setSaving(true);
       await onSave(form);
+    } catch {
+      setErrors((prev) => ({ ...prev, submit: "No se pudo guardar la información. Intenta de nuevo." }));
     } finally {
       setSaving(false);
     }
@@ -60,44 +86,26 @@ export default function InformacionGeneralTab({ info, canManage, onSave }) {
 
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-surface p-6">
+    <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-2xl border border-gray-200 bg-surface p-6">
+      <OpticaCardDecoration />
+      <OpticaCardHeader icon={Building2} title="Información de la empresa" description="Datos básicos que identifican a tu empresa." />
 
-      <p className="mb-4 text-sm text-text-secondary">Datos básicos que identifican a tu empresa.</p>
-
-      <div className="mb-5">
-        <ImageUploadField
-          label="Logo de la óptica"
-          value={form.logoUrl}
-          onChange={(dataUrl) => setForm((prev) => ({ ...prev, logoUrl: dataUrl }))}
-        />
+      <div className="relative grid gap-4 sm:grid-cols-2">
+        <Input label="Nombre comercial *" value={form.nombreComercial ?? ""} onChange={set("nombreComercial", (v) => onlyLetters(v, NAME_MAX))} error={errors.nombreComercial} />
+        <Input label="Razón social *" value={form.razonSocial ?? ""} onChange={set("razonSocial", (v) => onlyLetters(v, NAME_MAX))} error={errors.razonSocial} />
+        <Input label="Teléfono general *" value={form.telefono ?? ""} onChange={set("telefono", (v) => onlyDigits(v, 10))} error={errors.telefono} placeholder="10 dígitos" />
+        <Input label="Correo general *" type="email" value={form.correo ?? ""} onChange={set("correo")} error={errors.correo} />
+        <Input label="Responsable sanitario (Opcional)" value={form.responsableSanitario ?? ""} onChange={set("responsableSanitario", (v) => onlyLetters(v, NAME_MAX))} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Nombre comercial *" value={form.nombreComercial ?? ""} onChange={set("nombreComercial")} error={errors.nombreComercial} />
-        <Input label="Razón social *" value={form.razonSocial ?? ""} onChange={set("razonSocial")} error={errors.razonSocial} />
-        <Input label="RFC *" value={form.rfc ?? ""} onChange={set("rfc")} error={errors.rfc} />
-        <Input label="Responsable sanitario" value={form.responsableSanitario ?? ""} onChange={set("responsableSanitario")} />
-        <Input label="Teléfono general" value={form.telefono ?? ""} onChange={set("telefono")} error={errors.telefono} placeholder="10 dígitos" />
-        <Input label="Correo general" type="email" value={form.correo ?? ""} onChange={set("correo")} error={errors.correo} />
-        <Input label="Sitio web" value={form.sitioWeb ?? ""} onChange={set("sitioWeb")} error={errors.sitioWeb} placeholder="www.tuoptica.mx" />
-      </div>
+      {errors.submit && <p className="relative mt-4 text-sm text-error">{errors.submit}</p>}
 
-      <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
-        <Button type="button" variant="outline" onClick={() => setForm(info)}>Cancelar</Button>
+      <div className="relative mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+        <Button type="button" variant="outline" onClick={() => { setForm(info); onCancel?.(); }}>Cancelar</Button>
         <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</Button>
       </div>
 
     </form>
   );
 
-}
-
-
-function Field({ label, value }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</dt>
-      <dd className="mt-1 text-sm text-text-primary">{value || "—"}</dd>
-    </div>
-  );
 }

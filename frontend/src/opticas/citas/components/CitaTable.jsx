@@ -26,6 +26,7 @@ export default function CitaTable({
   const columns = [
     { key: "displayId", label: "ID" },
     { key: "patientName", label: "Paciente", render: (row) => row.patientName || "—" },
+    { key: "branchName", label: "Sucursal", render: (row) => row.branchName || "—" },
     {
       key: "dateTime",
       label: "Fecha y hora",
@@ -44,11 +45,10 @@ export default function CitaTable({
         <div className="flex items-center gap-1">
           <IconButton icon={Eye} label="Ver" onClick={() => onView(row)} />
 
-          {canEdit && (
+          {canEdit && EDITABLE_STATUSES.includes(row.status) && (
             <IconButton
               icon={Pencil}
               label="Editar"
-              disabled={!EDITABLE_STATUSES.includes(row.status)}
               onClick={() => onEdit(row)}
             />
           )}
@@ -62,6 +62,7 @@ export default function CitaTable({
       columns={columns}
       data={citas}
       emptyMessage="No hay citas que coincidan con la búsqueda."
+      pageSize={10}
     />
   );
 

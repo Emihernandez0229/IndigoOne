@@ -1,4 +1,4 @@
-import { Pencil, Ban, RotateCcw } from "lucide-react";
+import { Eye, Pencil, Ban, RotateCcw } from "lucide-react";
 import DataTable from "../../../shared/components/DataTable";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import IconButton from "../../../shared/components/IconButton";
@@ -8,6 +8,7 @@ export default function UserTable({
   users = [],
   canEdit = false,
   canDeactivate = false,
+  onView,
   onEdit,
   onDeactivate,
   onActivate,
@@ -54,6 +55,12 @@ export default function UserTable({
       label: "Acciones",
       render: (row) => (
         <div className="flex items-center gap-1">
+          <IconButton
+            icon={Eye}
+            label="Ver"
+            onClick={() => onView(row)}
+          />
+
           {canEdit && (
             <IconButton
               icon={Pencil}
@@ -86,7 +93,8 @@ export default function UserTable({
     <DataTable
       columns={columns}
       data={users}
-      emptyMessage="No hay usuarios que coincidan con la búsqueda."
+      emptyMessage="No hay personal que coincida con la búsqueda."
+      pageSize={10}
     />
   );
 }

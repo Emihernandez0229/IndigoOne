@@ -92,12 +92,6 @@ export const statusStyles = {
     className: "bg-gray-200 text-text-secondary",
   },
 
-  // Estado de ventas
-  completada: {
-    label: "Completada",
-    className: "bg-success/10 text-success",
-  },
-
   // Estado de ordenes de laboratorio
   pendiente: {
     label: "Pendiente",
@@ -117,6 +111,39 @@ export const statusStyles = {
   entregado: {
     label: "Entregado",
     className: "bg-success/10 text-success",
+  },
+
+  // Estado de ventas (Opticas)
+  completada: {
+    label: "Completada",
+    className: "bg-success/10 text-success",
+  },
+
+  // Pagos de ventas (Opticas) - separado del estado del trabajo
+  liquidada: {
+    label: "Liquidada",
+    className: "bg-success/10 text-success",
+  },
+
+  en_adeudo: {
+    label: "En adeudo",
+    className: "bg-warning/10 text-warning",
+  },
+
+  // Movimientos de inventario (Opticas)
+  entrada: {
+    label: "Entrada",
+    className: "bg-success/10 text-success",
+  },
+
+  salida: {
+    label: "Salida",
+    className: "bg-error/10 text-error",
+  },
+
+  ajustes: {
+    label: "Ajuste",
+    className: "bg-indigo-light text-indigo-primary",
   },
 
   // Trabajos de laboratorio (Indigo)

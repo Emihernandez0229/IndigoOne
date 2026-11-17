@@ -5,6 +5,7 @@ import Navbar from "./Navbar";
 
 import { useAuth } from "../context/AuthContext";
 import { getNavigationForRole } from "../security/roleConfig";
+import { OpticaBrandThemeProvider, useOpticaBrandTheme } from "../context/OpticaBrandThemeContext";
 
 export default function AppLayout() {
 
@@ -12,6 +13,17 @@ export default function AppLayout() {
 
   const navigation = getNavigationForRole(user?.role);
 
+  return (
+    <OpticaBrandThemeProvider role={user?.role}>
+      <AppLayoutShell navigation={navigation} />
+    </OpticaBrandThemeProvider>
+  );
+
+}
+
+function AppLayoutShell({ navigation }) {
+
+  const { style } = useOpticaBrandTheme();
 
   return (
 
@@ -22,6 +34,7 @@ export default function AppLayout() {
         overflow-hidden
         bg-background
       "
+      style={style}
     >
 
       {/* SIDEBAR */}

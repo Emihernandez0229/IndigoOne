@@ -242,9 +242,7 @@ export const PERMISSIONS = {
 
     "optica.appointment.manage",
 
-    "optica.lab.view",
-    "optica.lab.create",
-    "optica.lab.manage",
+    "optica.consulta.manage",
 
     "optica.inventory.view",
     "optica.inventory.manage",
@@ -256,8 +254,10 @@ export const PERMISSIONS = {
   [ROLES.OPTICA_ENCARGADO]: [
     "optica.settings.view",
 
+    // No crea productos/servicios nuevos (eso es del Dueño) - solo
+    // administra el stock y el alta/baja de los que ya existen, en su
+    // propia sucursal.
     "optica.catalog.view",
-    "optica.catalog.create",
     "optica.catalog.update",
     "optica.catalog.deactivate",
 
@@ -280,9 +280,7 @@ export const PERMISSIONS = {
 
     "optica.appointment.manage",
 
-    "optica.lab.view",
-    "optica.lab.create",
-    "optica.lab.manage",
+    "optica.consulta.manage",
 
     "optica.inventory.view",
     "optica.inventory.manage",
@@ -297,19 +295,15 @@ export const PERMISSIONS = {
     "optica.patient.view",
     "optica.patient.create",
     "optica.patient.update",
-    "optica.patient.deactivate",
 
     "optica.appointment.manage",
+
+    "optica.consulta.manage",
 
     "optica.sales.view",
     "optica.sales.create",
 
-    "optica.lab.view",
-    "optica.lab.create",
-
     "optica.inventory.view",
-
-    "optica.reports.view",
   ],
 
 };

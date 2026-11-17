@@ -9,6 +9,7 @@ import ChartContainer from "../../../shared/charts/ChartContainer";
 import DonutChart from "../../../shared/charts/DonutChart";
 import LoadingSpinner from "../../../shared/components/LoadingSpinner";
 import ErrorState from "../../../shared/components/ErrorState";
+import PeriodToggle from "../../../shared/components/PeriodToggle";
 
 import useBranches from "../../branches/hooks/useBranches";
 import useClients from "../../clients/hooks/useClients";
@@ -126,20 +127,7 @@ export default function OwnerDashboard() {
       <div className="space-y-6">
 
         <div className="flex justify-end">
-          <div className="inline-flex rounded-xl border border-gray-200 bg-surface p-1">
-            {PERIODS.map((p) => (
-              <button
-                key={p.value}
-                type="button"
-                onClick={() => setPeriod(p.value)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                  period === p.value ? "bg-indigo-primary text-white" : "text-text-secondary hover:bg-background"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <PeriodToggle periods={PERIODS} value={period} onChange={setPeriod} />
         </div>
 
         <KpiRow items={kpis} />

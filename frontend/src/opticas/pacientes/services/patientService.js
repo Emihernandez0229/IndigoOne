@@ -19,21 +19,29 @@ function mapPatient(raw) {
 
 
 export async function listPatients(branchId) {
-  const { pacientes } = await httpClient.get(
+  const pacientes = await httpClient.get(
     `/api/opticas/pacientes/sucursal/${branchId}`
   );
   return (pacientes ?? []).map(mapPatient);
 }
 
 
+// Módulo "Clientes" del Dueño: todos los pacientes de la óptica, de todas
+// las sucursales a la vez - sin necesidad de elegir una primero.
+export async function listAllPatients() {
+  const pacientes = await httpClient.get("/api/opticas/pacientes");
+  return (pacientes ?? []).map(mapPatient);
+}
+
+
 export async function getPatient(id) {
-  const { paciente } = await httpClient.get(`/api/opticas/pacientes/${id}`);
+  const paciente = await httpClient.get(`/api/opticas/pacientes/${id}`);
   return mapPatient(paciente);
 }
 
 
 export async function createPatient(payload) {
-  const { paciente } = await httpClient.post("/api/opticas/pacientes", {
+  const paciente = await httpClient.post("/api/opticas/pacientes", {
     sucursalId: payload.branchId || undefined,
     nombre: payload.name,
     telefono: payload.phone || null,
@@ -45,7 +53,7 @@ export async function createPatient(payload) {
 
 
 export async function updatePatient(id, payload) {
-  const { paciente } = await httpClient.patch(`/api/opticas/pacientes/${id}`, {
+  const paciente = await httpClient.patch(`/api/opticas/pacientes/${id}`, {
     nombre: payload.name,
     telefono: payload.phone || null,
     email: payload.email || null,
@@ -58,7 +66,7 @@ export async function updatePatient(id, payload) {
 // NOTA: el backend real todavia no expone estos dos endpoints.
 // Ver aviso para el equipo de back al final de la respuesta.
 export async function deactivatePatient(id) {
-  const { paciente } = await httpClient.patch(
+  const paciente = await httpClient.patch(
     `/api/opticas/pacientes/${id}/deactivate`
   );
   return mapPatient(paciente);
@@ -66,7 +74,7 @@ export async function deactivatePatient(id) {
 
 
 export async function activatePatient(id) {
-  const { paciente } = await httpClient.patch(
+  const paciente = await httpClient.patch(
     `/api/opticas/pacientes/${id}/activate`
   );
   return mapPatient(paciente);

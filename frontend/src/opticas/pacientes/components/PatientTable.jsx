@@ -25,6 +25,7 @@ export default function PatientTable({
   const columns = [
     { key: "displayId", label: "ID" },
     { key: "name", label: "Nombre" },
+    { key: "branchName", label: "Sucursal", render: (row) => row.branchName || "—" },
     { key: "phone", label: "Teléfono", render: (row) => row.phone || "—" },
     { key: "email", label: "Email", render: (row) => row.email || "—" },
     {
@@ -86,7 +87,8 @@ export default function PatientTable({
     <DataTable
       columns={columns}
       data={patients}
-      emptyMessage="No hay pacientes que coincidan con la búsqueda."
+      emptyMessage="No hay clientes que coincidan con la búsqueda."
+      pageSize={10}
     />
   );
 

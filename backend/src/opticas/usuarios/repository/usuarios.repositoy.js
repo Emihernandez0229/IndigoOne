@@ -1,3 +1,16 @@
+const COLUMNAS_USUARIO = `
+    id,
+    optica_id,
+    sucursal_id,
+    nombre,
+    telefono,
+    email,
+    usuario,
+    rol,
+    activo,
+    dado_de_alta_por,
+    created_at
+`;
 
 class UsuarioRepository {
     constructor(pool) {
@@ -45,11 +58,7 @@ class UsuarioRepository {
      * @param {Object} [client] - Cliente de PostgreSQL para transacciones.
      * @returns {Promise<Object|null>} Asignación encontrada o null.
      */
-    async buscarAsignacionesDeGerente(
-        sucursalId,
-        opticaUsuarioId,
-        client
-    ) {
+    async buscarAsignacionesDeGerente(sucursalId, opticaUsuarioId, client) {
         const query = `
             SELECT
                 id,
@@ -75,6 +84,8 @@ class UsuarioRepository {
      * @param {string} data.opticaId - ID de la óptica.
      * @param {string|null} data.sucursalId - ID de la sucursal.
      * @param {string} data.nombre - Nombre del usuario.
+     * @param {string|null} [data.telefono] - Teléfono del usuario.
+     * @param {string|null} [data.email] - Correo electrónico del usuario.
      * @param {string} data.usuario - Credencial de acceso.
      * @param {string} data.passwordHash - Contraseña cifrada.
      * @param {string} data.rol - Rol del usuario.
@@ -87,6 +98,8 @@ class UsuarioRepository {
             opticaId,
             sucursalId,
             nombre,
+            telefono,
+            email,
             usuario,
             passwordHash,
             rol,
@@ -99,19 +112,23 @@ class UsuarioRepository {
                 optica_id,
                 sucursal_id,
                 nombre,
+                telefono,
+                email,
                 usuario,
                 password_hash,
                 rol,
                 dado_de_alta_por
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING *
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING ${COLUMNAS_USUARIO}
         `;
 
         const { rows } = await this._exec(client).query(query, [
             opticaId,
             sucursalId || null,
             nombre,
+            telefono || null,
+            email || null,
             usuario,
             passwordHash,
             rol,
@@ -121,39 +138,24 @@ class UsuarioRepository {
         return rows[0];
     }
 
-
-
     /**
-    * Obtiene todos los usuarios de una óptica.
-    *
-    * @param {string} opticaId - ID de la óptica.
-    * @param {Object} client - Cliente de PostgreSQL opcional.
-    * @returns {Promise<Array>} Usuarios encontrados.
-    */
-    async listarUsuariosPorOptica(opticaId,client) {
-
+     * Obtiene todos los usuarios de una óptica.
+     *
+     * @param {string} opticaId - ID de la óptica.
+     * @param {Object} [client] - Cliente de PostgreSQL opcional.
+     * @returns {Promise<Array>} Usuarios encontrados.
+     */
+    async listarUsuariosPorOptica(opticaId, client) {
         const query = `
-            SELECT
-                id,
-                optica_id,
-                sucursal_id,
-                nombre,
-                usuario,
-                rol,
-                activo,
-                dado_de_alta_por,
-                created_at
+            SELECT ${COLUMNAS_USUARIO}
             FROM optica_usuarios
             WHERE optica_id = $1
             ORDER BY nombre ASC, created_at ASC
         `;
 
-        const { rows } = await this._exec(client).query(query, [
-            opticaId
-        ]);
+        const { rows } = await this._exec(client).query(query, [opticaId]);
 
         return rows;
-        
     }
 
     /**
@@ -161,24 +163,15 @@ class UsuarioRepository {
      *
      * @param {string} opticaId - ID de la óptica.
      * @param {string} sucursalId - ID de la sucursal.
-     * @param {Object} client - Cliente de PostgreSQL opcional.
+     * @param {Object} [client] - Cliente de PostgreSQL opcional.
      * @returns {Promise<Array>} Usuarios encontrados.
-    */
+     */
     async listarUsuariosPorSucursal(opticaId, sucursalId, client) {
         const query = `
-            SELECT
-                id,
-                optica_id,
-                sucursal_id,
-                nombre,
-                usuario,
-                rol,
-                activo,
-                dado_de_alta_por,
-                created_at
+            SELECT ${COLUMNAS_USUARIO}
             FROM optica_usuarios
             WHERE optica_id = $1
-            AND sucursal_id = $2
+              AND sucursal_id = $2
             ORDER BY nombre ASC, created_at ASC
         `;
 
@@ -190,17 +183,14 @@ class UsuarioRepository {
         return rows;
     }
 
-
-
-
     /**
      * Obtiene la sucursal administrada por un encargado.
      *
      * @param {string} opticaId - ID de la óptica.
      * @param {string} opticaUsuarioId - ID del encargado.
-     * @param {Object} client - Cliente de PostgreSQL opcional.
+     * @param {Object} [client] - Cliente de PostgreSQL opcional.
      * @returns {Promise<Object|null>} Sucursal administrada o null.
-    */
+     */
     async buscarSucursalAdministrada(opticaId, opticaUsuarioId, client) {
         const query = `
             SELECT
@@ -212,97 +202,100 @@ class UsuarioRepository {
             INNER JOIN sucursal_gerentes sg
                 ON sg.sucursal_id = s.id
             WHERE s.optica_id = $1
-            AND sg.optica_usuario_id = $2
-            AND s.activo = TRUE
+              AND sg.optica_usuario_id = $2
+              AND s.activo = TRUE
         `;
 
         const { rows } = await this._exec(client).query(query, [
             opticaId,
             opticaUsuarioId
         ]);
-        console.log('buscarSucursalAdministrada:', rows[0]);
 
         return rows[0] || null;
     }
 
-
-
     /**
-    * Obtiene un usuario por su ID dentro de una óptica.
-    *
-    * @param {string} usuarioId - ID del usuario.
-    * @param {string} opticaId - ID de la óptica.
-    * @param {Object} client - Cliente de PostgreSQL opcional.
-    * @returns {Promise<Object|null>} Usuario encontrado o null.
-    */
-    async buscarUsuarioPorIdYOptica(usuarioId,opticaId, client){
-
+     * Obtiene un usuario por su ID dentro de una óptica.
+     *
+     * @param {string} usuarioId - ID del usuario.
+     * @param {string} opticaId - ID de la óptica.
+     * @param {Object} [client] - Cliente de PostgreSQL opcional.
+     * @returns {Promise<Object|null>} Usuario encontrado o null.
+     */
+    async buscarUsuarioPorIdYOptica(usuarioId, opticaId, client) {
         const query = `
-                SELECT
-                    id,
-                    optica_id,
-                    sucursal_id,
-                    nombre,
-                    usuario,
-                    rol,
-                    activo,
-                    dado_de_alta_por,
-                    created_at
-                FROM optica_usuarios
-                WHERE id=$1
-                AND optica_id = $2 
-            `;
+            SELECT ${COLUMNAS_USUARIO}
+            FROM optica_usuarios
+            WHERE id = $1
+              AND optica_id = $2
+        `;
 
-            const { rows } = await this._exec(client).query(query,[
-                usuarioId,
-                opticaId
-            ]);
+        const { rows } = await this._exec(client).query(query, [
+            usuarioId,
+            opticaId
+        ]);
 
-            return rows[0] || null;
-        
+        return rows[0] || null;
     }
 
-
-    async actualizarUsuario(usuarioId, opticaId, datos, client){
-
+    /**
+     * Actualiza los campos enviados de un usuario.
+     * Un valor `undefined` no se modifica; `null` limpia teléfono o email.
+     *
+     * @param {string} usuarioId - ID del usuario.
+     * @param {string} opticaId - ID de la óptica.
+     * @param {Object} datos - Campos a actualizar.
+     * @param {string} [datos.nombre]
+     * @param {string|null} [datos.telefono]
+     * @param {string|null} [datos.email]
+     * @param {boolean} [datos.activo]
+     * @param {Object} [client] - Cliente de PostgreSQL opcional.
+     * @returns {Promise<Object|null>} Usuario actualizado o null.
+     */
+    async actualizarUsuario(usuarioId, opticaId, datos, client) {
         const campos = [];
         const valores = [];
         let indice = 1;
 
-        if (datos.nombre !== undefined){
+        if (datos.nombre !== undefined) {
             campos.push(`nombre = $${indice++}`);
             valores.push(datos.nombre);
         }
 
-        if(datos.activo !== undefined){
+        if (datos.telefono !== undefined) {
+            campos.push(`telefono = $${indice++}`);
+            valores.push(datos.telefono);
+        }
+
+        if (datos.email !== undefined) {
+            campos.push(`email = $${indice++}`);
+            valores.push(datos.email);
+        }
+
+        if (datos.activo !== undefined) {
             campos.push(`activo = $${indice++}`);
             valores.push(datos.activo);
         }
 
-        valores.push(usuarioId);
-        valores.push(opticaId);
+        // Nada que actualizar: devolver el usuario tal cual evita un SQL inválido.
+        if (campos.length === 0) {
+            return this.buscarUsuarioPorIdYOptica(usuarioId, opticaId, client);
+        }
+
+        valores.push(usuarioId, opticaId);
 
         const query = `
             UPDATE optica_usuarios
             SET ${campos.join(', ')}
             WHERE id = $${indice++}
-            AND optica_id = $${indice}
-            RETURNING
-                id,
-                optica_id,
-                sucursal_id,
-                nombre,
-                usuario,
-                rol,
-                activo,
-                dado_de_alta_por,
-                created_at        
+              AND optica_id = $${indice}
+            RETURNING ${COLUMNAS_USUARIO}
         `;
 
-        const { rows } = await this._exec(client).query(query,valores);
+        const { rows } = await this._exec(client).query(query, valores);
 
         return rows[0] || null;
-
     }
 }
+
 module.exports = UsuarioRepository;

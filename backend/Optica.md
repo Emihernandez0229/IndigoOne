@@ -1,702 +1,148 @@
-# Modelo de Roles y Permisos de las Ópticas
+modulos faltantes ya listos, que son reportes, dash y perfil
+aparte de eso de resolvieron unas incosistencias
 
-## 1. Objetivo
+1. MOVIMIENTO_META — la traducción de "tipo de movimiento de inventario" a texto y color
 
-El sistema de Índigo debe permitir administrar múltiples ópticas, donde cada óptica puede operar de manera independiente y, opcionalmente, contar con una o varias sucursales.
+Cuando en Ópticas se registra un movimiento de stock (entrada, salida, ajuste, venta), algo en el código tiene que decidir cómo se ve ese movimiento: qué palabra usar, qué color de ícono, etc. Esa lógica estaba escrita 3 veces, en 3 archivos distintos (InventarioReportTab.jsx, OwnerDashboardOpticas.jsx, BranchManagerOpticas.jsx) — y ni siquiera coincidían exactamente 
 
-El modelo de autorización debe permitir controlar:
+Lo que hice fue juntar esa traducción en un solo lugar (opticas/inventory/constants.js) y que los 3 archivos la usen de ahí.
 
-* Qué puede hacer cada usuario.
-* Sobre qué información puede operar.
-* A qué óptica pertenece.
-* A qué sucursal pertenece, cuando corresponda.
-* Qué información puede consultar o modificar.
+2. currency() y formatFecha()/formatHora() cómo se muestran el dinero y las fechas
 
-Para este sistema se establecen **tres roles principales para los usuarios de las ópticas**:
+Estas son funciones chiquitas (1-2 líneas) que convierten un número en "$1,234" o una fecha en "03 nov 2026". Estaban copiadas y pegadas en 26 archivos de Ópticas masomenos cada pantalla con su propia copia, en vez de una sola versión compartida. Las junté en shared/utils/format.js, y los 26 archivos ahora la importan de ahí en vez de tener su propia copia.
 
-1. **Dueño**
-2. **Gerente**
-3. **Empleado**
+Hay un detalle que sí se ve distinto, a propósito: algunas pantallas mostraban la fecha con un punto después del mes abreviado ("03 nov. 2026") y otras sin el punto ("03 nov 2026")  se escogió la versión sin punto para todas, así que unas 4 pantallas van a mostrar la fecha ligeramente distinta a como se veía antes (sin el punto). Todo lo demás montos, horas, el resto del formato se ve exactamente igual que antes.
 
-No se contempla inicialmente un cuarto rol. Si en el futuro aparecen nuevas necesidades, el modelo podrá extenderse mediante permisos específicos.
+es ordenar código que ya existía, no agregar ni quitar funcionalidad. 
 
----
+tambien:
 
-# 2. Estructura organizacional
+1. Desenvolver el sobre de respuesta del backend real (frontend/src/shared/api/httpClient.js)
 
-Una óptica puede existir con o sin sucursales.
+2. Alinear branchService.js con las rutas reales de Sucursales (frontend/src/opticas/branches/services/branchService.js)
 
-### Óptica sin sucursales
+updateBranch y updateBranchContact: cambiados de PUT a PATCH (el backend real no tiene ninguna ruta PUT).
+deactivateBranch y activateBranch: las rutas cambiaron de /deactivate//activate a /desactivar//activar, que es como existen en el backend real.
+createBranch: se eliminó el campo imagen que se mandaba 
 
-```text
-Óptica
-└── Dueño
-```
+6 de Octubre de 2026-----------------------------------------------------------------------------------------------------------------------
 
-El dueño administra directamente las operaciones de la óptica.
+Ajustes pendientes en el back de Ópticas para el back
 
-### Óptica con sucursales
 
-```text
-Óptica
-│
-├── Dueño
-│
-├── Sucursal Centro
-│   ├── Gerente
-│   └── Empleados
-│
-├── Sucursal Norte
-│   ├── Gerente
-│   └── Empleados
-│
-└── Sucursal Sur
-    ├── Gerente
-    └── Empleados
-```
+El front ya está alineado al contrato actual del back (rutas y permisos verificados contra el código real). Quedan 3 puntos que solo se pueden resolver del lado del back  no son cambios de diseño, sino  de permisos y 2 endpoints que todavía no existen. En los 3 casos, el front no necesitará ningún cambio adicional una vez que estén listos.
 
-La existencia de una sucursal es opcional. **No se debe crear una sucursal artificial cuando una óptica no tenga sucursales.**
 
----
+1. Sucursales — el Encargado no puede acceder ni a su propia sucursal
 
-# 3. Relación entre usuarios, ópticas y sucursales
+backend/src/opticas/sucursales/routes/sucursales.routes.js
 
-Todos los usuarios de una óptica pertenecen obligatoriamente a una óptica.
+creo aplica a  todas las rutas del módulo:
+router.use(autenticar, soloTipo('optica'), soloRol('dueno'));
 
-La pertenencia a una sucursal depende del rol.
+un usuario con rol "encargado" recibe 403 en cualquier ruta de Sucursales — incluyendo GET  y PATCH , que son justo las que usa la pantalla "Mi sucursal" del Jefe de sucursal para ver y actualizar dirección/teléfono de su propia sucursal.
 
-| Rol      | Óptica      | Sucursal       |
-| -------- | ----------- | -------------- |
-| Dueño    | Obligatoria | No obligatoria |
-| Gerente  | Obligatoria | Obligatoria    |
-| Empleado | Obligatoria | Obligatoria    |
+se necesita q:
+●	Permitir el rol "encargado" en GET id y PATCH id únicamente (el resto del módulo crear, desactivar/activar, asignar o cambiar gerente se queda exclusivo del Dueño)
 
-Esto significa que:
+●	Dentro del service, validar que el id solicitado sea la sucursal asignada a ese encargado (comparando contra sucursal_id del token), no cualquier sucursal de la óptica.
 
-```text
-Dueño
-optica_id = obligatorio
-sucursal_id = NULL
-```
 
-Mientras que:
 
-```text
-Gerente
-optica_id = obligatorio
-sucursal_id = obligatorio
-```
 
-y:
+2. Mi perfil  el rol Ventas no puede ver ni editar su propio usuario
 
-```text
-Empleado
-optica_id = obligatorio
-sucursal_id = obligatorio
-```
+backend/src/opticas/usuarios/routes/usuarios.routes.js
 
-El dueño administra la óptica completa y no necesita pertenecer a una sucursal específica.
+Las 3 rutas que necesita "Mi perfil" están restringidas así:
+soloRol('dueno', 'encargado') en GET , GET id y PATCH id
+"empleado" (rol Ventas) nunca aparece en esa lista, así que no tiene ninguna ruta disponible para consultar o actualizar ni siquiera su propia información (nombre, teléfono, correo).
 
----
+hay que:
+●	Agregar 'empleado' a soloRol en esas 3 rutas.
+●	Dentro del service, cuando el rol sea "empleado", restringir para que solo pueda ver/editar su propio registro, nunca el de otro usuario.
 
-# 4. Roles
 
-## 4.1 Dueño
+3. Clientes — faltan 2 endpoints
 
-El dueño representa al responsable de toda la óptica.
+backend/src/opticas/pacientes/routes/paciente.routes.js
 
-### Alcance
+3.1 Dar de alta / dar de baja un cliente
 
-Su alcance es **toda la óptica**.
+Hoy no existe ninguna ruta para esto. Sucursales y Usuarios ya tienen el mismo tipo de acción como referencia
 
-Si la óptica tiene varias sucursales, el dueño puede consultar y administrar la información de todas ellas.
+Para Clientes se necesitaría el equivalente.
 
-```text
-Dueño
-│
-├── Óptica
-├── Sucursal Centro
-├── Sucursal Norte
-├── Sucursal Sur
-├── Usuarios
-├── Clientes
-├── Ventas
-├── Citas
-├── Laboratorio
-├── Inventario
-└── Reportes
-```
+3.2 Listar todos los clientes de la óptica (sin elegir sucursal primero)
 
-### Responsabilidades
+GET /pacientes/sucursal/:sucursalId
 
-El dueño puede:
+El Dueño necesita ver los clientes de todas las sucursales juntos en una sola vista (es como ya funciona Sucursales y Usuarios para él: siempre trae todo lo de su óptica). Hoy esto bloquea 3 pantallas del Dueño al mismo tiempo: la vista "Clientes", el Dashboard, y el reporte de Clientes.
 
-* Administrar la información de la óptica.
-* Crear y administrar sucursales.
-* Crear y administrar usuarios.
-* Asignar empleados y gerentes a sucursales.
-* Consultar las operaciones de todas las sucursales.
-* Consultar clientes.
-* Administrar citas.
-* Consultar y administrar ventas.
-* Consultar órdenes de laboratorio.
-* Administrar productos y servicios.
-* Consultar y administrar inventario.
-* Consultar reportes generales de la óptica.
+Se necesitaría:}
 
-El dueño **no está limitado por una sucursal específica**.
+GET /pacientes  si el rol es dueño, trae todos los clientes de su optica_id
 
----
+Ventas y Citas el Dueño no puede ver "todas las sucursales" (nuevo)
 
-# 4.2 Gerente
 
-El gerente representa al responsable operativo de una sucursal.
+ambos usan resolverSucursal, que para el Dueño exige un sucursalId explícitosi no lo manda, truena con "Debes indicar la sucursal". No existe la opción de pedir todo junto.
+Se necesita: agregar un parámetro igual al que ya existe en Reportes que, cuando el Dueño lo mande, traiga los registros de todas las sucursales de su óptica en vez de exigir una sola.
+En los 3 casos el front ya está listo del lado de las llamadas nada más falta que estas rutas existan y respondan.
 
-### Alcance
 
-Su alcance está limitado a **una sucursal específica**.
+AHORA REPORTES,EL MAS DIFICIL DE TODOS
 
-```text
-Óptica
-│
-├── Sucursal Centro
-│   └── Gerente
-│
-├── Sucursal Norte
-│   └── Gerente
-│
-└── Sucursal Sur
-    └── Gerente
-```
+1. Servicios no se puede agrupar por nada (ni por día, ni por lo que sea)
 
-Un gerente de la Sucursal Centro no puede administrar directamente la información de la Sucursal Norte.
+solo acepta servicioId y limit. bloquea la gráfica "Servicios realizados por día" y el detalle por servicio siguen calculándose en el front.
 
-### Responsabilidades
+2. Ventas: el desglose por grupo tiene un tope de 100 resultados
 
-El gerente puede:
+es un límite fijo del endpoint, no se puede pedir más de 100 filas de una sola vez (por sucursal, empleado, producto, servicio o día).
+Por eso quitamos la opción "Anual" del front para no ofrecer un rango que el back no puede cubrir completo.
 
-* Consultar información de su sucursal.
-* Administrar empleados de su sucursal.
-* Consultar clientes de su sucursal.
-* Administrar citas de su sucursal.
-* Administrar ventas de su sucursal.
-* Gestionar órdenes de laboratorio relacionadas con su sucursal.
-* Consultar y administrar el inventario de su sucursal.
-* Consultar productos y servicios disponibles.
-* Consultar reportes correspondientes a su sucursal.
+3. Ventas: ninguna dimensión da Operaciones y Unidades juntas
 
-### Restricciones
+agrupar por sucursal/empleado regresa operaciones y ticket promedio, pero no unidades, agrupar por producto/servicio regresa unidades (cantidad), pero no operaciones ni ticket promedio.
 
-El gerente no puede:
+bloquea la tabla de "Detalle" (que necesita ambas columnas al mismo tiempo) se sigue calculando en el front.
 
-* Administrar la óptica completa.
-* Crear o eliminar otras sucursales.
-* Administrar otras sucursales.
-* Modificar al dueño de la óptica.
-* Administrar gerentes de otras sucursales.
-* Consultar información privada de otras sucursales.
+4. Clientes no tiene ningún desglose, solo 4 números totales
 
----
+ese método regresa total/nuevos/recurrentes/atendidos para el conjunto de sucursales pedido, pero no puede partirlo por sucursal individual, ni dar un listado de clientes con su actividad.
+bloquea todo lo de la pestaña Clientes (comparativos y tabla de actividad) se calcula en el front.
 
-# 4.3 Empleado
+Al parecer solo es eso.
 
-El empleado representa al usuario operativo que realiza las actividades diarias de la óptica.
 
-### Alcance
+6 de noviembre de 2026
 
-Su alcance está limitado a su sucursal.
+BACK CON FRONT:INTEGRACIÓN
 
-```text
-Óptica
-└── Sucursal Centro
-    ├── Gerente
-    ├── Empleado
-    ├── Empleado
-    └── Empleado
-```
+YA INTEGRADO
 
-### Responsabilidades
+●	Citas (como módulo completo)
+●	Reportes Citas y Clientes
 
-El empleado puede realizar las operaciones directamente relacionadas con la atención y venta al cliente:
+INTEGRADO DEL LADO DEL CÓDIGO, PERO CON ALGO PENDIENTE DE TU LADO
 
-* Consultar clientes.
-* Registrar clientes.
-* Actualizar información de clientes.
-* Registrar citas.
-* Consultar citas.
-* Actualizar el estado de citas.
-* Registrar ventas.
-* Consultar ventas permitidas.
-* Crear órdenes de laboratorio.
-* Consultar el estado de las órdenes de laboratorio.
+Todo esto ya está detallado arriba en este mismo documento, nomás lo listo aquí de corrido:
 
-### Restricciones
+●	Sucursales — falta el permiso del Encargado en su propia sucursal.
+●	Mi perfil / Personal — falta el permiso de Ventas/empleado .
+●	Clientes — faltan los 2 endpoints.
+●	Ventas y Citas — falta el todas=true.
+●	Reportes — Servicios sin agrupar, Clientes sin desglose, tope de 100 en Ventas.
 
-El empleado no puede:
 
-* Administrar usuarios.
-* Crear sucursales.
-* Modificar sucursales.
-* Administrar la configuración de la óptica.
-* Administrar gerentes.
-* Administrar inventario de forma administrativa.
-* Consultar información de otras sucursales.
-* Consultar reportes administrativos generales.
+El código de estos módulos ya lo revisé y coincide con lo que espera el front.
 
----
+●	Ventas (crear/liquidar/cancelar una venta)
+●	Reportes — Ventas y Servicios 
+●	Catálogo 
+●	Consultas 
+●	Óptica (configuración general)
+●	Mi perfil / Personal
 
-# 5. Modelo de permisos
-
-Los roles representan **quién es el usuario**, mientras que los permisos representan **qué puede hacer**.
-
-Se recomienda manejar los permisos mediante la siguiente estructura conceptual:
-
-```text
-Rol
- │
- ▼
-Permisos
- │
- ▼
-Recurso + Acción
-```
-
-Por ejemplo:
-
-```text
-empleado
-    │
-    └── ventas.crear
-```
-
-significa que un empleado tiene permiso para crear una venta.
-
-Los permisos pueden seguir una nomenclatura basada en:
-
-```text
-recurso.acción
-```
-
-Ejemplos:
-
-```text
-clientes.ver
-clientes.crear
-clientes.editar
-
-citas.ver
-citas.crear
-citas.editar
-citas.cancelar
-
-ventas.ver
-ventas.crear
-ventas.cancelar
-
-laboratorio.ver
-laboratorio.crear
-laboratorio.editar
-
-usuarios.ver
-usuarios.crear
-usuarios.editar
-usuarios.desactivar
-
-sucursales.ver
-sucursales.crear
-sucursales.editar
-
-inventario.ver
-inventario.editar
-
-reportes.ver
-```
-
----
-
-# 6. Matriz inicial de permisos
-
-La siguiente matriz representa la propuesta inicial de permisos.
-
-| Módulo                 | Dueño | Gerente             | Empleado          |
-| ---------------------- | ----- | ------------------- | ----------------- |
-| Óptica                 | CRUD  | Ver                 | No                |
-| Sucursales             | CRUD  | Ver propia          | No                |
-| Usuarios               | CRUD  | Gestionar empleados | No                |
-| Clientes               | CRUD  | CRUD                | CRUD              |
-| Citas                  | CRUD  | CRUD                | CRUD              |
-| Ventas                 | CRUD  | CRUD                | Crear / consultar |
-| Órdenes de laboratorio | CRUD  | CRUD                | Crear / consultar |
-| Productos y servicios  | CRUD  | CRUD                | Consultar         |
-| Inventario             | CRUD  | Gestionar sucursal  | Consultar         |
-| Reportes               | Todas | Sucursal            | Limitados         |
-
-**CRUD** representa:
-
-* Create — Crear
-* Read — Consultar
-* Update — Actualizar
-* Delete — Eliminar
-
-Las operaciones destructivas, como cancelar ventas o eliminar información, deben definirse posteriormente de acuerdo con las reglas del negocio.
-
----
-
-# 7. Rol, permiso y alcance
-
-Es importante diferenciar tres conceptos.
-
-## Rol
-
-Define el tipo de usuario:
-
-```text
-dueño
-gerente
-empleado
-```
-
-## Permiso
-
-Define la acción que puede realizar:
-
-```text
-ventas.crear
-clientes.editar
-citas.ver
-```
-
-## Alcance
-
-Define sobre qué información puede realizar esa acción.
-
-Ejemplo:
-
-```text
-María
-│
-├── Rol: empleado
-├── Permiso: ventas.ver
-└── Alcance: Sucursal Centro
-```
-
-Por lo tanto, María puede consultar ventas, pero únicamente las correspondientes a su sucursal.
-
-En cambio:
-
-```text
-Carlos
-│
-├── Rol: dueño
-├── Permiso: ventas.ver
-└── Alcance: Óptica completa
-```
-
-Carlos puede consultar las ventas de todas las sucursales de su óptica.
-
----
-
-# 8. Regla de aislamiento entre sucursales
-
-Cuando una óptica tiene varias sucursales, los usuarios pertenecientes a una sucursal no deben poder acceder directamente a información de otra sucursal.
-
-Por ejemplo:
-
-```text
-Óptica Vision
-│
-├── Sucursal Centro
-│   ├── Juan
-│   └── María
-│
-└── Sucursal Norte
-    ├── Pedro
-    └── Ana
-```
-
-María pertenece a:
-
-```text
-sucursal_id = CENTRO
-```
-
-Por lo tanto, una consulta de ventas realizada por María debe limitarse a:
-
-```text
-ventas.sucursal_id = CENTRO
-```
-
-No debe ser suficiente validar únicamente que María tenga el permiso:
-
-```text
-ventas.ver
-```
-
-También debe comprobarse el alcance.
-
-Conceptualmente:
-
-```text
-¿Tiene el permiso?
-        │
-        ▼
-      Sí
-        │
-        ▼
-¿El recurso pertenece
-a su alcance?
-        │
-    ┌───┴───┐
-   Sí       No
-   │         │
-Permitir   Denegar
-```
-
----
-
-# 9. Caso especial: óptica sin sucursales
-
-Una óptica puede comenzar sin ninguna sucursal.
-
-Por ejemplo:
-
-```text
-Óptica Vision
-└── Carlos
-    └── dueño
-```
-
-Carlos puede trabajar directamente con:
-
-```text
-Clientes
-Citas
-Ventas
-Órdenes de laboratorio
-Inventario
-Productos
-```
-
-No es necesario crear:
-
-```text
-Sucursal Principal
-```
-
-solamente para permitir que el sistema funcione.
-
-La ausencia de sucursales representa correctamente que la óptica opera directamente.
-
----
-
-# 10. Creación posterior de sucursales
-
-Si posteriormente el dueño crea una sucursal:
-
-```text
-Óptica Vision
-│
-├── Carlos
-│   └── dueño
-│
-└── Sucursal Centro
-```
-
-Carlos continúa siendo dueño de la óptica.
-
-No se convierte en gerente.
-
-Posteriormente puede crear un gerente:
-
-```text
-Óptica Vision
-│
-├── Carlos
-│   └── dueño
-│
-└── Sucursal Centro
-    └── Juan
-        └── gerente
-```
-
-Y después agregar empleados:
-
-```text
-Óptica Vision
-│
-├── Carlos
-│   └── dueño
-│
-└── Sucursal Centro
-    ├── Juan
-    │   └── gerente
-    │
-    ├── María
-    │   └── empleado
-    │
-    └── Pedro
-        └── empleado
-```
-
----
-
-# 11. Regla de integridad de los roles
-
-La relación entre el rol y la sucursal debe mantenerse consistente.
-
-Se establece:
-
-```text
-dueño
-    sucursal_id = NULL
-
-gerente
-    sucursal_id = obligatorio
-
-empleado
-    sucursal_id = obligatorio
-```
-
-Esto evita situaciones incorrectas como:
-
-```text
-empleado
-sucursal_id = NULL
-```
-
-o:
-
-```text
-gerente
-sucursal_id = NULL
-```
-
-El dueño es el único rol que puede existir directamente asociado a la óptica sin pertenecer a una sucursal.
-
----
-
-# 12. Gerente por sucursal
-
-Cada sucursal tendrá como máximo un gerente.
-
-La relación será:
-
-```text
-Sucursal 1 ─────── 0..1 Gerente
-```
-
-Por ejemplo:
-
-```text
-Sucursal Centro → Juan
-Sucursal Norte  → Ana
-Sucursal Sur    → sin gerente
-```
-
-Una sucursal puede existir temporalmente sin gerente, pero no puede tener dos gerentes simultáneamente.
-
-La tabla `sucursal_gerentes` se utiliza para representar esta relación.
-
----
-
-# 13. Principio general de autorización
-
-Todas las operaciones realizadas por un usuario deben pasar conceptualmente por tres validaciones:
-
-```text
-1. ¿Quién es?
-       ↓
-2. ¿Qué puede hacer?
-       ↓
-3. ¿Sobre qué información puede hacerlo?
-```
-
-Ejemplo:
-
-```text
-Usuario:
-María
-
-Rol:
-empleado
-
-Permiso:
-ventas.crear
-
-Alcance:
-Sucursal Centro
-```
-
-Resultado:
-
-```text
-Crear venta en Centro       → PERMITIDO
-Crear venta en Norte        → DENEGADO
-Crear sucursal              → DENEGADO
-Modificar usuarios          → DENEGADO
-```
-
----
-
-# 14. Resumen del modelo
-
-El modelo de usuarios de las ópticas queda definido de la siguiente manera:
-
-```text
-                         ÓPTICA
-                           │
-                           │
-                    ┌──────┴──────┐
-                    │             │
-                  Dueño       Sucursales
-                    │             │
-                    │       ┌─────┴─────┐
-                    │       │           │
-                    │    Gerente    Empleados
-                    │
-                    ▼
-              Toda la óptica
-```
-
-### Dueño
-
-```text
-Alcance → Toda la óptica
-```
-
-### Gerente
-
-```text
-Alcance → Una sucursal
-```
-
-### Empleado
-
-```text
-Alcance → Una sucursal
-```
-
-La arquitectura permite tanto:
-
-```text
-Óptica
-└── Dueño
-```
-
-como:
-
-```text
-Óptica
-├── Dueño
-├── Sucursal A
-│   ├── Gerente
-│   └── Empleados
-├── Sucursal B
-│   ├── Gerente
-│   └── Empleados
-└── Sucursal C
-    ├── Gerente
-    └── Empleados
-```
-
-De esta forma, **las sucursales son opcionales**, el dueño siempre pertenece directamente a la óptica y los roles de gerente y empleado están asociados a una sucursal específica.
+Dashboard no tiene back propio hereda el estado de los módulos de arriba (Ventas, Citas, Pacientes, etc.), así que su estado depende de esos.

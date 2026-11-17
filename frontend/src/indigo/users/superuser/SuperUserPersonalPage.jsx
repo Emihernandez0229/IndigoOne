@@ -19,7 +19,7 @@ import useBranches from "../../branches/hooks/useBranches";
 import { filterUsers } from "../filterUsers";
 import { SUPERUSER_PERSONAL_ROLES } from "../constants";
 import UserDetailPanel from "../components/UserDetailPanel";
-import PersonalTable from "./components/PersonalTable";
+import UserTable from "../components/UserTable";
 import PersonnelFormModal from "../components/PersonnelFormModal";
 import EditPersonnelModal from "../components/EditPersonnelModal";
 import ResetPasswordModal from "./components/ResetPasswordModal";
@@ -156,8 +156,10 @@ export default function SuperUserPersonalPage() {
             />
           </FilterBar>
 
-          <PersonalTable
+          <UserTable
             users={filtered}
+            canEdit
+            canDeactivate
             onView={(user) => setViewingUserId(user.id)}
             onEdit={(user) => setEditingUser(user)}
             onDeactivate={(user) => setConfirmAction({ type: "deactivate", user })}
